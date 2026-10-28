@@ -24,12 +24,21 @@ jobs:
       # Deprecation warnings come from Expo/Jest tooling and can't be fixed here; show real errors only.
       - run: npm ci --loglevel=error
 
+      # --no-install: Expo only warns when `pod install` fails, so run it as its own step below.
       - name: Generate native iOS project
-        run: npx expo prebuild --platform ios --clean
+        run: npx expo prebuild --platform ios --clean --no-install
+
+      - name: Install CocoaPods
+        working-directory: ios
+        run: |
+          command -v pod >/dev/null || brew install cocoapods
+          pod --version
+          pod install
 
       - name: Build without code signing
         run: |
-          WORKSPACE=$(ls -d ios/*.xcworkspace | head -1)
+          WORKSPACE=$(ls -d ios/*.xcworkspace 2>/dev/null | head -1)
+          if [ -z "$WORKSPACE" ]; then echo "No .xcworkspace in ios/:"; ls -la ios; exit 1; fi
           SCHEME=$(basename "$WORKSPACE" .xcworkspace)
           echo "Workspace: $WORKSPACE, scheme: $SCHEME"
           xcodebuild \
