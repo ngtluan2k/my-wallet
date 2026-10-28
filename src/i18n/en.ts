@@ -81,6 +81,7 @@ export const en: Record<TranslationKey, string> = {
   'signing.daysLeft':
     'The app will stop opening in {days} days ({time} on {date}). Export a backup, then re-sign it with Sideloadly.',
   'signing.today': 'The app will stop opening at {time} today. Export a backup and re-sign it with Sideloadly now.',
+  'signing.daysLeftShort': '{days} days until the app needs re-signing (expires {time} on {date}).',
   'signing.settingsLabel': 'App signature expires at {time} on {date} ({days} days left).',
 
   'storage.error.title': 'Could not read your data',

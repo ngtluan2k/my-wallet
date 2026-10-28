@@ -1,25 +1,41 @@
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { StyleSheet, View } from 'react-native';
+
 import { formatLocalDate, formatTime, toLocalDate } from '@/domain/dates';
 import { RESIGN_WARNING_DAYS } from '@/domain/provisioning';
 import { useT } from '@/i18n';
-import { useTheme } from '@/theme';
+import { spacing, useTheme } from '@/theme';
 
 import { AppText, Button, Card } from './ui';
 import { useBackupActions } from './useBackupActions';
 import { useSigningExpiry } from './useSigningExpiry';
 
-/** Dashboard warning shown in the last days before a sideloaded build stops launching. */
+/**
+ * Dashboard notice for sideloaded builds: always shows days left, and becomes a prominent
+ * warning with a backup button in the last days before the build stops launching.
+ */
 export function SigningExpiryBanner() {
   const signing = useSigningExpiry();
   const { t, language } = useT();
   const { colors } = useTheme();
   const { exportData } = useBackupActions();
-  if (!signing || signing.daysLeft > RESIGN_WARNING_DAYS) return null;
+  if (!signing) return null;
 
   const params = {
     days: signing.daysLeft,
     time: formatTime(signing.expiry),
     date: formatLocalDate(toLocalDate(signing.expiry), language),
   };
+  if (signing.daysLeft > RESIGN_WARNING_DAYS) {
+    return (
+      <View style={styles.compact}>
+        <Ionicons name="time-outline" size={16} color={colors.textMuted} />
+        <AppText tone="muted" size={13} style={styles.compactText}>
+          {t('signing.daysLeftShort', params)}
+        </AppText>
+      </View>
+    );
+  }
   return (
     <Card style={{ borderColor: colors.warning, borderWidth: 1 }}>
       <AppText weight="700" tone="warning">
@@ -46,3 +62,8 @@ export function SigningExpiryInfo() {
     </AppText>
   );
 }
+
+const styles = StyleSheet.create({
+  compact: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
+  compactText: { flex: 1 },
+});
