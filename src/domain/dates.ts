@@ -46,6 +46,11 @@ export function formatLocalDate(value: LocalDate, language: 'vi' | 'en'): string
   return language === 'vi' ? `${d}/${m}/${y}` : `${m}/${d}/${y}`;
 }
 
+/** Local wall-clock time, `HH:mm`. */
+export function formatTime(date: Date): string {
+  return `${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
 export function formatMonth(month: MonthKey, language: 'vi' | 'en'): string {
   const [y, m] = month.split('-');
   return language === 'vi' ? `Tháng ${Number(m)}/${y}` : `${m}/${y}`;
