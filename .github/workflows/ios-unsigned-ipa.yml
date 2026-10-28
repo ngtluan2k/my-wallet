@@ -21,7 +21,8 @@ jobs:
           node-version: 22
           cache: npm
 
-      - run: npm ci
+      # Deprecation warnings come from Expo/Jest tooling and can't be fixed here; show real errors only.
+      - run: npm ci --loglevel=error
 
       - name: Generate native iOS project
         run: npx expo prebuild --platform ios --clean
