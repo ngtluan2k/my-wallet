@@ -75,6 +75,13 @@ export const vi = {
   'settings.importError.unsupported_version':
     'File sao lưu được tạo từ phiên bản mới hơn. Hãy cập nhật ứng dụng. Dữ liệu hiện tại không thay đổi.',
 
+  'signing.title': 'Ứng dụng sắp hết hạn',
+  'signing.daysLeft':
+    'Ứng dụng sẽ không mở được sau {days} ngày (lúc {time} ngày {date}). Hãy xuất file sao lưu rồi ký lại bằng Sideloadly.',
+  'signing.today':
+    'Ứng dụng sẽ không mở được từ {time} hôm nay. Hãy xuất file sao lưu rồi ký lại bằng Sideloadly ngay.',
+  'signing.settingsLabel': 'Chữ ký ứng dụng hết hạn lúc {time} ngày {date} (còn {days} ngày).',
+
   'storage.error.title': 'Không đọc được dữ liệu',
   'storage.error.corrupt':
     'File dữ liệu bị hỏng. Bạn có thể khôi phục từ file sao lưu. Ứng dụng sẽ không ghi đè dữ liệu cho đến khi bạn khôi phục.',

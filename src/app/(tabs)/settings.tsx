@@ -1,5 +1,6 @@
 import { StyleSheet } from 'react-native';
 
+import { SigningExpiryInfo } from '@/components/signing';
 import { AppText, Button, Card, Screen, Segmented, SectionTitle } from '@/components/ui';
 import { useBackupActions } from '@/components/useBackupActions';
 import type { LanguagePreference, ThemePreference } from '@/data/settingsStorage';
@@ -47,6 +48,7 @@ export default function SettingsScreen() {
         <AppText tone="muted" size={14}>
           {t('settings.dataNote')}
         </AppText>
+        <SigningExpiryInfo />
         <Button label={t('settings.export')} icon="share-outline" onPress={exportData} />
         <Button label={t('settings.import')} icon="cloud-download-outline" variant="secondary" onPress={restoreData} />
       </Card>

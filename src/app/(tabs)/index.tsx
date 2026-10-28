@@ -2,6 +2,7 @@ import { router } from 'expo-router';
 import { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 
+import { SigningExpiryBanner } from '@/components/signing';
 import { MonthSwitcher, SummaryCard, TransactionRow, useCategories } from '@/components/wallet';
 import { AppText, Card, CategoryIcon, Fab, ProgressBar, Screen, SectionTitle } from '@/components/ui';
 import { budgetUsage } from '@/domain/budgets';
@@ -34,6 +35,7 @@ export default function DashboardScreen() {
   return (
     <View style={styles.flex}>
       <Screen>
+        <SigningExpiryBanner />
         <MonthSwitcher />
         <SummaryCard summary={summary} />
 
