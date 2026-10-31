@@ -1,8 +1,19 @@
 import { router } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { Alert, KeyboardAvoidingView, Platform, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import {
+  Alert,
+  Animated,
+  Easing,
+  KeyboardAvoidingView,
+  Platform,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  View,
+  useWindowDimensions,
+} from 'react-native';
 
-import { AppText, Button, Screen } from '@/components/ui';
+import { AppText, Button } from '@/components/ui';
 import { useAuth } from '@/state/auth';
 import { useT } from '@/i18n';
 import { radius, spacing, useTheme } from '@/theme';
@@ -10,12 +21,34 @@ import { radius, spacing, useTheme } from '@/theme';
 export default function LoginScreen() {
   const { t } = useT();
   const { colors } = useTheme();
+  const { width } = useWindowDimensions();
   const { signIn, signUp, loadRememberEmail, rememberEmail, setRememberEmail } = useAuth();
   const [email, setEmail] = useState(rememberEmail ?? '');
   const [password, setPassword] = useState('');
   const [isSignUp, setIsSignUp] = useState(false);
   const [loading, setLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState<boolean>(!!rememberEmail);
+
+  // Animated values for entrance animation (standard React Native pattern)
+  const fadeAnim = useRef(new Animated.Value(0));
+  const slideAnim = useRef(new Animated.Value(0));
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim.current, {
+        toValue: 1,
+        duration: 800,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim.current, {
+        toValue: 0,
+        duration: 800,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
 
   useEffect(() => {
     loadRememberEmail();
@@ -44,12 +77,34 @@ export default function LoginScreen() {
     }
   }
 
+  const cardWidth = width * 0.92;
+  // eslint-disable-next-line react-hooks/refs
+  const slideY = slideAnim.current.interpolate({
+    inputRange: [0, 1],
+    outputRange: [30, 0],
+  });
+
   return (
     <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <Screen scroll={false}>
-        <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <Animated.View style={[styles.background, { backgroundColor: colors.background }]}>
+        {/* Decorative background circles */}
+        <View style={[styles.circle, { opacity: 0.15, width: width * 0.8, height: width * 0.8, top: -width * 0.3, left: -width * 0.3 }]} />
+        <View style={[styles.circle, { opacity: 0.1, width: width * 0.6, height: width * 0.6, bottom: -width * 0.2, right: -width * 0.2 }]} />
+
+        <Animated.View
+          style={[
+            styles.card,
+            {
+              width: cardWidth,
+              backgroundColor: colors.surface,
+              // eslint-disable-next-line react-hooks/refs
+              opacity: fadeAnim.current,
+              transform: [{ translateY: slideY }],
+            },
+          ]}
+        >
           <View style={styles.header}>
-            <AppText size={28} weight="700" style={[styles.title, { color: colors.text }]}>
+            <AppText size={32} weight="700" style={[styles.title, { color: colors.text }]}>
               Ví Mình
             </AppText>
             <AppText tone="muted" size={15} style={styles.subtitle}>
@@ -59,7 +114,7 @@ export default function LoginScreen() {
 
           <View style={styles.inputGroup}>
             <TextInput
-              style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }]}
+              style={[styles.input, { backgroundColor: colors.surfaceMuted, borderColor: colors.border, color: colors.text }]}
               placeholder="Email"
               value={email}
               onChangeText={setEmail}
@@ -68,7 +123,7 @@ export default function LoginScreen() {
               autoComplete="email"
             />
             <TextInput
-              style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }]}
+              style={[styles.input, { backgroundColor: colors.surfaceMuted, borderColor: colors.border, color: colors.text }]}
               placeholder="Mật khẩu"
               value={password}
               onChangeText={setPassword}
@@ -79,7 +134,7 @@ export default function LoginScreen() {
 
           <View style={styles.rememberRow}>
             <TouchableOpacity onPress={() => setRememberMe(!rememberMe)} activeOpacity={0.7} style={styles.checkboxContainer}>
-              <View style={[styles.checkbox, rememberMe && { backgroundColor: colors.primary, borderColor: colors.primary }]} />
+              <Animated.View style={[styles.checkbox, rememberMe && { backgroundColor: colors.primary, borderColor: colors.primary, transform: [{ scale: 1.1 }] }]} />
               <AppText size={14} tone="muted">
                 {t('auth.rememberMe')}
               </AppText>
@@ -107,23 +162,36 @@ export default function LoginScreen() {
               {t('auth.footer')}
             </AppText>
           </View>
-        </View>
-      </Screen>
+        </Animated.View>
+      </Animated.View>
     </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  container: { gap: spacing.lg, padding: spacing.xl, justifyContent: 'center' },
-  header: { alignItems: 'center', gap: spacing.sm, marginBottom: spacing.sm },
+  background: { flex: 1 },
+  circle: { position: 'absolute', borderRadius: 999, backgroundColor: '#0F766E' },
+  card: {
+    flex: 1,
+    justifyContent: 'center',
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.xl,
+    borderRadius: radius.lg,
+    elevation: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.15,
+    shadowRadius: 24,
+  },
+  header: { alignItems: 'center', gap: spacing.sm, marginBottom: spacing.md },
   title: { fontSize: 32 },
   subtitle: { textAlign: 'center' },
   inputGroup: { gap: spacing.sm },
   input: { borderWidth: 1, borderRadius: radius.md, paddingHorizontal: spacing.md, paddingVertical: 14, fontSize: 16 },
-  rememberRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  rememberRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginVertical: spacing.sm },
   checkboxContainer: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  checkbox: { width: 20, height: 20, borderRadius: 4, borderWidth: 1, borderColor: '#ccc' },
+  checkbox: { width: 22, height: 22, borderRadius: 6, borderWidth: 2, borderColor: '#ccc' },
   divider: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginVertical: spacing.md },
   dividerLine: { flex: 1, height: 1, backgroundColor: '#e2e8f0' },
   dividerText: { },
