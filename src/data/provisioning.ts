@@ -1,6 +1,5 @@
 import { File, Paths } from 'expo-file-system';
 import { Platform } from 'react-native';
-
 import { parseProvisionExpiry } from '@/domain/provisioning';
 
 /**

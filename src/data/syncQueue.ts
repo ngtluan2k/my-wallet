@@ -12,8 +12,6 @@ export interface SyncOperation {
   retryCount: number;
 }
 
-const SYNC_STORAGE_KEY = 'viminh_sync_queue';
-
 export class SyncQueue {
   private async getQueue(): Promise<SyncOperation[]> {
     try {
