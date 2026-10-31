@@ -7,7 +7,60 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- ---------------------------------------------------------------------------
--- Bảng profiles — Thông tin người dùng bổ sung
+-- Bảng users — Bảng người dùng chính (cho các trường tùy chỉnh ngoài auth)
+-- ---------------------------------------------------------------------------
+CREATE TABLE public.users (
+    id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+    email TEXT NOT NULL,
+    full_name TEXT,
+    avatar_url TEXT,
+    phone TEXT,
+    date_of_birth DATE,
+    nationality TEXT,
+    occupation TEXT,
+    income_range TEXT,
+    financial_goals TEXT[],
+    preferences JSONB,
+    is_email_verified BOOLEAN DEFAULT FALSE,
+    email_verified_at TIMESTAMPTZ,
+    last_login_at TIMESTAMPTZ,
+    login_count INTEGER DEFAULT 0,
+    failed_login_attempts INTEGER DEFAULT 0,
+    locked_until TIMESTAMPTZ,
+    two_factor_enabled BOOLEAN DEFAULT FALSE,
+    two_factor_secret TEXT,
+    recovery_codes TEXT[],
+    password_changed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    password_reset_token TEXT,
+    password_reset_expires TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    is_active BOOLEAN DEFAULT TRUE,
+    is_deleted BOOLEAN DEFAULT FALSE
+);
+
+-- Indexes for users table
+CREATE INDEX idx_users_email ON public.users (email);
+CREATE INDEX idx_users_is_active ON public.users (is_active);
+CREATE INDEX idx_users_is_deleted ON public.users (is_deleted);
+
+-- RLS policies for users table
+ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "users_select" ON public.users
+    FOR SELECT TO authenticated USING (auth.uid() = id);
+
+CREATE POLICY "users_insert" ON public.users
+    FOR INSERT TO authenticated WITH CHECK (auth.uid() = id);
+
+CREATE POLICY "users_update" ON public.users
+    FOR UPDATE TO authenticated USING (auth.uid() = id) WITH CHECK (auth.uid() = id);
+
+CREATE POLICY "users_delete" ON public.users
+    FOR DELETE TO authenticated USING (auth.uid() = id);
+
+-- ---------------------------------------------------------------------------
+-- Bảng profiles — Thông tin người dùng bổ sung (GIA TRÌ NGHIA MỚC ĐỊ)
 -- ---------------------------------------------------------------------------
 CREATE TABLE public.profiles (
     id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -129,6 +182,7 @@ CREATE INDEX idx_sync_queue_unsynced ON public.sync_queue (user_id, synced_at) W
 -- ---------------------------------------------------------------------------
 -- Enable Row Level Security (RLS)
 -- ---------------------------------------------------------------------------
+ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.wallets ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.categories ENABLE ROW LEVEL SECURITY;
@@ -140,6 +194,19 @@ ALTER TABLE public.sync_queue ENABLE ROW LEVEL SECURITY;
 -- ---------------------------------------------------------------------------
 -- RLS Policies
 -- ---------------------------------------------------------------------------
+
+-- Users
+CREATE POLICY "users_select" ON public.users
+    FOR SELECT TO authenticated USING (auth.uid() = id);
+
+CREATE POLICY "users_insert" ON public.users
+    FOR INSERT TO authenticated WITH CHECK (auth.uid() = id);
+
+CREATE POLICY "users_update" ON public.users
+    FOR UPDATE TO authenticated USING (auth.uid() = id) WITH CHECK (auth.uid() = id);
+
+CREATE POLICY "users_delete" ON public.users
+    FOR DELETE TO authenticated USING (auth.uid() = id);
 
 -- Profiles
 CREATE POLICY "profiles_select" ON public.profiles
@@ -223,12 +290,14 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+CREATE TRIGGER set_updated_at_users BEFORE UPDATE ON public.users FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
 CREATE TRIGGER set_updated_at_profiles BEFORE UPDATE ON public.profiles FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
 CREATE TRIGGER set_updated_at_wallets BEFORE UPDATE ON public.wallets FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
 CREATE TRIGGER set_updated_at_categories BEFORE UPDATE ON public.categories FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
 CREATE TRIGGER set_updated_at_transactions BEFORE UPDATE ON public.transactions FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
 CREATE TRIGGER set_updated_at_budgets BEFORE UPDATE ON public.budgets FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
 CREATE TRIGGER set_updated_at_savings_goals BEFORE UPDATE ON public.savings_goals FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
+CREATE TRIGGER set_updated_at_sync_queue BEFORE UPDATE ON public.sync_queue FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
 
 -- ---------------------------------------------------------------------------
 -- Trigger: Auto-create profile + default wallet + default categories on signup
@@ -236,6 +305,14 @@ CREATE TRIGGER set_updated_at_savings_goals BEFORE UPDATE ON public.savings_goal
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
+    INSERT INTO public.users (id, email, full_name, avatar_url)
+    VALUES (
+        NEW.id,
+        NEW.email,
+        COALESCE(NEW.raw_user_meta_data->>'full_name', NEW.email),
+        NEW.raw_user_meta_data->>'avatar_url'
+    );
+
     INSERT INTO public.profiles (id, display_name, avatar_url)
     VALUES (
         NEW.id,

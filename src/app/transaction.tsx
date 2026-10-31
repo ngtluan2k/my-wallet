@@ -1,11 +1,12 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, Pressable, StyleSheet, TextInput, View } from 'react-native';
 
 import { useCategories } from '@/components/wallet';
 import { AppText, Button, Chip, Screen, Segmented, SectionTitle } from '@/components/ui';
-import { addDays, formatLocalDate, today } from '@/domain/dates';
+import { formatLocalDate, today } from '@/domain/dates';
 import { groupDigits, parseAmountInput } from '@/domain/money';
 import { MAX_NOTE_LENGTH, validateTransactionInput, type TransactionError } from '@/domain/transactions';
 import type { TransactionType } from '@/domain/types';
@@ -29,12 +30,31 @@ export default function TransactionScreen() {
   const [note, setNote] = useState(existing?.note ?? '');
   const [errors, setErrors] = useState<TransactionError[]>([]);
   const [saving, setSaving] = useState(false);
+  const [datePickerVisible, setDatePickerVisible] = useState(false);
 
   const typeCategories = useMemo(() => [...categories.values()].filter((c) => c.type === type), [categories, type]);
 
   function changeType(next: TransactionType) {
     setType(next);
     if (categories.get(categoryId)?.type !== next) setCategoryId('');
+  }
+
+  function showDatePicker() {
+    setDatePickerVisible(true);
+  }
+
+  function hideDatePicker() {
+    setDatePickerVisible(false);
+  }
+
+  function handleDateChange(_event: unknown, selectedDate: Date | undefined) {
+    hideDatePicker();
+    if (selectedDate) {
+      const year = selectedDate.getFullYear();
+      const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
+      const day = String(selectedDate.getDate()).padStart(2, '0');
+      setDate(`${year}-${month}-${day}`);
+    }
   }
 
   async function save() {
@@ -135,17 +155,15 @@ export default function TransactionScreen() {
 
         <View style={styles.field}>
           <SectionTitle>{t('form.date')}</SectionTitle>
-          <View style={[styles.dateRow, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <Pressable onPress={() => setDate(addDays(date, -1))} hitSlop={12} accessibilityRole="button">
-              <Ionicons name="chevron-back" size={22} color={colors.text} />
-            </Pressable>
-            <AppText size={16} weight="500" style={styles.dateText}>
-              {formatLocalDate(date, language)}
-            </AppText>
-            <Pressable onPress={() => setDate(addDays(date, 1))} hitSlop={12} accessibilityRole="button">
-              <Ionicons name="chevron-forward" size={22} color={colors.text} />
-            </Pressable>
-          </View>
+          <Pressable onPress={showDatePicker} hitSlop={12} accessibilityRole="button" accessibilityLabel={t('form.selectDate')}>
+            <View style={[styles.dateRow, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+              <Ionicons name="calendar-outline" size={22} color={colors.text} />
+              <AppText size={16} weight="500" style={styles.dateText}>
+                {formatLocalDate(date, language)}
+              </AppText>
+              <Ionicons name="chevron-down" size={22} color={colors.textMuted} />
+            </View>
+          </Pressable>
           {date !== today() && (
             <View style={styles.chips}>
               <Chip label={t('form.today')} selected={false} onPress={() => setDate(today())} />
@@ -170,6 +188,17 @@ export default function TransactionScreen() {
 
         <Button label={t('common.save')} onPress={save} disabled={saving} />
         {existing && <Button label={t('common.delete')} variant="danger" icon="trash-outline" onPress={confirmDelete} />}
+
+        {datePickerVisible && (
+          <DateTimePicker
+            value={new Date(date)}
+            mode="date"
+            display="spinner"
+            onChange={handleDateChange}
+            minimumDate={new Date('2000-01-01')}
+            maximumDate={new Date()}
+          />
+        )}
       </Screen>
     </KeyboardAvoidingView>
   );

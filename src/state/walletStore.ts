@@ -10,6 +10,7 @@ import {
 } from '@/domain/transactions';
 import type { WalletData } from '@/domain/types';
 import type { WalletRepository } from '@/data/WalletRepository';
+import { syncService } from '@/services/syncService';
 
 export class ValidationError extends Error {
   constructor(readonly errors: TransactionError[]) {
@@ -57,8 +58,15 @@ export function createWalletStore({ repository, now = () => new Date(), newId = 
         const current = get().data;
         if (!current) throw new Error('not_loaded');
         const next = change(current);
-        await repository.save(next);
-        set({ data: next });
+        try {
+          await repository.save(next);
+          set({ data: next });
+        } catch (error) {
+          // Even if Supabase fails, local save may have succeeded in repository.
+          // Update UI optimistically and enqueue for background sync.
+          set({ data: next });
+          throw error;
+        }
       });
     }
 
@@ -76,45 +84,143 @@ export function createWalletStore({ repository, now = () => new Date(), newId = 
         set({ status: 'loading', loadError: null });
         try {
           set({ status: 'ready', data: await repository.load() });
+          // Trigger background sync of any pending operations
+          syncService.syncPendingOperations().catch(() => undefined);
         } catch (error) {
           set({ status: 'error', loadError: error });
         }
       },
 
-      addTransaction: (input) =>
-        mutate((data) => {
-          validate(data, input);
-          return { ...data, transactions: [...data.transactions, createTransaction(input, newId(), now())] };
-        }),
+      addTransaction: async (input) => {
+        const current = get().data;
+        if (!current) throw new Error('not_loaded');
+        const id = newId();
+        const timestamp = now().toISOString();
+        const transaction = createTransaction(input, id, now());
 
-      editTransaction: (id, input) =>
-        mutate((data) => {
-          validate(data, input);
-          const existing = data.transactions.find((t) => t.id === id);
-          if (!existing) throw new Error('not_found');
-          return {
-            ...data,
-            transactions: data.transactions.map((t) => (t.id === id ? updateTransaction(t, input, now()) : t)),
-          };
-        }),
+        try {
+          await mutate((data) => {
+            validate(data, input);
+            return {
+              ...data,
+              transactions: [...data.transactions, transaction],
+            };
+          });
+        } catch (error) {
+          // Optimistically update already done in mutate; enqueue for sync
+          await syncService.enqueueTransaction(id, 'INSERT', {
+            ...input,
+            createdAt: timestamp,
+            updatedAt: timestamp,
+          });
+          throw error;
+        }
+      },
 
-      deleteTransaction: (id) =>
-        mutate((data) => ({ ...data, transactions: data.transactions.filter((t) => t.id !== id) })),
+      editTransaction: async (id, input) => {
+        const current = get().data;
+        if (!current) throw new Error('not_loaded');
+        const existing = current.transactions.find((t) => t.id === id);
+        if (!existing) throw new Error('not_found');
+        const timestamp = now().toISOString();
 
-      setBudget: (categoryId, limit) =>
-        mutate((data) => {
-          if (data.categories.find((c) => c.id === categoryId)?.type !== 'expense') throw new Error('category_invalid');
-          return { ...data, budgets: setBudget(data.budgets, categoryId, limit) };
-        }),
+        try {
+          await mutate((data) => {
+            validate(data, input);
+            return {
+              ...data,
+              transactions: data.transactions.map((t) =>
+                t.id === id ? updateTransaction(t, input, now()) : t,
+              ),
+            };
+          });
+        } catch (error) {
+          await syncService.enqueueTransaction(id, 'UPDATE', {
+            type: input.type,
+            amount: input.amount,
+            categoryId: input.categoryId,
+            transactionDate: input.transactionDate,
+            note: input.note,
+            createdAt: existing.createdAt,
+            updatedAt: timestamp,
+          });
+          throw error;
+        }
+      },
 
-      removeBudget: (categoryId) => mutate((data) => ({ ...data, budgets: removeBudget(data.budgets, categoryId) })),
+      deleteTransaction: async (id) => {
+        const current = get().data;
+        if (!current) throw new Error('not_loaded');
+        const existing = current.transactions.find((t) => t.id === id);
+        if (!existing) throw new Error('not_found');
+
+        try {
+          await mutate((data) => ({ ...data, transactions: data.transactions.filter((t) => t.id !== id) }));
+        } catch (error) {
+          await syncService.enqueueTransaction(id, 'DELETE', {
+            type: existing.type,
+            amount: existing.amount,
+            categoryId: existing.categoryId,
+            transactionDate: existing.transactionDate,
+            note: existing.note,
+            createdAt: existing.createdAt,
+            updatedAt: existing.updatedAt,
+          });
+          throw error;
+        }
+      },
+
+      setBudget: async (categoryId, limit) => {
+        const current = get().data;
+        if (!current) throw new Error('not_loaded');
+        if (current.categories.find((c) => c.id === categoryId)?.type !== 'expense') throw new Error('category_invalid');
+        const monthKey = new Date().toISOString().slice(0, 7);
+
+        try {
+          await mutate((data) => ({ ...data, budgets: setBudget(data.budgets, categoryId, limit) }));
+        } catch (error) {
+          await syncService.enqueueBudget(categoryId, 'INSERT', {
+            categoryId,
+            monthKey,
+            limit,
+          });
+          throw error;
+        }
+      },
+
+      removeBudget: async (categoryId) => {
+        const current = get().data;
+        if (!current) throw new Error('not_loaded');
+        const existing = current.budgets.find((b) => b.categoryId === categoryId);
+        if (!existing) throw new Error('not_found');
+
+        try {
+          await mutate((data) => ({ ...data, budgets: removeBudget(data.budgets, categoryId) }));
+        } catch (error) {
+          await syncService.enqueueBudget(categoryId, 'DELETE', {
+            categoryId: existing.categoryId,
+            limit: existing.limit,
+            monthKey: new Date().toISOString().slice(0, 7),
+          });
+          throw error;
+        }
+      },
 
       // Works even when loading failed: restoring a backup is how users recover from a corrupt file.
-      replaceAll: (replacement) =>
-        enqueue(async () => {
+      replaceAll: async (replacement) => {
+        await enqueue(async () => {
           await repository.save(replacement);
           set({ status: 'ready', data: replacement, loadError: null });
-        }),
+        });
+      },
+
+      triggerSync: async () => {
+        try {
+          await syncService.syncPendingOperations();
+        } catch {
+          // Silently fail for UI; background sync continues on its own
+        }
+      },
     };
   });
 }

@@ -180,6 +180,53 @@ export function Fab({ onPress, label }: { onPress(): void; label: string }) {
   );
 }
 
+type SkeletonProps = {
+  width?: number | string;
+  height?: number;
+  borderRadius?: number;
+  style?: any;
+};
+
+export function Skeleton({ width = 100, height = 12, borderRadius = 4, style }: SkeletonProps) {
+  const { colors } = useTheme();
+  return (
+    <View
+      style={[
+        { width, height, borderRadius, backgroundColor: colors.surfaceMuted },
+        style,
+      ]}
+    />
+  );
+}
+
+export function EmptyState({
+  icon,
+  title,
+  subtitle,
+  actionLabel,
+  onPress,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  subtitle?: string;
+  actionLabel?: string;
+  onPress?: () => void;
+}) {
+  const { colors } = useTheme();
+  return (
+    <View style={[{ alignItems: 'center', justifyContent: 'center', padding: spacing.xl, gap: spacing.md }]}>
+      <View style={[styles.emptyIcon, { backgroundColor: colors.surfaceMuted }]}>{icon}</View>
+      <AppText weight="600" size={18} style={styles.emptyTitle}>
+        {title}
+      </AppText>
+      {subtitle && <AppText tone="muted" size={14} style={styles.emptySubtitle}>{subtitle}</AppText>}
+      {actionLabel && onPress && (
+        <Button label={actionLabel} variant="secondary" onPress={onPress} />
+      )}
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   screenContent: { padding: spacing.lg, gap: spacing.lg, paddingBottom: 96 },
@@ -214,4 +261,14 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     elevation: 4,
   },
+  emptyIcon: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.md,
+  },
+  emptyTitle: { textAlign: 'center' },
+  emptySubtitle: { textAlign: 'center', marginTop: spacing.sm },
 });
