@@ -4,9 +4,9 @@ import { useEffect } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
 import { AppText, Button } from '@/components/ui';
-import { useBackupActions } from '@/components/useBackupActions';
 import { StorageError } from '@/data/WalletRepository';
 import { useT } from '@/i18n';
+import { useAuth } from '@/state/auth';
 import { useSettings } from '@/state/settings';
 import { useWallet, walletStore } from '@/state/wallet';
 import { spacing, useTheme } from '@/theme';
@@ -16,15 +16,30 @@ export default function RootLayout() {
   const { t } = useT();
   const settingsLoaded = useSettings((s) => s.loaded);
   const status = useWallet((s) => s.status);
+  const { user, loading: authLoading } = useAuth();
 
   useEffect(() => {
     useSettings.getState().load();
-    walletStore.getState().load();
+    useAuth.getState().load();
   }, []);
+
+  useEffect(() => {
+    if (user) {
+      walletStore.getState().load();
+    }
+  }, [user]);
 
   const { colors } = theme;
   let content;
-  if (!settingsLoaded || status === 'idle' || status === 'loading') {
+  if (!settingsLoaded || authLoading) {
+    content = (
+      <View style={[styles.center, { backgroundColor: colors.background }]}>
+        <ActivityIndicator color={colors.primary} />
+      </View>
+    );
+  } else if (!user) {
+    content = <Stack><Stack.Screen name="login" options={{ headerShown: false }} /></Stack>;
+  } else if (status === 'idle' || status === 'loading') {
     content = (
       <View style={[styles.center, { backgroundColor: colors.background }]}>
         <ActivityIndicator color={colors.primary} />
@@ -59,7 +74,6 @@ function LoadErrorScreen() {
   const { colors } = useTheme();
   const { t } = useT();
   const error = useWallet((s) => s.loadError);
-  const { restoreData } = useBackupActions();
   const code = error instanceof StorageError && error.code !== 'write_failed' ? error.code : 'read_failed';
 
   return (
@@ -71,7 +85,6 @@ function LoadErrorScreen() {
         {t(`storage.error.${code}`)}
       </AppText>
       <Button label={t('common.retry')} variant="secondary" onPress={() => walletStore.getState().load()} />
-      <Button label={t('settings.import')} icon="cloud-download-outline" onPress={restoreData} />
     </View>
   );
 }
