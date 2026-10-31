@@ -47,20 +47,8 @@ CREATE INDEX idx_users_is_deleted ON public.users (is_deleted);
 -- RLS policies for users table
 ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "users_select" ON public.users
-    FOR SELECT TO authenticated USING (auth.uid() = id);
-
-CREATE POLICY "users_insert" ON public.users
-    FOR INSERT TO authenticated WITH CHECK (auth.uid() = id);
-
-CREATE POLICY "users_update" ON public.users
-    FOR UPDATE TO authenticated USING (auth.uid() = id) WITH CHECK (auth.uid() = id);
-
-CREATE POLICY "users_delete" ON public.users
-    FOR DELETE TO authenticated USING (auth.uid() = id);
-
 -- ---------------------------------------------------------------------------
--- Bảng profiles — Thông tin người dùng bổ sung (GIA TRÌ NGHIA MỚC ĐỊ)
+-- Bảng profiles — Thông tin người dùng bổ sung
 -- ---------------------------------------------------------------------------
 CREATE TABLE public.profiles (
     id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -101,11 +89,7 @@ CREATE TABLE public.categories (
     color TEXT NOT NULL,
     is_system BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    CONSTRAINT category_name_or_key CHECK (
-        (is_system = TRUE AND built_in_key IS NOT NULL AND name IS NULL) OR
-        (is_system = FALSE AND name IS NOT NULL)
-    )
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 -- ---------------------------------------------------------------------------
@@ -132,7 +116,7 @@ CREATE TABLE public.budgets (
     user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
     wallet_id UUID REFERENCES public.wallets(id) ON DELETE SET NULL,
     category_id UUID NOT NULL REFERENCES public.categories(id) ON DELETE CASCADE,
-    month_key TEXT NOT NULL, -- YYYY-MM format
+    month_key TEXT NOT NULL,
     limit_amount NUMERIC(18, 2) NOT NULL CHECK (limit_amount > 0),
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -140,7 +124,7 @@ CREATE TABLE public.budgets (
 );
 
 -- ---------------------------------------------------------------------------
--- Bảng savings_goals — Mục tiêu tiết kiệm (tùy chọn, có thể bổ sung sau)
+-- Bảng savings_goals — Mục tiêu tiết kiệm
 -- ---------------------------------------------------------------------------
 CREATE TABLE public.savings_goals (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -196,89 +180,48 @@ ALTER TABLE public.sync_queue ENABLE ROW LEVEL SECURITY;
 -- ---------------------------------------------------------------------------
 
 -- Users
-CREATE POLICY "users_select" ON public.users
-    FOR SELECT TO authenticated USING (auth.uid() = id);
-
-CREATE POLICY "users_insert" ON public.users
-    FOR INSERT TO authenticated WITH CHECK (auth.uid() = id);
-
-CREATE POLICY "users_update" ON public.users
-    FOR UPDATE TO authenticated USING (auth.uid() = id) WITH CHECK (auth.uid() = id);
-
-CREATE POLICY "users_delete" ON public.users
-    FOR DELETE TO authenticated USING (auth.uid() = id);
+CREATE POLICY users_select ON public.users FOR SELECT TO authenticated USING (auth.uid() = id);
+CREATE POLICY users_insert ON public.users FOR INSERT TO authenticated WITH CHECK (auth.uid() = id);
+CREATE POLICY users_update ON public.users FOR UPDATE TO authenticated USING (auth.uid() = id) WITH CHECK (auth.uid() = id);
+CREATE POLICY users_delete ON public.users FOR DELETE TO authenticated USING (auth.uid() = id);
 
 -- Profiles
-CREATE POLICY "profiles_select" ON public.profiles
-    FOR SELECT TO authenticated USING (auth.uid() = id);
-CREATE POLICY "profiles_insert" ON public.profiles
-    FOR INSERT TO authenticated WITH CHECK (auth.uid() = id);
-CREATE POLICY "profiles_update" ON public.profiles
-    FOR UPDATE TO authenticated USING (auth.uid() = id) WITH CHECK (auth.uid() = id);
-CREATE POLICY "profiles_delete" ON public.profiles
-    FOR DELETE TO authenticated USING (auth.uid() = id);
+CREATE POLICY profiles_select ON public.profiles FOR SELECT TO authenticated USING (auth.uid() = id);
+CREATE POLICY profiles_insert ON public.profiles FOR INSERT TO authenticated WITH CHECK (auth.uid() = id);
+CREATE POLICY profiles_update ON public.profiles FOR UPDATE TO authenticated USING (auth.uid() = id) WITH CHECK (auth.uid() = id);
+CREATE POLICY profiles_delete ON public.profiles FOR DELETE TO authenticated USING (auth.uid() = id);
 
 -- Wallets
-CREATE POLICY "wallets_select" ON public.wallets
-    FOR SELECT TO authenticated USING (auth.uid() = user_id);
-CREATE POLICY "wallets_insert" ON public.wallets
-    FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);
-CREATE POLICY "wallets_update" ON public.wallets
-    FOR UPDATE TO authenticated USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
-CREATE POLICY "wallets_delete" ON public.wallets
-    FOR DELETE TO authenticated USING (auth.uid() = user_id);
+CREATE POLICY wallets_select ON public.wallets FOR SELECT TO authenticated USING (auth.uid() = user_id);
+CREATE POLICY wallets_insert ON public.wallets FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);
+CREATE POLICY wallets_update ON public.wallets FOR UPDATE TO authenticated USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+CREATE POLICY wallets_delete ON public.wallets FOR DELETE TO authenticated USING (auth.uid() = user_id);
 
 -- Categories: system categories readable by all authenticated users
-CREATE POLICY "categories_select" ON public.categories
-    FOR SELECT TO authenticated USING (is_system = TRUE OR auth.uid() = user_id);
-CREATE POLICY "categories_insert" ON public.categories
-    FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id AND is_system = FALSE);
-CREATE POLICY "categories_update" ON public.categories
-    FOR UPDATE TO authenticated USING (auth.uid() = user_id AND is_system = FALSE)
-    WITH CHECK (auth.uid() = user_id AND is_system = FALSE);
-CREATE POLICY "categories_delete" ON public.categories
-    FOR DELETE TO authenticated USING (auth.uid() = user_id AND is_system = FALSE);
+CREATE POLICY categories_select ON public.categories FOR SELECT TO authenticated USING (is_system = TRUE OR auth.uid() = user_id);
+CREATE POLICY categories_insert ON public.categories FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id AND is_system = FALSE);
+CREATE POLICY categories_update ON public.categories FOR UPDATE TO authenticated USING (auth.uid() = user_id AND is_system = FALSE) WITH CHECK (auth.uid() = user_id AND is_system = FALSE);
+CREATE POLICY categories_delete ON public.categories FOR DELETE TO authenticated USING (auth.uid() = user_id AND is_system = FALSE);
 
 -- Transactions
-CREATE POLICY "transactions_select" ON public.transactions
-    FOR SELECT TO authenticated USING (auth.uid() = user_id);
-CREATE POLICY "transactions_insert" ON public.transactions
-    FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);
-CREATE POLICY "transactions_update" ON public.transactions
-    FOR UPDATE TO authenticated USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
-CREATE POLICY "transactions_delete" ON public.transactions
-    FOR DELETE TO authenticated USING (auth.uid() = user_id);
+CREATE POLICY transactions_select ON public.transactions FOR SELECT TO authenticated USING (auth.uid() = user_id);
+CREATE POLICY transactions_insert ON public.transactions FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);
+CREATE POLICY transactions_update ON public.transactions FOR UPDATE TO authenticated USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+CREATE POLICY transactions_delete ON public.transactions FOR DELETE TO authenticated USING (auth.uid() = user_id);
 
 -- Budgets
-CREATE POLICY "budgets_select" ON public.budgets
-    FOR SELECT TO authenticated USING (auth.uid() = user_id);
-CREATE POLICY "budgets_insert" ON public.budgets
-    FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);
-CREATE POLICY "budgets_update" ON public.budgets
-    FOR UPDATE TO authenticated USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
-CREATE POLICY "budgets_delete" ON public.budgets
-    FOR DELETE TO authenticated USING (auth.uid() = user_id);
+CREATE POLICY budgets_select ON public.budgets FOR SELECT TO authenticated USING (auth.uid() = user_id);
+CREATE POLICY budgets_insert ON public.budgets FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);
+CREATE POLICY budgets_update ON public.budgets FOR UPDATE TO authenticated USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+CREATE POLICY budgets_delete ON public.budgets FOR DELETE TO authenticated USING (auth.uid() = user_id);
 
 -- Savings goals
-CREATE POLICY "savings_goals_select" ON public.savings_goals
-    FOR SELECT TO authenticated USING (auth.uid() = user_id);
-CREATE POLICY "savings_goals_insert" ON public.savings_goals
-    FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);
-CREATE POLICY "savings_goals_update" ON public.savings_goals
-    FOR UPDATE TO authenticated USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
-CREATE POLICY "savings_goals_delete" ON public.savings_goals
-    FOR DELETE TO authenticated USING (auth.uid() = user_id);
+CREATE POLICY savings_goals_select ON public.savings_goals FOR SELECT TO authenticated USING (auth.uid() = user_id);
+CREATE POLICY savings_goals_insert ON public.savings_goals FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);
+CREATE POLICY savings_goals_update ON public.savings_goals FOR UPDATE TO authenticated USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+CREATE POLICY savings_goals_delete ON public.savings_goals FOR DELETE TO authenticated USING (auth.uid() = user_id);
 
 -- Sync queue
-CREATE POLICY "sync_queue_select" ON public.sync_queue
-    FOR SELECT TO authenticated USING (auth.uid() = user_id);
-CREATE POLICY "sync_queue_insert" ON public.sync_queue
-    FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);
-CREATE POLICY "sync_queue_update" ON public.sync_queue
-    FOR UPDATE TO authenticated USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
-CREATE POLICY "sync_queue_delete" ON public.sync_queue
-    FOR DELETE TO authenticated USING (auth.uid() = user_id);
-
 -- ---------------------------------------------------------------------------
 -- Trigger: Auto-update updated_at on every row update
 -- ---------------------------------------------------------------------------
@@ -290,8 +233,20 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- Drop existing triggers if they exist
+DROP TRIGGER IF EXISTS set_updated_at_users ON public.users;
+DROP TRIGGER IF EXISTS set_updated_at_profiles ON public.profiles;
+DROP TRIGGER IF EXISTS set_updated_at_wallets ON public.wallets;
+DROP TRIGGER IF EXISTS set_updated_at_categories ON public.categories;
+DROP TRIGGER IF EXISTS set_updated_at_transactions ON public.transactions;
+DROP TRIGGER IF EXISTS set_updated_at_budgets ON public.budgets;
+DROP TRIGGER IF EXISTS set_updated_at_savings_goals ON public.savings_goals;
+DROP TRIGGER IF EXISTS set_updated_at_sync_queue ON public.sync_queue;
+
+-- Create triggers
 CREATE TRIGGER set_updated_at_users BEFORE UPDATE ON public.users FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
 CREATE TRIGGER set_updated_at_profiles BEFORE UPDATE ON public.profiles FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
+
 CREATE TRIGGER set_updated_at_wallets BEFORE UPDATE ON public.wallets FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
 CREATE TRIGGER set_updated_at_categories BEFORE UPDATE ON public.categories FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
 CREATE TRIGGER set_updated_at_transactions BEFORE UPDATE ON public.transactions FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
@@ -302,6 +257,10 @@ CREATE TRIGGER set_updated_at_sync_queue BEFORE UPDATE ON public.sync_queue FOR 
 -- ---------------------------------------------------------------------------
 -- Trigger: Auto-create profile + default wallet + default categories on signup
 -- ---------------------------------------------------------------------------
+
+-- Drop existing function if it exists
+DROP FUNCTION IF EXISTS public.handle_new_user() CASCADE;
+
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -342,6 +301,9 @@ BEGIN
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Drop existing trigger if it exists
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 
 CREATE TRIGGER on_auth_user_created
     AFTER INSERT ON auth.users
