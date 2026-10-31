@@ -10,6 +10,7 @@ import { useAuth } from '@/state/auth';
 import { useSettings } from '@/state/settings';
 import { useWallet, walletStore } from '@/state/wallet';
 import { spacing, useTheme } from '@/theme';
+import LoginScreen from './login';
 
 export default function RootLayout() {
   const theme = useTheme();
@@ -38,7 +39,7 @@ export default function RootLayout() {
       </View>
     );
   } else if (!user) {
-    content = <Stack><Stack.Screen name="login" options={{ headerShown: false }} /></Stack>;
+    content = <LoginScreen />;
   } else if (status === 'idle' || status === 'loading') {
     content = (
       <View style={[styles.center, { backgroundColor: colors.background }]}>

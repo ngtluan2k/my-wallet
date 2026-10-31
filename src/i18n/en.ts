@@ -16,6 +16,8 @@ export const en: Record<TranslationKey, string> = {
   'common.retry': 'Retry',
   'common.error': 'Something went wrong',
   'common.loading': 'Loading…',
+  'common.signIn': 'Sign In',
+  'common.signUp': 'Sign Up',
 
   'type.income': 'Income',
   'type.expense': 'Expense',
@@ -83,6 +85,11 @@ export const en: Record<TranslationKey, string> = {
   'signing.today': 'The app will stop opening at {time} today. Export a backup and re-sign it with Sideloadly now.',
   'signing.daysLeftShort': '{days} days until the app needs re-signing (expires {time} on {date}).',
   'signing.settingsLabel': 'App signature expires at {time} on {date} ({days} days left).',
+
+  'auth.rememberMe': 'Remember me',
+  'auth.haveAccount': 'Already have an account? Sign in',
+  'auth.noAccount': "Don't have an account? Sign up",
+  'auth.footer': 'Your data is securely stored on your device.',
 
   'storage.error.title': 'Could not read your data',
   'storage.error.corrupt':

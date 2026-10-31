@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { useMemo } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Image, StyleSheet, View } from 'react-native';
 
 import { SigningExpiryBanner } from '@/components/signing';
 import { MonthSwitcher, SummaryCard, TransactionRow, useCategories } from '@/components/wallet';
@@ -37,6 +37,58 @@ export default function DashboardScreen() {
       <Screen>
         <SigningExpiryBanner />
         <MonthSwitcher />
+
+        {/* Profile Section */}
+        <Card style={[styles.profileCard, { backgroundColor: colors.surface }]}>
+          <View style={[styles.profileRow, { backgroundColor: colors.surface }]}>
+            <View style={[styles.avatar, { backgroundColor: colors.surfaceMuted }]}>
+              <Image
+                source={{ uri: 'https://i.pravatar.cc/150?u=wallet' }}
+                style={styles.avatarImage}
+              />
+            </View>
+            <View style={styles.profileInfo}>
+              <AppText weight="600" size={18}>
+                {'Người dùng'}
+              </AppText>
+              <AppText tone="muted" size={14}>
+                {'ví.minh@example.com'}
+              </AppText>
+            </View>
+            <View style={styles.profileActions}>
+              <AppText size={20} tone="primary">
+                {'💰'}
+              </AppText>
+            </View>
+          </View>
+          <View style={[styles.profileStats, { backgroundColor: colors.surface }]}>
+            <View style={styles.stat}>
+              <AppText tone="muted" size={12}>
+                {'Tổng thu'}
+              </AppText>
+              <AppText weight="600" tone="income">
+                {formatMoney(summary.income, language)}
+              </AppText>
+            </View>
+            <View style={styles.stat}>
+              <AppText tone="muted" size={12}>
+                {'Tổng chi'}
+              </AppText>
+              <AppText weight="600" tone="expense">
+                {formatMoney(summary.expense, language)}
+              </AppText>
+            </View>
+            <View style={styles.stat}>
+              <AppText tone="muted" size={12}>
+                {'Chênh lệch'}
+              </AppText>
+              <AppText weight="600" tone={summary.difference < 0 ? 'expense' : 'default'}>
+                {formatMoney(summary.difference, language)}
+              </AppText>
+            </View>
+          </View>
+        </Card>
+
         <SummaryCard summary={summary} />
 
         {alerts.length > 0 && (
@@ -108,6 +160,14 @@ export default function DashboardScreen() {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
+  profileCard: { marginBottom: spacing.md },
+  profileRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingBottom: spacing.md },
+  avatar: { width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center' },
+  avatarImage: { width: 56, height: 56, borderRadius: 28 },
+  profileInfo: { flex: 1 },
+  profileActions: { alignItems: 'flex-end' },
+  profileStats: { flexDirection: 'row', justifyContent: 'space-between', marginTop: spacing.md },
+  stat: { gap: 4 },
   alertRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   spendRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   spendBody: { flex: 1, gap: 6 },
