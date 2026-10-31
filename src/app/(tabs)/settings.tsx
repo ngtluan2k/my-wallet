@@ -8,7 +8,7 @@ import { useT } from '@/i18n';
 import { spacing, useTheme } from '@/theme';
 
 export default function SettingsScreen() {
-  const { t, language } = useT();
+  const { t } = useT();
   const { colors } = useTheme();
   const { theme, language: langPref, update } = useSettings();
   const { signOut } = useAuth();

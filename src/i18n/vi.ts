@@ -14,6 +14,8 @@ export const vi = {
   'common.retry': 'Thử lại',
   'common.error': 'Đã có lỗi',
   'common.loading': 'Đang tải…',
+  'common.signIn': 'Đăng nhập',
+  'common.signUp': 'Đăng ký',
 
   'type.income': 'Thu',
   'type.expense': 'Chi',
@@ -82,6 +84,11 @@ export const vi = {
     'Ứng dụng sẽ không mở được từ {time} hôm nay. Hãy xuất file sao lưu rồi ký lại bằng Sideloadly ngay.',
   'signing.daysLeftShort': 'Ứng dụng còn {days} ngày trước khi cần ký lại (hết hạn {time} ngày {date}).',
   'signing.settingsLabel': 'Chữ ký ứng dụng hết hạn lúc {time} ngày {date} (còn {days} ngày).',
+
+  'auth.rememberMe': 'Ghi nhớ tôi',
+  'auth.haveAccount': 'Đã có tài khoản? Đăng nhập',
+  'auth.noAccount': 'Chưa có tài khoản? Đăng ký',
+  'auth.footer': 'Dữ liệu được lưu an toàn trên thiết bị của bạn.',
 
   'storage.error.title': 'Không đọc được dữ liệu',
   'storage.error.corrupt':
