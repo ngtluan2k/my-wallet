@@ -17,3 +17,5 @@ const NO_BUDGETS: Budget[] = [];
 
 export const useTransactions = () => useWallet((s) => s.data?.transactions ?? NO_TRANSACTIONS);
 export const useBudgets = () => useWallet((s) => s.data?.budgets ?? NO_BUDGETS);
+export const useWalletStatus = () => useWallet((s) => s.status);
+export const useWalletLoadError = () => useWallet((s) => s.loadError);

@@ -43,6 +43,7 @@ export const en: Record<TranslationKey, string> = {
   'form.note': 'Note',
   'form.notePlaceholder': 'Optional',
   'form.today': 'Today',
+  'form.selectDate': 'Select date',
   'form.error.amount_invalid': 'Enter an amount greater than 0.',
   'form.error.category_invalid': 'Pick a category.',
   'form.error.category_type_mismatch': 'Category does not match the transaction type.',

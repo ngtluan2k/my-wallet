@@ -41,6 +41,7 @@ export const vi = {
   'form.note': 'Ghi chú',
   'form.notePlaceholder': 'Không bắt buộc',
   'form.today': 'Hôm nay',
+  'form.selectDate': 'Chọn ngày',
   'form.error.amount_invalid': 'Nhập số tiền lớn hơn 0.',
   'form.error.category_invalid': 'Chọn một danh mục.',
   'form.error.category_type_mismatch': 'Danh mục không khớp với loại giao dịch.',
