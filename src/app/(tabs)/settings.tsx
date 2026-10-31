@@ -1,65 +1,65 @@
-import { StyleSheet } from 'react-native';
+import { router } from 'expo-router';
+import { Pressable, StyleSheet, View } from 'react-native';
 
-import { SigningExpiryInfo } from '@/components/signing';
-import { AppText, Button, Card, Screen, Segmented, SectionTitle } from '@/components/ui';
-import { useBackupActions } from '@/components/useBackupActions';
-import type { LanguagePreference, ThemePreference } from '@/data/settingsStorage';
-import { useT } from '@/i18n';
+import { AppText, Button, Card, Screen } from '@/components/ui';
+import { useAuth } from '@/state/auth';
 import { useSettings } from '@/state/settings';
-import { spacing } from '@/theme';
+import { useT } from '@/i18n';
+import { spacing, useTheme } from '@/theme';
 
 export default function SettingsScreen() {
-  const { t } = useT();
-  const language = useSettings((s) => s.language);
-  const theme = useSettings((s) => s.theme);
-  const update = useSettings((s) => s.update);
-  const { exportData, restoreData } = useBackupActions();
+  const { t, language } = useT();
+  const { colors } = useTheme();
+  const { theme, language: langPref, update } = useSettings();
+  const { signOut } = useAuth();
+
+  async function handleSignOut() {
+    await signOut();
+    router.replace('/login');
+  }
 
   return (
     <Screen>
       <Card>
-        <SectionTitle>{t('settings.language')}</SectionTitle>
-        <Segmented<LanguagePreference>
-          value={language}
-          onChange={(value) => update({ language: value })}
-          options={[
-            { value: 'system', label: t('settings.system') },
-            { value: 'vi', label: 'Tiếng Việt' },
-            { value: 'en', label: 'English' },
-          ]}
-        />
+        <AppText weight="600" size={16}>{t('settings.language')}</AppText>
+        <View style={styles.row}>
+          {(['system', 'vi', 'en'] as const).map((l) => (
+            <Pressable
+              key={l}
+              onPress={() => update({ language: l })}
+              style={[styles.chip, langPref === l && { backgroundColor: colors.primary }]}
+            >
+              <AppText tone={langPref === l ? 'default' : 'muted'} size={14}>
+                {l === 'system' ? t('settings.system') : l === 'vi' ? 'Tiếng Việt' : 'English'}
+              </AppText>
+            </Pressable>
+          ))}
+        </View>
       </Card>
 
       <Card>
-        <SectionTitle>{t('settings.theme')}</SectionTitle>
-        <Segmented<ThemePreference>
-          value={theme}
-          onChange={(value) => update({ theme: value })}
-          options={[
-            { value: 'system', label: t('settings.system') },
-            { value: 'light', label: t('settings.light') },
-            { value: 'dark', label: t('settings.dark') },
-          ]}
-        />
+        <AppText weight="600" size={16}>{t('settings.theme')}</AppText>
+        <View style={styles.row}>
+          {(['system', 'light', 'dark'] as const).map((th) => (
+            <Pressable
+              key={th}
+              onPress={() => update({ theme: th })}
+              style={[styles.chip, theme === th && { backgroundColor: colors.primary }]}
+            >
+              <AppText tone={theme === th ? 'default' : 'muted'} size={14}>
+                {th === 'system' ? t('settings.system') : th === 'light' ? t('settings.light') : t('settings.dark')}
+              </AppText>
+            </Pressable>
+          ))}
+        </View>
       </Card>
 
-      <Card>
-        <SectionTitle>{t('settings.data')}</SectionTitle>
-        <AppText tone="muted" size={14}>
-          {t('settings.dataNote')}
-        </AppText>
-        <SigningExpiryInfo />
-        <Button label={t('settings.export')} icon="share-outline" onPress={exportData} />
-        <Button label={t('settings.import')} icon="cloud-download-outline" variant="secondary" onPress={restoreData} />
-      </Card>
-
-      <AppText tone="muted" size={13} style={styles.footer}>
-        {t('app.name')} — {t('app.slogan')}
-      </AppText>
+      <Button label="Sign Out" variant="danger" onPress={handleSignOut} />
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  footer: { textAlign: 'center', marginTop: spacing.sm },
+  row: { flexDirection: 'row', gap: spacing.sm, flexWrap: 'wrap' },
+  chip: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: 8, borderWidth: 1, borderColor: '#ccc' },
 });

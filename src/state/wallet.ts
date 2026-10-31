@@ -1,11 +1,11 @@
 import { useStore } from 'zustand';
 
-import { JsonFileRepository } from '@/data/jsonFileRepository';
+import { SupabaseRepository } from '@/data/supabaseRepository';
 import type { Budget, Transaction } from '@/domain/types';
 
 import { createWalletStore, type WalletState } from './walletStore';
 
-export const walletStore = createWalletStore({ repository: new JsonFileRepository() });
+export const walletStore = createWalletStore({ repository: new SupabaseRepository() });
 
 export function useWallet<T>(selector: (state: WalletState) => T): T {
   return useStore(walletStore, selector);
