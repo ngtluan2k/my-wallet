@@ -19,26 +19,78 @@ interface AuthState {
 
 export const useAuth = create<AuthState>()((set) => ({
   user: null,
-  loading: true,
+  loading: false,
   rememberEmail: null,
   async load() {
-    const { data } = await supabase.auth.getSession();
-    set({ user: data.session?.user ?? null, loading: false });
-    supabase.auth.onAuthStateChange((_event, session) => {
-      set({ user: session?.user ?? null });
-    });
+    console.log('[Auth] Loading session...');
+    try {
+      const { data, error } = await supabase.auth.getSession();
+      if (error) {
+        console.error('[Auth] Get session error:', error);
+        set({ user: null, loading: false });
+        return;
+      }
+      const user = data.session?.user ?? null;
+      console.log('[Auth] Current user:', user?.email ?? 'null');
+      console.log('[Auth] Session data:', data.session ? 'has session' : 'no session');
+      set({ user, loading: false });
+      
+      supabase.auth.onAuthStateChange((_event, session) => {
+        const newUser = session?.user ?? null;
+        console.log('[Auth] Auth state changed, user:', newUser?.email ?? 'null');
+        set({ user: newUser });
+      });
+    } catch (error) {
+      console.error('[Auth] Load error:', error);
+      set({ user: null, loading: false });
+    }
   },
   async signUp(email, password) {
-    const { error } = await supabase.auth.signUp({ email, password });
+    console.log('[Auth] Signing up with email:', email);
+    const { data, error } = await supabase.auth.signUp({ email, password });
+    if (error) {
+      console.error('[Auth] Sign up error:', error);
+    } else {
+      console.log('[Auth] Sign up success:', data);
+    }
     return { error };
   },
   async signIn(email, password) {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    console.log('[Auth] Signing in with email:', email);
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) {
+      console.error('[Auth] Sign in error:', error);
+    } else {
+      console.log('[Auth] Sign in success:', data);
+    }
     return { error };
   },
   async signOut() {
-    await supabase.auth.signOut();
-    set({ user: null });
+    console.log('[Auth] Signing out...');
+    try {
+      // Clear Supabase session
+      await supabase.auth.signOut();
+      // Clear any stored sessions from AsyncStorage
+      const keys = await AsyncStorage.getAllKeys();
+      const sessionKeys = keys.filter(k => k.includes('sb-ngfpfbzzwoptpoteaond-auth') || k.includes('supabase'));
+      if (sessionKeys.length > 0) {
+        await AsyncStorage.multiRemove(sessionKeys);
+        console.log('[Auth] Cleared session keys:', sessionKeys);
+      }
+      // Clear remember email
+      try {
+        await AsyncStorage.removeItem(REMEMBER_EMAIL_KEY);
+      } catch {
+        // Ignore storage errors
+      }
+      // Reset state
+      set({ user: null, loading: false, rememberEmail: null });
+      console.log('[Auth] Sign out complete');
+    } catch (error) {
+      console.error('[Auth] Sign out error:', error);
+      // Still reset state even if cleanup fails
+      set({ user: null, loading: false, rememberEmail: null });
+    }
   },
   async setRememberEmail(email) {
     try {

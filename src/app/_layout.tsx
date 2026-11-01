@@ -10,7 +10,6 @@ import { useAuth } from '@/state/auth';
 import { useSettings } from '@/state/settings';
 import { useWallet, walletStore } from '@/state/wallet';
 import { spacing, useTheme } from '@/theme';
-import LoginScreen from './login';
 
 export default function RootLayout() {
   const theme = useTheme();
@@ -31,6 +30,7 @@ export default function RootLayout() {
   }, [user]);
 
   const { colors } = theme;
+  
   let content;
   if (!settingsLoaded || authLoading) {
     content = (
@@ -39,15 +39,12 @@ export default function RootLayout() {
       </View>
     );
   } else if (!user) {
-    content = <LoginScreen />;
-  } else if (status === 'idle' || status === 'loading') {
     content = (
-      <View style={[styles.center, { backgroundColor: colors.background }]}>
-        <ActivityIndicator color={colors.primary} />
-      </View>
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="login" options={{ title: 'Đăng nhập' }} />
+        <Stack.Screen name="register" options={{ title: 'Đăng ký' }} />
+      </Stack>
     );
-  } else if (status === 'error') {
-    content = <LoadErrorScreen />;
   } else {
     content = (
       <Stack

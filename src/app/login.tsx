@@ -1,28 +1,15 @@
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
-import {
-  Animated,
-  Easing,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { Alert, Animated, Easing, KeyboardAvoidingView, Platform, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
 import { useAuth } from '@/state/auth';
-import { useT } from '@/i18n';
 import { spacing } from '@/theme';
 
-// Exact mockup colors
+// Mockup colors
 const C = {
   bg: '#f8f9ff',
   primary: '#006948',
-  primaryContainer: '#00855d',
   onPrimary: '#ffffff',
   text: '#0b1c30',
   textMuted: '#3d4a42',
@@ -32,7 +19,34 @@ const C = {
   appleBg: '#0b1c30',
   googleBg: '#ffffff',
   dividerText: '#6d7a72',
+  error: '#ef4444',
+  warning: '#f59e0b',
+  success: '#10b981',
 };
+
+// Validation helpers
+function validateEmail(email: string): string | undefined {
+  if (!email.trim()) return 'Vui lòng nhập email';
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) return 'Email không hợp lệ';
+  return undefined;
+}
+
+function validatePassword(password: string): string | undefined {
+  if (!password) return 'Vui lòng nhập mật khẩu';
+  if (password.length < 8) return 'Mật khẩu phải có ít nhất 8 ký tự';
+  return undefined;
+}
+
+function sanitizeInput(value: string): string {
+  return value
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#x27;')
+    .replace(/\//g, '&#x2F;')
+    .trim();
+}
 
 const styles = StyleSheet.create({
   container: {
@@ -48,7 +62,6 @@ const styles = StyleSheet.create({
     paddingTop: spacing.xl,
     paddingBottom: spacing.xl + 24,
   },
-  // ── Header ──────────────────────────────────────────────────────
   header: {
     alignItems: 'center',
     marginBottom: spacing.lg,
@@ -57,45 +70,54 @@ const styles = StyleSheet.create({
   logoWrap: {
     width: 64,
     height: 64,
-    borderRadius: 18,
+    borderRadius: 22,
     backgroundColor: C.primary,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: spacing.md,
     shadowColor: C.primary,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.28,
-    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
     elevation: 6,
   },
   title: {
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: '700',
-    lineHeight: 34,
-    letterSpacing: -0.4,
+    lineHeight: 32,
+    letterSpacing: -0.3,
     color: C.text,
   },
   subtitle: {
-    fontSize: 15,
-    lineHeight: 21,
+    fontSize: 14,
+    lineHeight: 20,
     textAlign: 'center',
     marginTop: 4,
     maxWidth: 300,
     color: C.textMuted,
   },
-  // ── Form ────────────────────────────────────────────────────────
   form: {
     gap: spacing.md,
   },
   inputGroup: {
-    gap: 6,
+    marginBottom: spacing.md,
   },
-  inputLabel: {
+  labelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  label: {
     fontSize: 13,
     fontWeight: '600',
     lineHeight: 18,
     color: C.text,
-    paddingLeft: 4,
+  },
+  required: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: C.error,
+    marginLeft: 2,
   },
   inputRow: {
     flexDirection: 'row',
@@ -104,13 +126,18 @@ const styles = StyleSheet.create({
     backgroundColor: C.surfaceMuted,
     borderWidth: 1,
     borderColor: C.border,
-    borderRadius: 12,
-    paddingHorizontal: spacing.md,
+    borderRadius: 10,
+    paddingHorizontal: spacing.sm,
+  },
+  inputRowError: {
+    borderColor: C.error,
+    backgroundColor: '#fef2f2',
   },
   inputIcon: {
     position: 'absolute',
-    left: spacing.md,
-    color: C.outline,
+    left: spacing.sm,
+    color: C.textMuted,
+    fontSize: 20,
   },
   input: {
     flex: 1,
@@ -124,16 +151,21 @@ const styles = StyleSheet.create({
   },
   pwToggle: {
     position: 'absolute',
-    right: spacing.md,
+    right: spacing.sm,
     padding: 4,
   },
-  // ── Remember row ────────────────────────────────────────────────
+  errorText: {
+    fontSize: 12,
+    lineHeight: 16,
+    color: C.error,
+    marginTop: 4,
+    paddingLeft: 4,
+  },
   rememberRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 4,
-    paddingTop: 2,
+    marginTop: 4,
   },
   checkboxRow: {
     flexDirection: 'row',
@@ -141,14 +173,14 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   checkbox: {
-    width: 20,
-    height: 20,
+    width: 18,
+    height: 18,
     borderRadius: 4,
-    borderWidth: 2,
-    borderColor: '#bccac0',
+    borderWidth: 1.5,
+    borderColor: C.border,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'transparent',
+    backgroundColor: '#ffffff',
   },
   checkboxOn: {
     backgroundColor: C.primary,
@@ -162,37 +194,36 @@ const styles = StyleSheet.create({
   forgotTxt: {
     fontSize: 13,
     fontWeight: '600',
+    lineHeight: 18,
     color: C.primary,
   },
-  // ── Primary button ──────────────────────────────────────────────
   primaryBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    height: 48,
+    height: 50,
     borderRadius: 12,
-    gap: 8,
-    marginTop: 4,
+    gap: 4,
+    marginTop: spacing.sm,
     backgroundColor: C.primary,
     shadowColor: C.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.35,
+    shadowRadius: 16,
+    elevation: 6,
   },
   primaryBtnTxt: {
-    color: C.onPrimary,
+    color: '#ffffff',
     fontSize: 17,
     fontWeight: '600',
     lineHeight: 22,
     letterSpacing: 0.2,
   },
-  // ── Face ID button ──────────────────────────────────────────────
   faceBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    height: 48,
+    height: 50,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: C.border,
@@ -203,9 +234,9 @@ const styles = StyleSheet.create({
   faceBtnTxt: {
     fontSize: 13,
     fontWeight: '600',
+    lineHeight: 18,
     color: C.primary,
   },
-  // ── Divider ─────────────────────────────────────────────────────
   divider: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -219,12 +250,11 @@ const styles = StyleSheet.create({
   },
   dividerTxt: {
     fontSize: 13,
-    fontWeight: '500',
+    fontWeight: '400',
     color: C.dividerText,
     backgroundColor: C.bg,
     paddingHorizontal: spacing.sm,
   },
-  // ── Social buttons ──────────────────────────────────────────────
   socialRow: {
     flexDirection: 'row',
     gap: 12,
@@ -236,14 +266,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     height: 48,
-    borderRadius: 12,
+    borderRadius: 10,
     borderWidth: 1,
     gap: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2,
   },
   appleBtn: {
     backgroundColor: C.appleBg,
@@ -259,27 +284,27 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     letterSpacing: 0.2,
   },
-  // ── Footer ──────────────────────────────────────────────────────
   footer: {
     alignItems: 'center',
     marginTop: spacing.xl,
     gap: spacing.xs,
   },
   footerTxt: {
-    fontSize: 15,
-    lineHeight: 21,
+    fontSize: 14,
+    lineHeight: 20,
     color: C.textMuted,
   },
   footerLink: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '600',
+    lineHeight: 20,
     color: C.primary,
   },
   secBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    paddingTop: 4,
+    paddingTop: 8,
   },
   secBadgeTxt: {
     fontSize: 11,
@@ -289,17 +314,22 @@ const styles = StyleSheet.create({
   },
 });
 
+interface FormErrors {
+  email?: string;
+  password?: string;
+}
+
 export default function LoginScreen() {
-  const { t } = useT();
-  const { signIn, signUp, loadRememberEmail, rememberEmail, setRememberEmail } = useAuth();
+  console.log('[Login] LoginScreen rendering');
+  const { signIn, loadRememberEmail, rememberEmail, setRememberEmail } = useAuth();
   const [email, setEmail] = useState(rememberEmail ?? '');
   const [password, setPassword] = useState('');
-  const [isSignUp, setIsSignUp] = useState(false);
   const [loading, setLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(!!rememberEmail);
   const [showPassword, setShowPassword] = useState(false);
+  const [errors, setErrors] = useState<FormErrors>({});
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
 
-  // ── Animations ─────────────────────────────────────────────────
   const [cardFade] = useState(() => new Animated.Value(0));
   const [cardY] = useState(() => new Animated.Value(24));
   const [logoSc] = useState(() => new Animated.Value(0));
@@ -313,19 +343,16 @@ export default function LoginScreen() {
 
   useEffect(() => {
     const seq = Animated.sequence([
-      // Card fades in
       Animated.parallel([
         Animated.timing(cardFade, { toValue: 1, duration: 450, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
-        Animated.timing(cardY,   { toValue: 0,   duration: 450, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+        Animated.timing(cardY, { toValue: 0, duration: 450, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
       ]),
       Animated.delay(60),
-      // Logo bounces + text fades
       Animated.parallel([
         Animated.timing(logoSc, { toValue: 1, duration: 420, easing: Easing.out(Easing.elastic(1)), useNativeDriver: true }),
-        Animated.timing(txtOp,  { toValue: 1, duration: 350, easing: Easing.out(Easing.cubic),     useNativeDriver: true }),
+        Animated.timing(txtOp, { toValue: 1, duration: 350, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
       ]),
       Animated.delay(100),
-      // Inputs slide in
       Animated.parallel([
         Animated.timing(i1Op, { toValue: 1, duration: 350, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
         Animated.delay(70),
@@ -345,179 +372,241 @@ export default function LoginScreen() {
   const onPressSoc = (to: number) =>
     Animated.timing(socSc, { toValue: to, duration: 150, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start();
 
-  async function handleAuth() {
-    if (!email || !password) return;
+  function handleBlur(field: keyof FormErrors, value: string) {
+    setTouched(prev => ({ ...prev, [field]: true }));
+    let error: string | undefined = undefined;
+    switch (field) {
+      case 'email':
+        error = validateEmail(value);
+        break;
+      case 'password':
+        error = validatePassword(value);
+        break;
+    }
+    setErrors(prev => ({ ...prev, [field]: error }));
+  }
+
+  async function handleSignIn() {
+    const newErrors: FormErrors = {
+      email: validateEmail(email),
+      password: validatePassword(password),
+    };
+    
+    setErrors(newErrors);
+    setTouched({ email: true, password: true });
+    
+    const hasErrors = Object.values(newErrors).some(Boolean);
+    if (hasErrors) {
+      console.log('[Login] Validation errors:', newErrors);
+      return;
+    }
+
     setLoading(true);
     try {
-      const { error } = isSignUp ? await signUp(email, password) : await signIn(email, password);
-      if (error) return;
-      if (rememberMe) await setRememberEmail(email);
+      const sanitizedEmail = sanitizeInput(email);
+      console.log('[Login] Attempting sign in...');
+      const { error } = await signIn(sanitizedEmail, password);
+      if (error) {
+        console.error('[Login] Sign in failed:', error);
+        // Show error to user
+        if (error.message?.includes('Invalid login credentials')) {
+          setErrors(prev => ({ ...prev, password: 'Email hoặc mật khẩu không đúng' }));
+        } else if (error.message?.includes('Invalid API key')) {
+          Alert.alert('Lỗi', 'Không thể kết nối đến máy chủ. Vui lòng kiểm tra lại cấu hình Supabase.');
+        } else if (error.message?.includes('Network error') || error.message?.includes('Failed to fetch')) {
+          Alert.alert('Lỗi kết nối', 'Không thể kết nối đến mạng. Vui lòng kiểm tra kết nối Internet.');
+        } else {
+          setErrors(prev => ({ ...prev, email: error.message || 'Đăng nhập thất bại' }));
+        }
+        return;
+      }
+      console.log('[Login] Sign in successful');
+      if (rememberMe) await setRememberEmail(sanitizedEmail);
       else await useAuth.getState().clearRememberEmail();
       router.replace('/(tabs)');
+    } catch (err) {
+      console.error('[Login] Unexpected error:', err);
+      Alert.alert('Lỗi', 'Đã có lỗi xảy ra. Vui lòng thử lại.');
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={0}>
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-      >
-        <Animated.View style={{ opacity: cardFade, transform: [{ translateY: cardY }] }}>
+    <SafeAreaView style={styles.container}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={0}>
+        <ScrollView
+          style={styles.scroll}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          <Animated.View style={{ opacity: cardFade, transform: [{ translateY: cardY }] }}>
 
-          {/* ── Logo + Title ── */}
-          <View style={styles.header}>
-            <Animated.View style={[styles.logoWrap, { transform: [{ scale: logoSc }] }]}>
-              <Ionicons name="wallet-outline" size={30} color={C.onPrimary} />
-            </Animated.View>
-            <Animated.View style={{ opacity: txtOp, transform: [{ translateY: txtOp.interpolate({ inputRange: [0, 1], outputRange: [8, 0] }) }] }}>
-              <Text style={styles.title}>Chào mừng trở lại!</Text>
-            </Animated.View>
-            <Animated.View style={{ opacity: txtOp }}>
-              <Text style={styles.subtitle}>Đăng nhập để tiếp tục quản lý tài chính thông minh & an toàn.</Text>
-            </Animated.View>
-          </View>
-
-          {/* ── Form ── */}
-          <View style={styles.form}>
-
-            {/* Email */}
-            <Animated.View style={[styles.inputGroup, { opacity: i1Op, transform: [{ translateX: i1Op.interpolate({ inputRange: [0, 1], outputRange: [-16, 0] }) }] }]}>
-              <Text style={styles.inputLabel}>Email hoặc Số điện thoại</Text>
-              <View style={styles.inputRow}>
-                <Ionicons name="mail-outline" size={20} style={styles.inputIcon} />
-                <TextInput
-                  style={styles.input}
-                  placeholder="vidu@email.com hoặc 0912..."
-                  placeholderTextColor={C.outline}
-                  value={email}
-                  onChangeText={setEmail}
-                  autoCapitalize="none"
-                  keyboardType="email-address"
-                  autoComplete="email"
-                />
-              </View>
-            </Animated.View>
-
-            {/* Password */}
-            <Animated.View style={[styles.inputGroup, { opacity: i2Op, transform: [{ translateX: i2Op.interpolate({ inputRange: [0, 1], outputRange: [-16, 0] }) }] }]}>
-              <Text style={styles.inputLabel}>Mật khẩu</Text>
-              <View style={styles.inputRow}>
-                <Ionicons name="lock-closed-outline" size={20} style={styles.inputIcon} />
-                <TextInput
-                  style={[styles.input, { paddingRight: 44 }]}
-                  placeholder="Nhập mật khẩu của bạn"
-                  placeholderTextColor={C.outline}
-                  value={password}
-                  onChangeText={setPassword}
-                  secureTextEntry={!showPassword}
-                  autoComplete="current-password"
-                />
-                <TouchableOpacity onPress={() => setShowPassword(v => !v)} style={styles.pwToggle}>
-                  <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color={C.outline} />
-                </TouchableOpacity>
-              </View>
-            </Animated.View>
-
-            {/* Remember + Forgot */}
-            <Animated.View style={[styles.rememberRow, { opacity: remOp }]}>
-              <TouchableOpacity onPress={() => setRememberMe(v => !v)} activeOpacity={0.7}>
-                <View style={styles.checkboxRow}>
-                  <Animated.View style={[styles.checkbox, rememberMe && styles.checkboxOn, { transform: [{ scale: rememberMe ? 1.08 : 1 }] }]}>
-                    {rememberMe && <Ionicons name="checkmark" size={12} color={C.onPrimary} />}
-                  </Animated.View>
-                  <Text style={styles.rememberTxt}>Ghi nhớ đăng nhập</Text>
-                </View>
-              </TouchableOpacity>
-              <TouchableOpacity activeOpacity={0.7}>
-                <Text style={styles.forgotTxt}>Quên mật khẩu?</Text>
-              </TouchableOpacity>
-            </Animated.View>
-
-            {/* Sign In button */}
-            <Animated.View style={{ transform: [{ scale: btnSc }] }}>
-              <TouchableOpacity
-                style={[styles.primaryBtn, { opacity: loading ? 0.72 : 1 }]}
-                onPressIn={() => onPressBtn(0.97)}
-                onPressOut={() => onPressBtn(1)}
-                onPress={handleAuth}
-                disabled={loading}
-                activeOpacity={0.85}
-              >
-                <Text style={[styles.primaryBtnTxt, { opacity: loading ? 0.8 : 1 }]}>
-                  {isSignUp ? t('common.signUp') : t('common.signIn')}
-                </Text>
-                {!loading && <Ionicons name="arrow-forward" size={20} color={C.onPrimary} />}
-              </TouchableOpacity>
-            </Animated.View>
-
-            {/* Face ID button */}
-            <Animated.View style={{ opacity: faceOp, transform: [{ translateY: faceOp.interpolate({ inputRange: [0, 1], outputRange: [8, 0] }) }] }}>
-              <TouchableOpacity
-                style={styles.faceBtn}
-                onPressIn={() => onPressBtn(0.97)}
-                onPressOut={() => onPressBtn(1)}
-                activeOpacity={0.82}
-              >
-                <Ionicons name="lock-open-outline" size={20} color={C.primary} />
-                <Text style={styles.faceBtnTxt}>Đăng nhập bằng Face ID</Text>
-              </TouchableOpacity>
-            </Animated.View>
-          </View>
-
-          {/* ── Divider ── */}
-          <View style={styles.divider}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerTxt}>Hoặc tiếp tục với</Text>
-            <View style={styles.dividerLine} />
-          </View>
-
-          {/* ── Social ── */}
-          <View style={styles.socialRow}>
-            <Animated.View style={{ flex: 1, transform: [{ scale: socSc }] }}>
-              <TouchableOpacity
-                style={[styles.socialBtn, styles.appleBtn]}
-                onPressIn={() => onPressSoc(0.95)}
-                onPressOut={() => onPressSoc(1)}
-                activeOpacity={0.82}
-              >
-                <Ionicons name="logo-apple" size={16} color="#ffffff" />
-                <Text style={[styles.socialTxt, { color: '#ffffff' }]}>Apple ID</Text>
-              </TouchableOpacity>
-            </Animated.View>
-            <Animated.View style={{ flex: 1, transform: [{ scale: socSc }] }}>
-              <TouchableOpacity
-                style={[styles.socialBtn, styles.googleBtn]}
-                onPressIn={() => onPressSoc(0.95)}
-                onPressOut={() => onPressSoc(1)}
-                activeOpacity={0.82}
-              >
-                <Ionicons name="logo-google" size={16} color="#4285F4" />
-                <Text style={[styles.socialTxt, { color: '#0b1c30' }]}>Google</Text>
-              </TouchableOpacity>
-            </Animated.View>
-          </View>
-
-          {/* ── Footer ── */}
-          <View style={styles.footer}>
-            <Text style={styles.footerTxt}>
-              {isSignUp ? 'Đã có tài khoản? ' : 'Chưa có tài khoản? '}
-              <Text style={styles.footerLink} onPress={() => setIsSignUp(v => !v)}>
-                {isSignUp ? 'Đăng nhập' : 'Đăng ký ngay'}
-              </Text>
-            </Text>
-            <View style={styles.secBadge}>
-              <Ionicons name="shield-outline" size={14} color={C.outline} />
-              <Text style={styles.secBadgeTxt}>Bảo mật dữ liệu 100% cục bộ & mã hóa thiết bị</Text>
+            {/* ── Logo + Title ── */}
+            <View style={styles.header}>
+              <Animated.View style={[styles.logoWrap, { transform: [{ scale: logoSc }] }]}>
+                <Ionicons name="wallet-outline" size={30} color="#ffffff" />
+              </Animated.View>
+              <Animated.View style={{ opacity: txtOp, transform: [{ translateY: txtOp.interpolate({ inputRange: [0, 1], outputRange: [8, 0] }) }] }}>
+                <Text style={styles.title}>Chào mừng trở lại!</Text>
+              </Animated.View>
+              <Animated.View style={{ opacity: txtOp }}>
+                <Text style={styles.subtitle}>Đăng nhập để tiếp tục quản lý tài chính thông minh & an toàn.</Text>
+              </Animated.View>
             </View>
-          </View>
 
-        </Animated.View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+            {/* ── Form ── */}
+            <View style={styles.form}>
+
+              {/* Email */}
+              <Animated.View style={[styles.inputGroup, { opacity: i1Op, transform: [{ translateX: i1Op.interpolate({ inputRange: [0, 1], outputRange: [-16, 0] }) }] }]}>
+                <View style={styles.labelRow}>
+                  <Text style={styles.label}>Email</Text>
+                  <Text style={styles.required}>*</Text>
+                </View>
+                <View style={[styles.inputRow, errors.email && styles.inputRowError]}>
+                  <Ionicons name="mail-outline" size={20} style={styles.inputIcon} />
+                  <TextInput
+                    style={styles.input}
+                    placeholder="email@example.com"
+                    placeholderTextColor={`${C.outline}b3`}
+                    value={email}
+                    onChangeText={setEmail}
+                    autoCapitalize="none"
+                    keyboardType="email-address"
+                    autoComplete="email"
+                    onBlur={() => handleBlur('email', email)}
+                  />
+                </View>
+                {touched.email && errors.email && (
+                  <Text style={styles.errorText}>{errors.email}</Text>
+                )}
+              </Animated.View>
+
+              {/* Password */}
+              <Animated.View style={[styles.inputGroup, { opacity: i2Op, transform: [{ translateX: i2Op.interpolate({ inputRange: [0, 1], outputRange: [-16, 0] }) }] }]}>
+                <View style={styles.labelRow}>
+                  <Text style={styles.label}>Mật khẩu</Text>
+                  <Text style={styles.required}>*</Text>
+                </View>
+                <View style={[styles.inputRow, errors.password && styles.inputRowError]}>
+                  <Ionicons name="lock-closed-outline" size={20} style={styles.inputIcon} />
+                  <TextInput
+                    style={[styles.input, { paddingRight: 44 }]}
+                    placeholder="Nhập mật khẩu"
+                    placeholderTextColor={`${C.outline}b3`}
+                    value={password}
+                    onChangeText={setPassword}
+                    secureTextEntry={!showPassword}
+                    autoComplete="current-password"
+                    onBlur={() => handleBlur('password', password)}
+                  />
+                  <TouchableOpacity onPress={() => setShowPassword(v => !v)} style={styles.pwToggle}>
+                    <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color={C.textMuted} />
+                  </TouchableOpacity>
+                </View>
+                {touched.password && errors.password && (
+                  <Text style={styles.errorText}>{errors.password}</Text>
+                )}
+              </Animated.View>
+
+              {/* Remember + Forgot */}
+              <Animated.View style={[styles.rememberRow, { opacity: remOp }]}>
+                <TouchableOpacity onPress={() => setRememberMe(v => !v)} activeOpacity={0.7}>
+                  <View style={styles.checkboxRow}>
+                    <Animated.View style={[styles.checkbox, rememberMe && styles.checkboxOn, { transform: [{ scale: rememberMe ? 1.08 : 1 }] }]}>
+                      {rememberMe && <Ionicons name="checkmark" size={12} color="#ffffff" />}
+                    </Animated.View>
+                    <Text style={styles.rememberTxt}>Ghi nhớ đăng nhập</Text>
+                  </View>
+                </TouchableOpacity>
+                <TouchableOpacity activeOpacity={0.7}>
+                  <Text style={styles.forgotTxt}>Quên mật khẩu?</Text>
+                </TouchableOpacity>
+              </Animated.View>
+
+              {/* Sign In button */}
+              <Animated.View style={{ transform: [{ scale: btnSc }] }}>
+                <TouchableOpacity
+                  style={[styles.primaryBtn, { opacity: loading ? 0.72 : 1 }]}
+                  onPressIn={() => onPressBtn(0.97)}
+                  onPressOut={() => onPressBtn(1)}
+                  onPress={handleSignIn}
+                  disabled={loading}
+                  activeOpacity={0.85}
+                >
+                  <Text style={[styles.primaryBtnTxt, { opacity: loading ? 0.8 : 1 }]}>
+                    Đăng nhập
+                  </Text>
+                  {!loading && <Ionicons name="arrow-forward" size={20} color="#ffffff" />}
+                </TouchableOpacity>
+              </Animated.View>
+
+              {/* Face ID button */}
+              <Animated.View style={{ opacity: faceOp, transform: [{ translateY: faceOp.interpolate({ inputRange: [0, 1], outputRange: [8, 0] }) }] }}>
+                <TouchableOpacity
+                  style={styles.faceBtn}
+                  onPressIn={() => onPressBtn(0.97)}
+                  onPressOut={() => onPressBtn(1)}
+                  activeOpacity={0.82}
+                >
+                  <Ionicons name="lock-open-outline" size={20} color={C.primary} />
+                  <Text style={styles.faceBtnTxt}>Đăng nhập bằng Face ID</Text>
+                </TouchableOpacity>
+              </Animated.View>
+            </View>
+
+            {/* ── Divider ── */}
+            <View style={styles.divider}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerTxt}>Hoặc tiếp tục với</Text>
+              <View style={styles.dividerLine} />
+            </View>
+
+            {/* ── Social ── */}
+            <View style={styles.socialRow}>
+              <Animated.View style={{ flex: 1, transform: [{ scale: socSc }] }}>
+                <TouchableOpacity
+                  style={[styles.socialBtn, styles.appleBtn]}
+                  onPressIn={() => onPressSoc(0.95)}
+                  onPressOut={() => onPressSoc(1)}
+                  activeOpacity={0.82}
+                >
+                  <Ionicons name="logo-apple" size={16} color="#ffffff" />
+                  <Text style={[styles.socialTxt, { color: '#ffffff' }]}>Apple ID</Text>
+                </TouchableOpacity>
+              </Animated.View>
+              <Animated.View style={{ flex: 1, transform: [{ scale: socSc }] }}>
+                <TouchableOpacity
+                  style={[styles.socialBtn, styles.googleBtn]}
+                  onPressIn={() => onPressSoc(0.95)}
+                  onPressOut={() => onPressSoc(1)}
+                  activeOpacity={0.82}
+                >
+                  <Ionicons name="logo-google" size={16} color="#4285F4" />
+                  <Text style={[styles.socialTxt, { color: C.text }]}>Google</Text>
+                </TouchableOpacity>
+              </Animated.View>
+            </View>
+
+            {/* ── Footer ── */}
+            <View style={styles.footer}>
+              <Text style={styles.footerTxt}>
+                Chưa có tài khoản?{' '}
+                <Text style={styles.footerLink} onPress={() => router.replace('/register')}>
+                  Đăng ký ngay
+                </Text>
+              </Text>
+              <View style={styles.secBadge}>
+                <Ionicons name="shield-outline" size={14} color={C.outline} />
+                <Text style={styles.secBadgeTxt}>Bảo mật dữ liệu 100% cục bộ & mã hóa thiết bị</Text>
+              </View>
+            </View>
+
+          </Animated.View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }

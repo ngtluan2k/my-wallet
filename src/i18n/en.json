@@ -1,0 +1,191 @@
+{
+  "login": {
+    "title": "Welcome Back!",
+    "subtitle": "Sign in to continue managing your finances smartly & securely.",
+    "email": "Email or Phone Number",
+    "email_placeholder": "email@example.com",
+    "password": "Password",
+    "password_placeholder": "Enter your password",
+    "remember": "Remember me",
+    "forgot": "Forgot password?",
+    "sign_in": "Sign In",
+    "face_id": "Sign In with Face ID",
+    "divider": "Or continue with",
+    "apple_id": "Apple ID",
+    "google": "Google",
+    "no_account": "Don't have an account?",
+    "sign_up": "Sign Up",
+    "security_badge": "Data is 100% local & device-encrypted"
+  },
+  "register": {
+    "title": "Create new account",
+    "sub_title": "Start your financial journey",
+    "full_name": "Full name",
+    "full_name_placeholder": "John Doe",
+    "email": "Email",
+    "email_placeholder": "email@example.com",
+    "password": "Password",
+    "password_placeholder": "At least 8 characters",
+    "confirm_password": "Confirm password",
+    "confirm_placeholder": "Re-enter password",
+    "terms": "I agree to the Terms of Service and Privacy Policy of My Wallet.",
+    "privacy": "Offline-first & Privacy-protected",
+    "privacy_desc": "Financial data is locally encrypted on your device.",
+    "sign_up": "Sign up account",
+    "divider": "Or sign up quickly with",
+    "apple": "Apple",
+    "google": "Google",
+    "have_account": "Already have a My Wallet account?",
+    "login": "Login",
+    "security_badge": "Data is 100% local & device-encrypted"
+  },
+  "category": {
+    "unknown": "Unknown",
+    "income": "Income",
+    "expense": "Expense",
+    "food": "Food",
+    "transport": "Transport",
+    "entertainment": "Entertainment",
+    "shopping": "Shopping",
+    "health": "Health",
+    "education": "Education",
+    "salary": "Salary",
+    "bonus": "Bonus",
+    "gift": "Gift",
+    "investment": "Investment",
+    "other": "Other"
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "Error",
+    "retry": "Retry",
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "add": "Add",
+    "export": "Export",
+    "import": "Import",
+    "logout": "Logout",
+    "logout_confirm": "Are you sure you want to logout?",
+    "password_length_error": "Password must have at least 8 characters",
+    "password_mismatch": "Passwords do not match",
+    "email_required": "Please enter email",
+    "email_invalid": "Invalid email",
+    "required_field": "*",
+    "field_required": "Please enter {field}"
+  },
+  "storage": {
+    "error": {
+      "title": "Storage error",
+      "corrupt": "The data file is damaged. You can restore from a backup file. The app will not overwrite your data until you restore.",
+      "unsupported_version": "Your data was created by a newer version. Update the app.",
+      "read_failed": "Cannot read data. Please try again.",
+      "write_failed": "Cannot save data. Please try again."
+    }
+  },
+  "transactions": {
+    "add": "Add transaction",
+    "edit": "Edit transaction",
+    "delete": "Delete transaction",
+    "deleteConfirm": "Delete this transaction?",
+    "amount": "Amount",
+    "category": "Category",
+    "date": "Date",
+    "description": "Description",
+    "select_category": "Select category",
+    "custom": "Custom",
+    "no_transactions": "No transactions yet"
+  },
+  "settings": {
+    "title": "Settings",
+    "language": "Language",
+    "theme": "Theme",
+    "currency": "Currency",
+    "backup": "Backup",
+    "restore": "Restore",
+    "security": "Security",
+    "notifications": "Notifications",
+    "privacy": "Privacy"
+  },
+  "summary": {
+    "income": "Income",
+    "expense": "Expenses",
+    "difference": "Income − expenses"
+  },
+  "dashboard": {
+    "spendingByCategory": "Spending by category",
+    "noExpenses": "No expenses this month yet.",
+    "recent": "Recent transactions",
+    "budgetAlerts": "Budget alerts",
+    "availableBalance": "Available balance",
+    "security": "Secure",
+    "totalIncome": "Total income",
+    "totalExpense": "Total expense",
+    "quickActions": {
+      "add": "Add income/expense",
+      "scan": "Scan bill",
+      "budget": "Set budget",
+      "report": "Weekly report"
+    },
+    "seeDetail": "Details",
+    "seeAll": "See all",
+    "updatedJustNow": "Updated just now",
+    "greeting": {
+      "morning": "Good morning",
+      "afternoon": "Good afternoon",
+      "evening": "Good evening"
+    },
+    "alert": {
+      "spentOf": "Spent {percent}% of budget",
+      "used": "Spent",
+      "limit": "Limit"
+    },
+    "analysis": {
+      "allocated": "Total allocated spending"
+    },
+    "category": {
+      "food": "Food",
+      "housing": "Housing",
+      "transport": "Transport",
+      "entertainment": "Entertainment"
+    }
+  },
+  "type": {
+    "income": "Income",
+    "expense": "Expense"
+  },
+  "form": {
+    "amount": "Amount",
+    "category": "Category",
+    "date": "Date",
+    "note": "Note",
+    "notePlaceholder": "Optional",
+    "today": "Today",
+    "selectDate": "Select date",
+    "error": {
+      "amount_invalid": "Enter an amount greater than 0.",
+      "category_invalid": "Pick a category.",
+      "category_type_mismatch": "Category does not match the transaction type.",
+      "date_invalid": "Invalid date.",
+      "note_too_long": "Note is too long."
+    }
+  },
+  "budget": {
+    "intro": "Monthly spending limit per category. Applies to every month.",
+    "limitPlaceholder": "Not set",
+    "spentOf": "Spent {spent} of {limit}",
+    "remaining": "{amount} left",
+    "overBy": "Over by {amount}",
+    "status": {
+      "warning": "Almost at limit",
+      "over": "Over budget"
+    }
+  },
+  "tab": {
+    "dashboard": "Overview",
+    "transactions": "Transactions",
+    "budget": "Budget",
+    "settings": "Settings"
+  }
+}

@@ -5,16 +5,33 @@ import type { Category } from '@/domain/types';
 import { useSettings } from '@/state/settings';
 
 import { en } from './en';
-import { vi, type TranslationKey } from './vi';
+import { vi } from './vi';
 
 export type Language = 'vi' | 'en';
-export type { TranslationKey };
 
-const dictionaries: Record<Language, Record<TranslationKey, string>> = { vi, en };
+// Recursive type to extract all nested translation keys
+type TranslationKeys<T> = T extends object
+  ? {
+      [K in keyof T]: K extends string
+        ? T[K] extends object
+          ? `${K}.${TranslationKeys<T[K]>}`
+          : K
+        : never;
+    }[keyof T]
+  : never;
+
+export type TranslationKey = TranslationKeys<typeof vi>;
+
+const dictionaries: Record<Language, Record<string, string>> = { vi, en };
 
 export function translate(language: Language, key: TranslationKey, params?: Record<string, string | number>): string {
-  const text: string = dictionaries[language][key];
-  return params ? text.replace(/\{(\w+)\}/g, (match, name) => String(params[name] ?? match)) : text;
+  const keys = key.split('.');
+  let value: any = dictionaries[language];
+  for (const k of keys) {
+    value = value?.[k];
+  }
+  if (typeof value !== 'string') return key;
+  return params ? value.replace(/\{(\w+)\}/g, (match, name) => String(params[name] ?? match)) : value;
 }
 
 /** Vietnamese devices get Vietnamese; everything else falls back to English. */

@@ -15,6 +15,7 @@ export default function SettingsScreen() {
 
   async function handleSignOut() {
     await signOut();
+    // Navigate to login after sign out
     router.replace('/login');
   }
 
@@ -54,7 +55,7 @@ export default function SettingsScreen() {
         </View>
       </Card>
 
-      <Button label="Sign Out" variant="danger" onPress={handleSignOut} />
+      <Button label={t('settings.signOut')} variant="danger" onPress={handleSignOut} />
     </Screen>
   );
 }

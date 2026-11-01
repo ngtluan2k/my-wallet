@@ -12,7 +12,15 @@ export const useSettings = create<SettingsState>()((set, get) => ({
   ...DEFAULT_SETTINGS,
   loaded: false,
   async load() {
-    set({ ...(await loadSettings()), loaded: true });
+    console.log('[Settings] Loading...');
+    try {
+      const settings = await loadSettings();
+      console.log('[Settings] Loaded:', settings);
+      set({ ...settings, loaded: true });
+    } catch (error) {
+      console.error('[Settings] Load error:', error);
+      set({ loaded: true });
+    }
   },
   update(patch) {
     set(patch);

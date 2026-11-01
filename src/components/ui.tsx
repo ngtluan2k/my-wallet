@@ -6,7 +6,7 @@ import { radius, spacing, useTheme } from '@/theme';
 
 export type IconName = ComponentProps<typeof Ionicons>['name'];
 
-type Tone = 'default' | 'muted' | 'income' | 'expense' | 'warning' | 'danger' | 'primary';
+type Tone = 'default' | 'muted' | 'income' | 'expense' | 'warning' | 'danger' | 'primary' | 'white' | 'white80' | 'white70' | 'white90';
 
 export function Screen({ children, scroll = true }: { children: ReactNode; scroll?: boolean }) {
   const { colors } = useTheme();
@@ -336,8 +336,12 @@ export function AppText({
     warning: colors.warning,
     danger: colors.danger,
     primary: colors.primary,
+    white: '#ffffff',
+    white80: 'rgba(255,255,255,0.8)',
+    white70: 'rgba(255,255,255,0.7)',
+    white90: 'rgba(255,255,255,0.9)',
   }[tone];
-  
+
   return <Text {...props} style={[{ color, fontSize: size, fontWeight: weight }, style]} />;
 }
 

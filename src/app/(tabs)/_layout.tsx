@@ -15,6 +15,7 @@ function icon(name: IconName) {
 export default function TabsLayout() {
   const { colors } = useTheme();
   const { t } = useT();
+  
   return (
     <Tabs
       screenOptions={{
