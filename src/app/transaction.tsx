@@ -5,7 +5,8 @@ import { useMemo, useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, Pressable, StyleSheet, TextInput, View } from 'react-native';
 
 import { useCategories } from '@/components/wallet';
-import { AppText, Button, Chip, Screen, Segmented, SectionTitle } from '@/components/ui';
+import { AppText, Button, Screen, SectionTitle, ModernChip, ModernSegmented } from '@/components/ui';
+
 import { formatLocalDate, today } from '@/domain/dates';
 import { groupDigits, parseAmountInput } from '@/domain/money';
 import { MAX_NOTE_LENGTH, validateTransactionInput, type TransactionError } from '@/domain/transactions';
@@ -111,7 +112,7 @@ export default function TransactionScreen() {
     <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <Stack.Screen options={{ title: t(existing ? 'transactions.edit' : 'transactions.add') }} />
       <Screen>
-        <Segmented<TransactionType>
+        <ModernSegmented<TransactionType>
           value={type}
           onChange={changeType}
           options={[
@@ -141,7 +142,7 @@ export default function TransactionScreen() {
           <SectionTitle>{t('form.category')}</SectionTitle>
           <View style={styles.chips}>
             {typeCategories.map((c) => (
-              <Chip
+              <ModernChip
                 key={c.id}
                 label={categoryName(c)}
                 color={c.color}
@@ -166,7 +167,7 @@ export default function TransactionScreen() {
           </Pressable>
           {date !== today() && (
             <View style={styles.chips}>
-              <Chip label={t('form.today')} selected={false} onPress={() => setDate(today())} />
+              <ModernChip label={t('form.today')} selected={false} onPress={() => setDate(today())} />
             </View>
           )}
           {errorText(['date_invalid'])}

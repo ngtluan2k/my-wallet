@@ -9,7 +9,7 @@ import {
 
 import { SigningExpiryBanner } from '@/components/signing';
 import { MonthSwitcher, SummaryCard, TransactionRow, useCategories } from '@/components/wallet';
-import { AppText, Card, CategoryIcon, EmptyState, Fab, ProgressBar, Screen, SectionTitle, Skeleton } from '@/components/ui';
+import { AppText, ModernCard, CategoryIcon, EmptyState, Fab, ModernProgressBar, Screen, SectionTitle, Skeleton } from '@/components/ui';
 import { budgetUsage } from '@/domain/budgets';
 import { formatMoney } from '@/domain/money';
 import { filterTransactions, sortTransactions, summarize, totalsByCategory } from '@/domain/transactions';
@@ -53,7 +53,7 @@ export default function DashboardScreen() {
         <MonthSwitcher />
 
         {/* Profile Section */}
-        <Card style={[styles.profileCard, { backgroundColor: colors.surface }]}>
+        <ModernCard style={[styles.profileCard, { backgroundColor: colors.surface }]}>
           <View style={[styles.profileRow, { backgroundColor: colors.surface }]}>
             <View style={[styles.avatar, { backgroundColor: colors.surfaceMuted }]}>
               <Image
@@ -122,7 +122,7 @@ export default function DashboardScreen() {
               </View>
             )}
           </View>
-        </Card>
+        </ModernCard>
 
         {loading ? (
           <View style={styles.skeletonContainer}>
@@ -131,7 +131,9 @@ export default function DashboardScreen() {
             <Skeleton width="100%" height={16} style={styles.skeletonRow} />
           </View>
         ) : (
-          <SummaryCard summary={summary} />
+          <ModernCard>
+            <SummaryCard summary={summary} />
+          </ModernCard>
         )}
 
         {loading ? (
@@ -142,7 +144,7 @@ export default function DashboardScreen() {
           </View>
         ) : (
           alerts.length > 0 && (
-            <Card>
+            <ModernCard>
               <SectionTitle>{t('dashboard.budgetAlerts')}</SectionTitle>
               {alerts.map((a) => (
                 <View key={a.categoryId} style={styles.alertRow}>
@@ -152,11 +154,11 @@ export default function DashboardScreen() {
                   </AppText>
                 </View>
               ))}
-            </Card>
+            </ModernCard>
           )
         )}
 
-        <Card>
+        <ModernCard>
           <SectionTitle>{t('dashboard.spendingByCategory')}</SectionTitle>
           {loading ? (
             <View style={styles.spendingSkeleton}>
@@ -203,7 +205,7 @@ export default function DashboardScreen() {
                     </View>
                     <View style={styles.spendHeader}>
                       <View style={styles.flex}>
-                        <ProgressBar ratio={s.amount / summary.expense} color={color} />
+                        <ModernProgressBar ratio={s.amount / summary.expense} color={color} status={percent >= 80 ? (percent >= 100 ? 'danger' : 'warning') : 'normal'} />
                       </View>
                       <AppText tone="muted" size={12} style={styles.percent}>
                         {percent}%
@@ -214,7 +216,7 @@ export default function DashboardScreen() {
               );
             })
           )}
-        </Card>
+        </ModernCard>
 
         {loading ? (
           <View style={styles.skeletonContainer}>
@@ -224,7 +226,7 @@ export default function DashboardScreen() {
           </View>
         ) : (
           recent.length > 0 && (
-            <Card>
+            <ModernCard>
               <SectionTitle>{t('dashboard.recent')}</SectionTitle>
               {recent.map((tx) => (
                 <TransactionRow
@@ -234,7 +236,7 @@ export default function DashboardScreen() {
                   onPress={() => router.push({ pathname: '/transaction', params: { id: tx.id } })}
                 />
               ))}
-            </Card>
+            </ModernCard>
           )
         )}
 
