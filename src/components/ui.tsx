@@ -6,6 +6,8 @@ import { radius, spacing, useTheme } from '@/theme';
 
 export type IconName = ComponentProps<typeof Ionicons>['name'];
 
+type Tone = 'default' | 'muted' | 'income' | 'expense' | 'warning' | 'danger' | 'primary';
+
 export function Screen({ children, scroll = true }: { children: ReactNode; scroll?: boolean }) {
   const { colors } = useTheme();
   if (!scroll) return <View style={[styles.screen, { backgroundColor: colors.background }]}>{children}</View>;
@@ -23,136 +25,46 @@ export function Screen({ children, scroll = true }: { children: ReactNode; scrol
 export function Card({ children, style }: { children: ReactNode; style?: StyleProp<ViewStyle> }) {
   const { colors } = useTheme();
   return (
-    <View style={[
-      styles.card, 
-      { 
-        backgroundColor: colors.surface,
-        borderColor: colors.border,
-        borderRadius: radius.lg,
-        shadowColor: '#000',
-        shadowOpacity: 0.04,
-        shadowRadius: 20,
-        shadowOffset: { width: 0, height: -2 },
-        elevation: 4
-      }, 
-      style
-    ]}>{children}</View>
+    <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }, style]}>{children}</View>
   );
 }
 
-export function ModernCard({ 
-  children, 
-  elevated = false, 
+export function ModernCard({
+  children,
+  elevated = false,
   glassmorphic = false,
-  style 
-}: { 
-  children: ReactNode; 
-  elevated?: boolean; 
+  style,
+}: {
+  children: ReactNode;
+  elevated?: boolean;
   glassmorphic?: boolean;
   style?: StyleProp<ViewStyle>;
 }) {
   const { colors } = useTheme();
-  
+
   const getShadowLevel = () => {
     if (elevated) return shadows.level3;
     if (glassmorphic) return shadows.level1;
     return shadows.level0;
   };
-  
+
   return (
     <View
-      style={[
-        styles.card,
-        {
-          // Modern card styling
-          backgroundColor: glassmorphic ? 'rgba(255, 255, 255, 0.8)' : colors.surface,
-          borderColor: colors.border,
-          borderWidth: StyleSheet.hairlineWidth,
-          borderRadius: radius.lg, // 18px
-          ...getShadowLevel(),
-          // Micro-interactions
-          ...(glassmorphic && {
-            shadowColor: '#000',
-            shadowOpacity: 0.06,
-            shadowRadius: 32,
-            shadowOffset: { width: 0, height: 8 },
-          }),
-        },
-        style,
-      ]}
+      style={[styles.card, {
+        backgroundColor: glassmorphic ? 'rgba(255, 255, 255, 0.8)' : colors.surface,
+        borderColor: colors.border,
+        borderWidth: StyleSheet.hairlineWidth,
+        borderRadius: radius.lg,
+        ...getShadowLevel(),
+        ...(glassmorphic && {
+          shadowColor: '#000',
+          shadowOpacity: 0.06,
+          shadowRadius: 32,
+          shadowOffset: { width: 0, height: 8 },
+        }),
+      }, style]}
     >
       {children}
-    </View>
-  );
-}
-
-type Tone = 'default' | 'muted' | 'income' | 'expense' | 'warning' | 'danger' | 'primary';
-
-export function AppText({
-  tone = 'default',
-  size,
-  weight,
-  style,
-  ...props
-}: TextProps & { tone?: Tone; size?: number; weight?: '400' | '500' | '600' | '700' }) {
-  const { colors } = useTheme();
-  const color = {
-    default: colors.text,
-    muted: colors.textMuted,
-    income: colors.income,
-    expense: colors.expense,
-    warning: colors.warning,
-    danger: colors.danger,
-    primary: colors.primary,
-  }[tone];
-  
-  return <Text {...props} style={[{ color, fontSize: size, fontWeight: weight }, style]} />;
-}
-
-export function SectionTitle({ children }: { children: ReactNode }) {
-  return (
-    <AppText size={13} weight="600" tone="muted" style={styles.sectionTitle}>
-      {children}
-    </AppText>
-  );
-}
-
-export function CategoryIcon({ icon, color, size = 36 }: { icon: string; color: string; size?: number }) {
-  return (
-    <View style={[styles.icon, { width: size, height: size, borderRadius: size / 2, backgroundColor: `${color}22` }]}>
-      <Ionicons name={icon as IconName} size={size * 0.5} color={color} />
-    </View>
-  );
-}
-
-export function Segmented<T extends string>({
-  options,
-  value,
-  onChange,
-}: {
-  options: { value: T; label: string }[];
-  value: T;
-  onChange(value: T): void;
-}) {
-  const { colors } = useTheme();
-  return (
-    <View style={[styles.segmented, { backgroundColor: colors.surfaceMuted }]}>
-      {options.map((o, index) => {
-        const selected = o.value === value;
-        return (
-          <Pressable
-            key={o.value}
-            onPress={() => onChange(o.value)}
-            accessibilityRole="button"
-            accessibilityState={{ selected }}
-            style={[styles.segment, selected && { backgroundColor: colors.surface }]}
-          >
-            <AppText weight={selected ? "600" : "400"} tone={selected ? "default" : "muted"}>
-              {o.label}
-            </AppText>
-          </Pressable>
-        );
-      })}
     </View>
   );
 }
@@ -167,6 +79,7 @@ export function ModernSegmented<T extends string>({
   onChange(value: T): void;
 }) {
   const { colors } = useTheme();
+
   return (
     <View style={styles.modernSegmentedContainer}>
       <View style={styles.modernSegmentedTrack}>
@@ -180,16 +93,8 @@ export function ModernSegmented<T extends string>({
               accessibilityRole="button"
               accessibilityState={{ selected }}
             >
-              <AppText
-                weight={selected ? "600" : "400"}
-                tone={selected ? "default" : "muted"}
-                style={styles.modernSegmentText}
-              >
-                {option.label}
-              </AppText>
-              {selected && (
-                <View style={styles.modernSegmentIndicator} />
-              )}
+              <Text style={[{ color: selected ? colors.text : colors.textMuted, fontSize: 13, fontWeight: selected ? '600' : '500' }]}>{option.label}</Text>
+              {selected && <View style={styles.modernSegmentIndicator} />}
             </Pressable>
           );
         })}
@@ -198,33 +103,96 @@ export function ModernSegmented<T extends string>({
   );
 }
 
-export function Chip({
+export function ModernChip({
   label,
   selected,
   onPress,
   color,
+  icon,
 }: {
   label: string;
   selected: boolean;
   onPress(): void;
   color?: string;
+  icon?: string;
 }) {
   const { colors } = useTheme();
   const accent = color ?? colors.primary;
+
   return (
     <Pressable
       onPress={onPress}
-      accessibilityRole="button"
-      accessibilityState={{ selected }}
-      style={[
-        styles.chip,
-        { borderColor: selected ? accent : colors.border, backgroundColor: selected ? `${accent}22` : colors.surface },
+      style={({ pressed }) => [
+        styles.modernChip,
+        selected && [styles.modernChipSelected, { backgroundColor: `${accent}15`, borderColor: accent }],
+        !selected && styles.modernChipUnselected,
+        pressed && { opacity: 0.7 },
       ]}
     >
-      <AppText size={14} weight={selected ? '600' : '400'}>
-        {label}
-      </AppText>
+      <View style={styles.modernChipContent}>
+        {icon && (
+          <View style={[styles.modernChipIcon, { backgroundColor: `${accent}20` }]}>
+            <Ionicons name={icon as IconName} size={18} color={accent} />
+          </View>
+        )}
+        <Text style={[{ color: selected ? accent : colors.text, fontSize: 14, fontWeight: selected ? '600' : '500' }]}>{label}</Text>
+      </View>
     </Pressable>
+  );
+}
+
+export function ModernProgressBar({
+  ratio,
+  color = '#006948',
+  status = 'normal',
+}: {
+  ratio: number;
+  color?: string;
+  status?: 'normal' | 'warning' | 'danger';
+}) {
+  const { colors } = useTheme();
+
+  const getProgressColor = () => {
+    switch (status) {
+      case 'warning':
+        return colors.warning;
+      case 'danger':
+        return colors.danger;
+      default:
+        return color;
+    }
+  };
+
+  const getProgressHeight = () => {
+    switch (status) {
+      case 'warning':
+        return 10;
+      case 'danger':
+        return 12;
+      default:
+        return 8;
+    }
+  };
+
+  return (
+    <View style={styles.modernProgressContainer}>
+      <View style={[styles.modernProgressTrack, { backgroundColor: colors.surfaceMuted }]}>
+        <View
+          style={[styles.modernProgressFill, {
+            width: `${Math.min(Math.max(ratio, 0), 1) * 100}%`,
+            backgroundColor: getProgressColor(),
+            height: getProgressHeight(),
+            borderRadius: 4,
+            ...(status === 'danger' && styles.progressDangerPulse),
+          }]}
+        />
+      </View>
+      {status === 'warning' && (
+        <View style={styles.warningIndicator}>
+          <Ionicons name="warning" size={14} color={colors.warning} />
+        </View>
+      )}
+    </View>
   );
 }
 
@@ -250,14 +218,14 @@ export function Button({
       disabled={disabled}
       accessibilityRole="button"
       style={({ pressed }) => [
-        styles.button, 
-        { 
-          backgroundColor: background, 
+        styles.button,
+        {
+          backgroundColor: background,
           opacity: disabled ? 0.5 : pressed ? 0.8 : 1,
           borderRadius: radius.md,
           borderWidth: variant === 'primary' ? 0 : 1,
           borderColor: variant === 'primary' ? 'transparent' : colors.border,
-        }
+        },
       ]}
     >
       {icon && <Ionicons name={icon} size={18} color={foreground} />}
@@ -287,6 +255,23 @@ export function Fab({ onPress, label }: { onPress(): void; label: string }) {
     >
       <Ionicons name="add" size={30} color={colors.onPrimary} />
     </Pressable>
+  );
+}
+
+export function SectionTitle({ children }: { children: ReactNode }) {
+  const { colors } = useTheme();
+  return (
+    <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }, styles.sectionTitleWrapper]}>
+      <Text style={[{ color: colors.textMuted, fontSize: 13, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 }]}>{children}</Text>
+    </View>
+  );
+}
+
+export function CategoryIcon({ icon, color, size = 36 }: { icon: string; color: string; size?: number }) {
+  return (
+    <View style={[styles.icon, { width: size, height: size, borderRadius: size / 2, backgroundColor: `${color}22` }]}>
+      <Ionicons name={icon as IconName} size={size * 0.5} color={color} />
+    </View>
   );
 }
 
@@ -326,15 +311,34 @@ export function EmptyState({
   return (
     <View style={[{ alignItems: 'center', justifyContent: 'center', padding: spacing.xl, gap: spacing.md }]}>
       <View style={[styles.emptyIcon, { backgroundColor: colors.surfaceMuted }]}>{icon}</View>
-      <AppText weight="600" size={18} style={styles.emptyTitle}>
-        {title}
-      </AppText>
-      {subtitle && <AppText tone="muted" size={14} style={styles.emptySubtitle}>{subtitle}</AppText>}
+      <Text style={[{ fontWeight: '600', fontSize: 18, textAlign: 'center' }]}>{title}</Text>
+      {subtitle && <Text style={[{ color: colors.textMuted, fontSize: 14, textAlign: 'center' }]}>{subtitle}</Text>}
       {actionLabel && onPress && (
         <Button label={actionLabel} variant="secondary" onPress={onPress} />
       )}
     </View>
   );
+}
+
+export function AppText({
+  tone = 'default',
+  size,
+  weight,
+  style,
+  ...props
+}: TextProps & { tone?: Tone; size?: number; weight?: '400' | '500' | '600' | '700' }) {
+  const { colors } = useTheme();
+  const color = {
+    default: colors.text,
+    muted: colors.textMuted,
+    income: colors.income,
+    expense: colors.expense,
+    warning: colors.warning,
+    danger: colors.danger,
+    primary: colors.primary,
+  }[tone];
+  
+  return <Text {...props} style={[{ color, fontSize: size, fontWeight: weight }, style]} />;
 }
 
 const shadows = {
@@ -371,28 +375,10 @@ const shadows = {
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   screenContent: { padding: spacing.lg, gap: spacing.xl, paddingBottom: 96 },
-  card: { 
-    borderRadius: radius.lg, 
-    borderWidth: StyleSheet.hairlineWidth, 
-    padding: spacing.lg, 
-    gap: spacing.md,
-    backgroundColor: 'transparent', 
-  },
+  card: { borderRadius: radius.lg, borderWidth: StyleSheet.hairlineWidth, padding: spacing.lg, gap: spacing.md },
+  sectionTitleWrapper: { padding: spacing.md, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#e2e8f0' },
   sectionTitle: { textTransform: 'uppercase', letterSpacing: 0.5 },
   icon: { alignItems: 'center', justifyContent: 'center' },
-  segmented: { 
-    flexDirection: 'row', 
-    borderRadius: radius.md, 
-    padding: 3,
-    backgroundColor: 'transparent',
-  },
-  segment: { 
-    flex: 1, 
-    alignItems: 'center', 
-    paddingVertical: spacing.sm, 
-    borderRadius: radius.sm,
-    backgroundColor: 'transparent',
-  },
   modernSegmentedContainer: {
     backgroundColor: '#f1f5f9',
     borderRadius: radius.md,
@@ -434,13 +420,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#006948',
     borderRadius: 2,
   },
-  chip: { 
-    paddingHorizontal: spacing.md, 
-    paddingVertical: 6, 
-    borderRadius: radius.pill, 
-    borderWidth: 1,
-    backgroundColor: 'transparent',
-  },
   modernChip: {
     paddingHorizontal: spacing.md,
     paddingVertical: 8,
@@ -450,6 +429,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
+  },
+  modernChipSelected: {
+    backgroundColor: 'transparent',
+  },
+  modernChipUnselected: {
+    backgroundColor: 'transparent',
   },
   modernChipContent: {
     flexDirection: 'row',
@@ -475,9 +460,9 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderRadius: radius.md,
   },
-  track: { 
-    height: 8, 
-    borderRadius: 4, 
+  track: {
+    height: 8,
+    borderRadius: 4,
     overflow: 'hidden',
     backgroundColor: 'transparent',
   },
@@ -507,4 +492,32 @@ const styles = StyleSheet.create({
   },
   emptyTitle: { textAlign: 'center' },
   emptySubtitle: { textAlign: 'center', marginTop: spacing.sm },
+
+  modernProgressContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  modernProgressTrack: {
+    flex: 1,
+    height: 8,
+    borderRadius: 4,
+    overflow: 'hidden',
+    backgroundColor: 'transparent',
+  },
+  modernProgressFill: {
+    height: '100%',
+    borderRadius: 4,
+  },
+  progressDangerPulse: {
+    shadowOpacity: 0.5,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+  },
+  warningIndicator: {
+    width: 24,
+    height: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 });

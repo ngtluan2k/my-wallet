@@ -3,7 +3,7 @@ import { useMemo, useState } from 'react';
 import { FlatList, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 
 import { MonthSwitcher, SummaryCard, TransactionRow, useCategories } from '@/components/wallet';
-import { AppText, Chip, Fab, Segmented } from '@/components/ui';
+import { AppText, Fab, ModernSegmented, ModernChip } from '@/components/ui';
 import { filterTransactions, sortTransactions, summarize } from '@/domain/transactions';
 import type { TransactionType } from '@/domain/types';
 import { useT } from '@/i18n';
@@ -52,7 +52,7 @@ export default function TransactionsScreen() {
         ListHeaderComponent={
           <View style={styles.header}>
             <MonthSwitcher />
-            <Segmented<TypeFilter>
+            <ModernSegmented<TypeFilter>
               value={type}
               onChange={changeType}
               options={[
@@ -62,9 +62,9 @@ export default function TransactionsScreen() {
               ]}
             />
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
-              <Chip label={t('common.all')} selected={!categoryId} onPress={() => setCategoryId(undefined)} />
+              <ModernChip label={t('common.all')} selected={!categoryId} onPress={() => setCategoryId(undefined)} />
               {visibleCategories.map((c) => (
-                <Chip
+                <ModernChip
                   key={c.id}
                   label={categoryName(c)}
                   color={c.color}
