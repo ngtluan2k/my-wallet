@@ -411,13 +411,13 @@ export default function LoginScreen() {
         console.error('[Login] Sign in failed:', error);
         // Show error to user
         if (error.message?.includes('Invalid login credentials')) {
-          setErrors(prev => ({ ...prev, password: 'login.error.invalidCredentials' }));
+          setErrors(prev => ({ ...prev, password: t('login.error.invalidCredentials') }));
         } else if (error.message?.includes('Invalid API key')) {
           Alert.alert(t('common.error'), t('login.error.apiKey'));
         } else if (error.message?.includes('Network error') || error.message?.includes('Failed to fetch')) {
           Alert.alert(t('login.error.network'), t('login.error.networkDesc'));
         } else {
-          setErrors(prev => ({ ...prev, email: error.message || t('login.error.unknown') }));
+          setErrors(prev => ({ ...prev, email: t('login.error.unknown') }));
         }
         return;
       }
@@ -481,7 +481,7 @@ export default function LoginScreen() {
                   />
                 </View>
                 {touched.email && errors.email && (
-                  <Text style={styles.errorText}>{t(errors.email)}</Text>
+                  <Text style={styles.errorText}>{errors.email}</Text>
                 )}
               </Animated.View>
 
@@ -508,7 +508,7 @@ export default function LoginScreen() {
                   </TouchableOpacity>
                 </View>
                 {touched.password && errors.password && (
-                  <Text style={styles.errorText}>{t(errors.password)}</Text>
+                  <Text style={styles.errorText}>{errors.password}</Text>
                 )}
               </Animated.View>
 
@@ -586,7 +586,7 @@ export default function LoginScreen() {
                   activeOpacity={0.82}
                 >
                   <Ionicons name="logo-google" size={16} color="#4285F4" />
-                  <Text style={[styles.socialTxt, { color: C.text }]}>Google</Text>
+                  <Text style={[styles.socialTxt, { color: C.text }]}>{t('login.google')}</Text>
                 </TouchableOpacity>
               </Animated.View>
             </View>
@@ -594,14 +594,14 @@ export default function LoginScreen() {
             {/* ── Footer ── */}
             <View style={styles.footer}>
               <Text style={styles.footerTxt}>
-                Chưa có tài khoản?{' '}
+                {t('login.noAccount')}{' '}
                 <Text style={styles.footerLink} onPress={() => router.replace('/register')}>
-                  Đăng ký ngay
+                  {t('login.signUp')}
                 </Text>
               </Text>
               <View style={styles.secBadge}>
                 <Ionicons name="shield-outline" size={14} color={C.outline} />
-                <Text style={styles.secBadgeTxt}>Bảo mật dữ liệu 100% cục bộ & mã hóa thiết bị</Text>
+                <Text style={styles.secBadgeTxt}>{t('login.securityBadge')}</Text>
               </View>
             </View>
 

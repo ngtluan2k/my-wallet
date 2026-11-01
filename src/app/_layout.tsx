@@ -41,8 +41,8 @@ export default function RootLayout() {
   } else if (!user) {
     content = (
       <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="login" options={{ title: 'Đăng nhập' }} />
-        <Stack.Screen name="register" options={{ title: 'Đăng ký' }} />
+        <Stack.Screen name="login" options={{ title: t('common.signIn') }} />
+        <Stack.Screen name="register" options={{ title: t('common.signUp') }} />
       </Stack>
     );
   } else {

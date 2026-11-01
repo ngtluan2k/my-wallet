@@ -238,7 +238,7 @@ export default function DashboardScreen() {
           <View style={styles.sectionHeader}>
             <View>
               <AppText weight="600" size={17}>{t('dashboard.spendingByCategory')}</AppText>
-              <AppText tone="muted" size={12}>Cơ cấu {month}</AppText>
+              <AppText tone="muted" size={12}>{t('dashboard.analysis.structural')} {month}</AppText>
             </View>
             <Pressable onPress={() => router.push('/budget')} hitSlop={8}>
               <View style={styles.seeDetailRow}>

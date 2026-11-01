@@ -31,7 +31,7 @@ export default function SettingsScreen() {
               style={[styles.chip, langPref === l && { backgroundColor: colors.primary }]}
             >
               <AppText tone={langPref === l ? 'default' : 'muted'} size={14}>
-                {l === 'system' ? t('settings.system') : l === 'vi' ? 'Tiếng Việt' : 'English'}
+                {l === 'system' ? t('settings.system') : l === 'vi' ? t('settings.langVietnamese') : t('settings.langEnglish')}
               </AppText>
             </Pressable>
           ))}

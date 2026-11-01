@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { Alert, Animated, Easing, KeyboardAvoidingView, Platform, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
+import { useT } from '@/i18n';
 import { useAuth } from '@/state/auth';
 import { spacing } from '@/theme';
 
@@ -397,6 +398,7 @@ interface FormErrors {
 
 export default function RegisterScreen() {
   const { signUp } = useAuth();
+  const { t } = useT();
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -493,8 +495,8 @@ export default function RegisterScreen() {
       confirmPassword: validateConfirmPassword(password, confirmPassword),
     };
     
-    if (!fullName.trim()) newErrors.fullName = 'Vui lòng nhập họ tên';
-    if (!agreed) newErrors.confirmPassword = 'Vui lòng đồng ý điều khoản';
+    if (!fullName.trim()) newErrors.fullName = t('register.error.fullName');
+    if (!agreed) newErrors.confirmPassword = t('register.error.agreeTerms');
     
     setErrors(newErrors);
     setTouched({ fullName: true, email: true, password: true, confirmPassword: true });
@@ -514,13 +516,13 @@ export default function RegisterScreen() {
         console.error('[Register] Sign up failed:', error);
         // Show user-friendly error messages
         if (error.message?.includes('user already registered') || error.message?.includes('already exists')) {
-          setErrors(prev => ({ ...prev, email: 'Email đã được sử dụng' }));
+          setErrors(prev => ({ ...prev, email: t('register.error.emailExists') }));
         } else if (error.message?.includes('Invalid API key')) {
-          Alert.alert('Lỗi', 'Không thể kết nối đến máy chủ. Vui lòng kiểm tra lại cấu hình Supabase.');
+          Alert.alert(t('common.error'), t('register.error.apiKey'));
         } else if (error.message?.includes('Network error') || error.message?.includes('Failed to fetch')) {
-          Alert.alert('Lỗi kết nối', 'Không thể kết nối đến mạng. Vui lòng kiểm tra kết nối Internet.');
+          Alert.alert(t('register.error.network'), t('register.error.networkDesc'));
         } else {
-          setErrors(prev => ({ ...prev, email: error.message || 'Đăng ký thất bại' }));
+          setErrors(prev => ({ ...prev, email: error.message || t('register.error.unknown') }));
         }
         return;
       }
@@ -529,7 +531,7 @@ export default function RegisterScreen() {
       router.replace('/(tabs)');
     } catch (err) {
       console.error('[Register] Unexpected error:', err);
-      Alert.alert('Lỗi', 'Đã có lỗi xảy ra. Vui lòng thử lại.');
+      Alert.alert(t('common.error'), t('register.error.unexpected'));
     } finally {
       setLoading(false);
     }
@@ -550,13 +552,13 @@ export default function RegisterScreen() {
           <Animated.View style={{ opacity: cardFade, transform: [{ translateY: cardY }] }}>
 
             {/* ── Header ── */}
-            <View>
+            <View style={{ alignItems: 'center' }}>
               <Animated.View style={[styles.subBadge, { opacity: txtOp }]}>
                 <Ionicons name="star" size={14} color={C.primary} />
-                <Text style={styles.subBadgeTxt}>Bắt đầu hành trình tài chính</Text>
+                <Text style={styles.subBadgeTxt}>{t('register.subTitle')}</Text>
               </Animated.View>
               <Animated.View style={{ opacity: txtOp, transform: [{ translateY: txtOp.interpolate({ inputRange: [0, 1], outputRange: [8, 0] }) }] }}>
-                <Text style={styles.title}>Tạo tài khoản mới</Text>
+                <Text style={styles.title}>{t('register.title')}</Text>
               </Animated.View>
             </View>
 
@@ -566,14 +568,14 @@ export default function RegisterScreen() {
               {/* Field 1: Họ và tên */}
               <Animated.View style={[styles.inputGroup, { opacity: i1Op, transform: [{ translateX: i1Op.interpolate({ inputRange: [0, 1], outputRange: [-12, 0] }) }] }]}>
                 <View style={styles.labelRow}>
-                  <Text style={styles.label}>Họ và tên</Text>
+                  <Text style={styles.label}>{t('register.fullName')}</Text>
                   <Text style={styles.required}>*</Text>
                 </View>
                 <View style={styles.inputRow}>
                   <Ionicons name="person-outline" size={20} style={styles.inputIcon} />
                   <TextInput
                     style={styles.input}
-                    placeholder="Nguyễn Văn Nam"
+                    placeholder={t('register.fullNamePlaceholder')}
                     placeholderTextColor={`${C.outline}b3`}
                     value={fullName}
                     onChangeText={(v) => handleChange('fullName' as never, setFullName, v)}
@@ -581,7 +583,7 @@ export default function RegisterScreen() {
                     onBlur={() => {
                       if (!fullName.trim()) {
                         setTouched(prev => ({ ...prev, fullName: true }));
-                        setErrors(prev => ({ ...prev, fullName: 'Vui lòng nhập họ tên' }));
+                        setErrors(prev => ({ ...prev, fullName: 'register.error.fullName' }));
                       }
                     }}
                   />
@@ -594,14 +596,14 @@ export default function RegisterScreen() {
               {/* Field 2: Email */}
               <Animated.View style={[styles.inputGroup, { opacity: i2Op, transform: [{ translateX: i2Op.interpolate({ inputRange: [0, 1], outputRange: [-12, 0] }) }] }]}>
                 <View style={styles.labelRow}>
-                  <Text style={styles.label}>Email</Text>
+                  <Text style={styles.label}>{t('register.email')}</Text>
                   <Text style={styles.required}>*</Text>
                 </View>
                 <View style={[styles.inputRow, errors.email && styles.inputRowError]}>
                   <Ionicons name="mail-outline" size={20} style={styles.inputIcon} />
                   <TextInput
                     style={styles.input}
-                    placeholder="email@example.com"
+                    placeholder={t('register.emailPlaceholder')}
                     placeholderTextColor={`${C.outline}b3`}
                     value={email}
                     onChangeText={(v) => handleChange('email' as never, setEmail, v)}
@@ -619,14 +621,14 @@ export default function RegisterScreen() {
               {/* Field 3: Password */}
               <Animated.View style={[styles.inputGroup, { opacity: i3Op, transform: [{ translateX: i3Op.interpolate({ inputRange: [0, 1], outputRange: [-12, 0] }) }] }]}>
                 <View style={styles.labelRow}>
-                  <Text style={styles.label}>Mật khẩu</Text>
+                  <Text style={styles.label}>{t('register.password')}</Text>
                   <Text style={styles.required}>*</Text>
                 </View>
                 <View style={[styles.inputRow, errors.password && styles.inputRowError]}>
                   <Ionicons name="lock-closed-outline" size={20} style={styles.inputIcon} />
                   <TextInput
                     style={[styles.input, { paddingRight: 44 }]}
-                    placeholder="Ít nhất 8 ký tự"
+                    placeholder={t('register.passwordPlaceholder')}
                     placeholderTextColor={`${C.outline}b3`}
                     value={password}
                     onChangeText={(v) => handleChange('password' as never, setPassword, v)}
@@ -673,14 +675,14 @@ export default function RegisterScreen() {
               {/* Field 4: Confirm password */}
               <Animated.View style={[styles.inputGroup, { opacity: i4Op, transform: [{ translateX: i4Op.interpolate({ inputRange: [0, 1], outputRange: [-12, 0] }) }] }]}>
                 <View style={styles.labelRow}>
-                  <Text style={styles.label}>Xác nhận mật khẩu</Text>
+                  <Text style={styles.label}>{t('register.confirmPassword')}</Text>
                   <Text style={styles.required}>*</Text>
                 </View>
                 <View style={[styles.inputRow, touched.confirmPassword && !confirmError && styles.inputRowSuccess, touched.confirmPassword && confirmError && styles.inputRowError]}>
                   <Ionicons name="lock-closed-outline" size={20} style={styles.inputIcon} />
                   <TextInput
                     style={[styles.input, { paddingRight: 44 }]}
-                    placeholder="Nhập lại mật khẩu"
+                    placeholder={t('register.confirmPlaceholder')}
                     placeholderTextColor={`${C.outline}b3`}
                     value={confirmPassword}
                     onChangeText={(v) => handleChange('confirmPassword' as never, setConfirmPassword, v)}
@@ -706,13 +708,7 @@ export default function RegisterScreen() {
                   <View style={[styles.termsCheckbox, agreed && styles.termsCheckboxOn]}>
                     {agreed && <Ionicons name="checkmark" size={14} color="#ffffff" />}
                   </View>
-                  <Text style={styles.termsTxt}>
-                    Tôi đồng ý với{' '}
-                    <Text style={styles.termsLink}>Điều khoản dịch vụ</Text>{' '}
-                    và{' '}
-                    <Text style={styles.termsLink}>Chính sách quyền riêng tư</Text>{' '}
-                    của Ví Mình.
-                  </Text>
+                  <Text style={styles.termsTxt}>{t('register.terms')}</Text>
                 </View>
               </TouchableOpacity>
               <View style={styles.privacyShield}>
@@ -720,8 +716,8 @@ export default function RegisterScreen() {
                   <Ionicons name="shield" size={18} color={C.primary} />
                 </View>
                 <View>
-                  <Text style={styles.privacyShieldTxt1}>Offline-first & Bảo mật riêng tư</Text>
-                  <Text style={styles.privacyShieldTxt2}>Dữ liệu tài chính được mã hóa cục bộ trên thiết bị của bạn.</Text>
+                  <Text style={styles.privacyShieldTxt1}>{t('register.privacy')}</Text>
+                  <Text style={styles.privacyShieldTxt2}>{t('register.privacyDesc')}</Text>
                 </View>
               </View>
             </View>
@@ -736,7 +732,7 @@ export default function RegisterScreen() {
                 disabled={loading}
                 activeOpacity={0.85}
               >
-                <Text style={[styles.primaryBtnTxt, { opacity: loading ? 0.8 : 1 }]}>Đăng ký tài khoản</Text>
+                <Text style={[styles.primaryBtnTxt, { opacity: loading ? 0.8 : 1 }]}>{t('register.signUp')}</Text>
                 {!loading && <Ionicons name="arrow-forward" size={20} color={C.onPrimary} />}
               </TouchableOpacity>
             </Animated.View>
@@ -744,7 +740,7 @@ export default function RegisterScreen() {
             {/* ── Divider ── */}
             <View style={styles.divider}>
               <View style={styles.dividerLine} />
-              <Text style={styles.dividerTxt}>Hoặc đăng ký nhanh bằng</Text>
+              <Text style={styles.dividerTxt}>{t('register.divider')}</Text>
               <View style={styles.dividerLine} />
             </View>
 
@@ -758,7 +754,7 @@ export default function RegisterScreen() {
                   activeOpacity={0.82}
                 >
                   <Ionicons name="logo-apple" size={18} color="#ffffff" />
-                  <Text style={[styles.socialTxt, { color: '#ffffff' }]}>Apple</Text>
+                  <Text style={[styles.socialTxt, { color: '#ffffff' }]}>{t('register.apple')}</Text>
                 </TouchableOpacity>
               </Animated.View>
               <Animated.View style={{ flex: 1, transform: [{ scale: socSc }] }}>
@@ -769,7 +765,7 @@ export default function RegisterScreen() {
                   activeOpacity={0.82}
                 >
                   <Ionicons name="logo-google" size={18} color="#4285F4" />
-                  <Text style={[styles.socialTxt, { color: C.text }]}>Google</Text>
+                  <Text style={[styles.socialTxt, { color: C.text }]}>{t('register.google')}</Text>
                 </TouchableOpacity>
               </Animated.View>
             </View>
@@ -777,9 +773,9 @@ export default function RegisterScreen() {
             {/* ── Footer ── */}
             <View style={styles.footer}>
               <Text style={styles.footerTxt}>
-                Đã có tài khoản?{' '}
+                {t('register.haveAccount')}{' '}
                 <Text style={styles.footerLink} onPress={() => router.replace('/login')}>
-                  Đăng nhập
+                  {t('register.login')}
                   <Ionicons name="chevron-forward" size={16} color={C.primary} />
                 </Text>
               </Text>
