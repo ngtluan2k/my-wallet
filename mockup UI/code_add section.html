@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+
+<html class="light" lang="vi"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/>
+<title>Ví Mình - Thêm giao dịch mới</title>
+<!-- Material Symbols Google Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Inter Google Font -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS CDN -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Config -->
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "on-primary-fixed-variant": "#005137",
+            "primary-fixed-dim": "#68dba9",
+            "tertiary": "#545c72",
+            "primary": "#006948",
+            "on-primary-fixed": "#002114",
+            "on-tertiary": "#ffffff",
+            "on-error": "#ffffff",
+            "on-secondary-fixed-variant": "#005236",
+            "inverse-primary": "#68dba9",
+            "primary-fixed": "#85f8c4",
+            "border-hairline": "#E2E8F0",
+            "surface-variant": "#d3e4fe",
+            "secondary-fixed": "#6ffbbe",
+            "error-container": "#ffdad6",
+            "secondary-fixed-dim": "#4edea3",
+            "on-surface-variant": "#3d4a42",
+            "surface": "#f8f9ff",
+            "secondary": "#006c49",
+            "on-error-container": "#93000a",
+            "tertiary-container": "#6c748b",
+            "on-secondary-container": "#00714d",
+            "on-primary": "#ffffff",
+            "surface-elevated-light": "#F1F5F9",
+            "on-primary-container": "#f5fff7",
+            "on-tertiary-fixed-variant": "#3f465c",
+            "on-secondary-fixed": "#002113",
+            "surface-dim": "#cbdbf5",
+            "surface-bg-light": "#F8FAFC",
+            "surface-container-high": "#dce9ff",
+            "error": "#ba1a1a",
+            "surface-container-highest": "#d3e4fe",
+            "background": "#f8f9ff",
+            "tertiary-fixed-dim": "#bec6e0",
+            "surface-container-low": "#eff4ff",
+            "surface-container": "#e5eeff",
+            "on-tertiary-fixed": "#131b2e",
+            "secondary-container": "#6cf8bb",
+            "outline": "#6d7a72",
+            "surface-tint": "#006c4a",
+            "on-surface": "#0b1c30",
+            "budget-warning": "#F59E0B",
+            "outline-variant": "#bccac0",
+            "inverse-surface": "#213145",
+            "surface-container-lowest": "#ffffff",
+            "surface-card-light": "#FFFFFF",
+            "surface-bright": "#f8f9ff",
+            "on-secondary": "#ffffff",
+            "on-tertiary-container": "#fefcff",
+            "on-background": "#0b1c30",
+            "primary-container": "#00855d",
+            "expense-red": "#EF4444",
+            "tertiary-fixed": "#dae2fd",
+            "inverse-on-surface": "#eaf1ff"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          "spacing": {
+            "space-lg": "1.25rem",
+            "gutter": "1rem",
+            "margin": "1rem",
+            "space-sm": "0.5rem",
+            "space-md": "1rem",
+            "space-xs": "0.25rem",
+            "space-xl": "1.75rem"
+          },
+          "fontFamily": {
+            "body-sm": ["Inter"],
+            "headline-lg": ["Inter"],
+            "headline-xl": ["Inter"],
+            "body-md": ["Inter"],
+            "currency-display": ["Inter"],
+            "headline-xl-mobile": ["Inter"],
+            "headline-md": ["Inter"],
+            "label-sm": ["Inter"],
+            "label-lg": ["Inter"],
+            "body-lg": ["Inter"],
+            "label-md": ["Inter"]
+          },
+          "fontSize": {
+            "body-sm": ["13px", {"lineHeight": "18px", "fontWeight": "400"}],
+            "headline-lg": ["24px", {"lineHeight": "30px", "fontWeight": "700"}],
+            "headline-xl": ["34px", {"lineHeight": "41px", "fontWeight": "700"}],
+            "body-md": ["15px", {"lineHeight": "20px", "fontWeight": "400"}],
+            "currency-display": ["32px", {"lineHeight": "38px", "fontWeight": "700"}],
+            "headline-xl-mobile": ["28px", {"lineHeight": "34px", "fontWeight": "700"}],
+            "headline-md": ["20px", {"lineHeight": "26px", "fontWeight": "600"}],
+            "label-sm": ["11px", {"lineHeight": "14px", "fontWeight": "500"}],
+            "label-lg": ["17px", {"lineHeight": "22px", "fontWeight": "600"}],
+            "body-lg": ["17px", {"lineHeight": "24px", "fontWeight": "400"}],
+            "label-md": ["13px", {"lineHeight": "18px", "fontWeight": "600"}]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      display: inline-block;
+      vertical-align: middle;
+      line-height: 1;
+    }
+    .cursor-blink {
+      animation: blink 1s step-end infinite;
+    }
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+    /* Hide scrollbar for smooth visual aesthetic */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface-bg-light text-on-surface antialiased select-none min-h-screen flex justify-center items-start">
+<!-- iPhone Container Simulation -->
+<main class="w-full max-w-[430px] min-h-screen flex flex-col bg-surface-bg-light relative overflow-x-hidden pb-4 shadow-2xl">
+<!-- iOS Dynamic Island & Status Bar Space -->
+<div class="pt-3 px-6 flex justify-between items-center w-full z-40">
+<span class="font-label-md text-label-md text-on-surface font-semibold tracking-tight">09:41</span>
+<div class="w-28 h-4 bg-inverse-surface rounded-full"></div>
+<div class="flex items-center gap-1.5 text-on-surface">
+<span class="material-symbols-outlined text-[16px]" data-icon="signal_cellular_alt">signal_cellular_alt</span>
+<span class="material-symbols-outlined text-[16px]" data-icon="wifi">wifi</span>
+<span class="material-symbols-outlined text-[18px]" data-icon="battery_full">battery_full</span>
+</div>
+</div>
+<!-- Modal Drag Indicator / Grabber -->
+<div class="w-full flex justify-center pt-2 pb-1">
+<div class="w-10 h-1 rounded-full bg-outline-variant/60"></div>
+</div>
+<!-- Top Modal Header (Modal Navigation Shell - Linear/Focused Departure rule: Cancel, Title, Save) -->
+<header class="flex items-center justify-between px-margin py-2 z-30">
+<button class="text-on-surface-variant hover:text-on-surface active:scale-95 transition-all text-body-lg font-body-lg" type="button">
+        Hủy
+      </button>
+<h1 class="text-headline-md font-headline-md text-on-surface tracking-tight">
+        Thêm giao dịch
+      </h1>
+<button class="text-primary hover:opacity-80 active:scale-95 font-label-lg text-label-lg transition-all font-semibold" id="save-btn" type="button">
+        Lưu
+      </button>
+</header>
+<!-- Scrollable Transaction Creation Content -->
+<div class="flex-1 overflow-y-auto no-scrollbar px-margin space-y-space-md pb-6">
+<!-- Segmented Control (Chi tiền / Thu tiền / Chuyển khoản) -->
+<section aria-label="Loại giao dịch" class="pt-1">
+<div class="bg-surface-elevated-light p-1 rounded-xl flex items-center shadow-[inset_0_1px_2px_rgba(0,0,0,0.04)] border border-border-hairline">
+<button class="flex-1 py-1.5 rounded-lg text-label-md font-label-md bg-surface-card-light text-expense-red font-semibold shadow-sm transition-all flex items-center justify-center gap-space-xs" id="tab-expense" onclick="switchType('expense')" type="button">
+<span class="w-2 h-2 rounded-full bg-expense-red"></span>
+            Chi tiền
+          </button>
+<button class="flex-1 py-1.5 rounded-lg text-label-md font-label-md text-on-surface-variant hover:text-on-surface transition-all flex items-center justify-center gap-space-xs" id="tab-income" onclick="switchType('income')" type="button">
+            Thu tiền
+          </button>
+<button class="flex-1 py-1.5 rounded-lg text-label-md font-label-md text-on-surface-variant hover:text-on-surface transition-all flex items-center justify-center gap-space-xs" id="tab-transfer" onclick="switchType('transfer')" type="button">
+            Chuyển khoản
+          </button>
+</div>
+</section>
+<!-- Giant Amount Input Display Section -->
+<section class="bg-surface-card-light rounded-xl p-space-lg text-center border border-border-hairline shadow-[0px_4px_20px_-2px_rgba(15,23,42,0.04)]">
+<div class="text-label-sm font-label-sm text-on-surface-variant mb-space-xs uppercase tracking-wider font-semibold">
+          Số tiền giao dịch
+        </div>
+<div class="flex items-center justify-center gap-1 min-h-[52px]">
+<span class="text-expense-red text-currency-display font-currency-display font-bold" id="amount-sign">-</span>
+<div class="flex items-baseline">
+<span class="text-on-surface text-currency-display font-currency-display font-bold tracking-tight" id="display-amount">150.000</span>
+<span class="text-on-surface-variant text-headline-md font-headline-md ml-1 font-semibold">₫</span>
+</div>
+<span class="w-[2.5px] h-7 bg-primary rounded-full cursor-blink ml-0.5"></span>
+</div>
+<p class="text-body-sm font-body-sm text-on-surface-variant mt-1 italic">
+          Một trăm năm mươi nghìn đồng
+        </p>
+</section>
+<!-- Category Picker Grid (Ăn uống, Di chuyển, Mua sắm, etc.) -->
+<section>
+<div class="flex items-center justify-between mb-space-sm px-1">
+<span class="text-label-md font-label-md text-on-surface-variant uppercase tracking-wider font-semibold">Danh mục chi tiêu</span>
+<span class="text-label-sm font-label-sm text-primary font-semibold flex items-center gap-0.5 cursor-pointer hover:opacity-80">
+            Xem tất cả
+            <span class="material-symbols-outlined text-[14px]" data-icon="chevron_right">chevron_right</span>
+</span>
+</div>
+<div class="grid grid-cols-4 gap-2.5 bg-surface-card-light p-3.5 rounded-xl border border-border-hairline shadow-[0px_4px_20px_-2px_rgba(15,23,42,0.04)]">
+<!-- Item 1: Ăn uống (Selected) -->
+<button class="relative flex flex-col items-center p-2 rounded-xl bg-orange-50 border-2 border-orange-400 group transition-all" onclick="selectCategory(this, 'Ăn uống')" type="button">
+<div class="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 mb-1.5 shadow-sm">
+<span class="material-symbols-outlined text-[22px]" data-icon="restaurant" data-weight="fill" style="font-variation-settings: 'FILL' 1;">restaurant</span>
+</div>
+<span class="text-label-sm font-label-sm text-on-surface font-semibold text-center leading-tight">Ăn uống</span>
+<span class="absolute -top-1 -right-1 w-4 h-4 bg-primary text-on-primary rounded-full flex items-center justify-center text-[10px] ring-2 ring-white">
+<span class="material-symbols-outlined text-[12px]" data-icon="check">check</span>
+</span>
+</button>
+<!-- Item 2: Di chuyển -->
+<button class="flex flex-col items-center p-2 rounded-xl hover:bg-surface-elevated-light border-2 border-transparent group transition-all" onclick="selectCategory(this, 'Di chuyển')" type="button">
+<div class="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 mb-1.5">
+<span class="material-symbols-outlined text-[22px]" data-icon="directions_car">directions_car</span>
+</div>
+<span class="text-label-sm font-label-sm text-on-surface-variant group-hover:text-on-surface text-center leading-tight">Di chuyển</span>
+</button>
+<!-- Item 3: Mua sắm -->
+<button class="flex flex-col items-center p-2 rounded-xl hover:bg-surface-elevated-light border-2 border-transparent group transition-all" onclick="selectCategory(this, 'Mua sắm')" type="button">
+<div class="w-10 h-10 rounded-full bg-pink-50 flex items-center justify-center text-pink-600 mb-1.5">
+<span class="material-symbols-outlined text-[22px]" data-icon="shopping_bag">shopping_bag</span>
+</div>
+<span class="text-label-sm font-label-sm text-on-surface-variant group-hover:text-on-surface text-center leading-tight">Mua sắm</span>
+</button>
+<!-- Item 4: Nhà cửa -->
+<button class="flex flex-col items-center p-2 rounded-xl hover:bg-surface-elevated-light border-2 border-transparent group transition-all" onclick="selectCategory(this, 'Nhà cửa')" type="button">
+<div class="w-10 h-10 rounded-full bg-amber-50 flex items-center justify-center text-amber-600 mb-1.5">
+<span class="material-symbols-outlined text-[22px]" data-icon="home">home</span>
+</div>
+<span class="text-label-sm font-label-sm text-on-surface-variant group-hover:text-on-surface text-center leading-tight">Nhà cửa</span>
+</button>
+<!-- Item 5: Hóa đơn -->
+<button class="flex flex-col items-center p-2 rounded-xl hover:bg-surface-elevated-light border-2 border-transparent group transition-all" onclick="selectCategory(this, 'Hóa đơn')" type="button">
+<div class="w-10 h-10 rounded-full bg-purple-50 flex items-center justify-center text-purple-600 mb-1.5">
+<span class="material-symbols-outlined text-[22px]" data-icon="receipt">receipt</span>
+</div>
+<span class="text-label-sm font-label-sm text-on-surface-variant group-hover:text-on-surface text-center leading-tight">Hóa đơn</span>
+</button>
+<!-- Item 6: Giải trí -->
+<button class="flex flex-col items-center p-2 rounded-xl hover:bg-surface-elevated-light border-2 border-transparent group transition-all" onclick="selectCategory(this, 'Giải trí')" type="button">
+<div class="w-10 h-10 rounded-full bg-rose-50 flex items-center justify-center text-rose-600 mb-1.5">
+<span class="material-symbols-outlined text-[22px]" data-icon="movie">movie</span>
+</div>
+<span class="text-label-sm font-label-sm text-on-surface-variant group-hover:text-on-surface text-center leading-tight">Giải trí</span>
+</button>
+<!-- Item 7: Sức khỏe -->
+<button class="flex flex-col items-center p-2 rounded-xl hover:bg-surface-elevated-light border-2 border-transparent group transition-all" onclick="selectCategory(this, 'Sức khỏe')" type="button">
+<div class="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600 mb-1.5">
+<span class="material-symbols-outlined text-[22px]" data-icon="medical_services">medical_services</span>
+</div>
+<span class="text-label-sm font-label-sm text-on-surface-variant group-hover:text-on-surface text-center leading-tight">Sức khỏe</span>
+</button>
+<!-- Item 8: Thêm khác -->
+<button class="flex flex-col items-center p-2 rounded-xl hover:bg-surface-elevated-light border-2 border-transparent group transition-all" type="button">
+<div class="w-10 h-10 rounded-full bg-surface-elevated-light flex items-center justify-center text-tertiary mb-1.5">
+<span class="material-symbols-outlined text-[22px]" data-icon="more_horiz">more_horiz</span>
+</div>
+<span class="text-label-sm font-label-sm text-on-surface-variant group-hover:text-on-surface text-center leading-tight">Khác</span>
+</button>
+</div>
+</section>
+<!-- Detail Input Fields (Grouped iOS List Cells) -->
+<section class="bg-surface-card-light rounded-xl border border-border-hairline shadow-[0px_4px_20px_-2px_rgba(15,23,42,0.04)] divide-y divide-border-hairline">
+<!-- Cell 1: Ngày giao dịch -->
+<div class="flex items-center justify-between p-3.5 hover:bg-surface-elevated-light/50 transition-colors cursor-pointer">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-lg bg-emerald-50 text-primary flex items-center justify-center">
+<span class="material-symbols-outlined text-[18px]" data-icon="calendar_today">calendar_today</span>
+</div>
+<span class="text-body-md font-body-md text-on-surface">Ngày</span>
+</div>
+<div class="flex items-center gap-1.5 text-on-surface-variant">
+<span class="text-body-md font-body-md font-medium text-on-surface">Hôm nay, 24/10/2024</span>
+<span class="material-symbols-outlined text-[18px]" data-icon="chevron_right">chevron_right</span>
+</div>
+</div>
+<!-- Cell 2: Ghi chú -->
+<div class="flex items-center gap-3 p-3.5">
+<div class="w-8 h-8 rounded-lg bg-slate-100 text-tertiary flex items-center justify-center flex-shrink-0">
+<span class="material-symbols-outlined text-[18px]" data-icon="edit_note">edit_note</span>
+</div>
+<input class="w-full bg-transparent border-none p-0 text-body-md font-body-md text-on-surface placeholder:text-outline-variant focus:ring-0 focus:outline-none" placeholder="Nhập ghi chú (ví dụ: Ăn trưa cùng đồng nghiệp...)" type="text" value="Ăn trưa cùng đồng nghiệp"/>
+</div>
+<!-- Cell 3: Ví tiền -->
+<div class="flex items-center justify-between p-3.5 hover:bg-surface-elevated-light/50 transition-colors cursor-pointer">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-lg bg-teal-50 text-secondary flex items-center justify-center">
+<span class="material-symbols-outlined text-[18px]" data-icon="account_balance_wallet">account_balance_wallet</span>
+</div>
+<span class="text-body-md font-body-md text-on-surface">Ví nguồn</span>
+</div>
+<div class="flex items-center gap-1.5">
+<span class="text-body-md font-body-md font-medium text-on-surface">Ví chính (Tiền mặt)</span>
+<span class="material-symbols-outlined text-[18px] text-on-surface-variant" data-icon="chevron_right">chevron_right</span>
+</div>
+</div>
+</section>
+</div>
+<!-- Specialized Financial Numpad Container (Sticky at bottom, Thumb-Optimized) -->
+<div class="sticky bottom-0 left-0 right-0 bg-surface-card-light/95 backdrop-blur-xl border-t border-border-hairline pt-3 pb-6 px-margin shadow-[0px_-8px_32px_rgba(15,23,42,0.06)] z-50">
+<!-- Quick Shortcuts Row -->
+<div class="flex items-center justify-between gap-2 mb-3 px-1">
+<button class="flex-1 py-1.5 px-2 bg-surface-elevated-light text-on-surface-variant hover:text-on-surface text-label-sm font-label-sm rounded-lg border border-border-hairline text-center transition-all active:scale-95" onclick="quickAdd(50000)" type="button">
+          +50.000₫
+        </button>
+<button class="flex-1 py-1.5 px-2 bg-surface-elevated-light text-on-surface-variant hover:text-on-surface text-label-sm font-label-sm rounded-lg border border-border-hairline text-center transition-all active:scale-95" onclick="quickAdd(100000)" type="button">
+          +100.000₫
+        </button>
+<button class="flex-1 py-1.5 px-2 bg-surface-elevated-light text-on-surface-variant hover:text-on-surface text-label-sm font-label-sm rounded-lg border border-border-hairline text-center transition-all active:scale-95" onclick="quickAdd(500000)" type="button">
+          +500.000₫
+        </button>
+</div>
+<!-- 4x4 Grid Financial Tactile Keypad -->
+<div class="grid grid-cols-4 gap-2">
+<!-- Row 1 -->
+<button class="h-14 bg-surface-card-light active:bg-surface-elevated-light rounded-xl font-headline-md text-headline-md text-on-surface shadow-sm border border-border-hairline flex items-center justify-center active:scale-95 transition-transform duration-100" onclick="pressDigit('1')" type="button">
+          1
+        </button>
+<button class="h-14 bg-surface-card-light active:bg-surface-elevated-light rounded-xl font-headline-md text-headline-md text-on-surface shadow-sm border border-border-hairline flex items-center justify-center active:scale-95 transition-transform duration-100" onclick="pressDigit('2')" type="button">
+          2
+        </button>
+<button class="h-14 bg-surface-card-light active:bg-surface-elevated-light rounded-xl font-headline-md text-headline-md text-on-surface shadow-sm border border-border-hairline flex items-center justify-center active:scale-95 transition-transform duration-100" onclick="pressDigit('3')" type="button">
+          3
+        </button>
+<button class="h-14 bg-surface-elevated-light active:bg-surface-dim rounded-xl font-headline-md text-headline-md text-on-surface shadow-sm border border-border-hairline flex items-center justify-center active:scale-95 transition-transform duration-100" onclick="backspace()" type="button">
+<span class="material-symbols-outlined text-[22px]" data-icon="backspace">backspace</span>
+</button>
+<!-- Row 2 -->
+<button class="h-14 bg-surface-card-light active:bg-surface-elevated-light rounded-xl font-headline-md text-headline-md text-on-surface shadow-sm border border-border-hairline flex items-center justify-center active:scale-95 transition-transform duration-100" onclick="pressDigit('4')" type="button">
+          4
+        </button>
+<button class="h-14 bg-surface-card-light active:bg-surface-elevated-light rounded-xl font-headline-md text-headline-md text-on-surface shadow-sm border border-border-hairline flex items-center justify-center active:scale-95 transition-transform duration-100" onclick="pressDigit('5')" type="button">
+          5
+        </button>
+<button class="h-14 bg-surface-card-light active:bg-surface-elevated-light rounded-xl font-headline-md text-headline-md text-on-surface shadow-sm border border-border-hairline flex items-center justify-center active:scale-95 transition-transform duration-100" onclick="pressDigit('6')" type="button">
+          6
+        </button>
+<button class="h-14 bg-surface-elevated-light active:bg-surface-dim rounded-xl font-label-md text-label-md text-expense-red font-semibold shadow-sm border border-border-hairline flex items-center justify-center active:scale-95 transition-transform duration-100" onclick="clearAmount()" type="button">
+          C
+        </button>
+<!-- Row 3 & 4 with Spanning 'Xong' Action Button -->
+<button class="h-14 bg-surface-card-light active:bg-surface-elevated-light rounded-xl font-headline-md text-headline-md text-on-surface shadow-sm border border-border-hairline flex items-center justify-center active:scale-95 transition-transform duration-100" onclick="pressDigit('7')" type="button">
+          7
+        </button>
+<button class="h-14 bg-surface-card-light active:bg-surface-elevated-light rounded-xl font-headline-md text-headline-md text-on-surface shadow-sm border border-border-hairline flex items-center justify-center active:scale-95 transition-transform duration-100" onclick="pressDigit('8')" type="button">
+          8
+        </button>
+<button class="h-14 bg-surface-card-light active:bg-surface-elevated-light rounded-xl font-headline-md text-headline-md text-on-surface shadow-sm border border-border-hairline flex items-center justify-center active:scale-95 transition-transform duration-100" onclick="pressDigit('9')" type="button">
+          9
+        </button>
+<!-- Action Button: Xong / Hoàn tất (Spans 2 Rows vertically) -->
+<button class="row-span-2 bg-primary hover:bg-primary-container text-on-primary rounded-xl font-label-lg text-label-lg font-bold shadow-md shadow-primary/20 flex flex-col items-center justify-center gap-1 active:scale-95 transition-all duration-150" onclick="completeEntry()" type="button">
+<span class="material-symbols-outlined text-[26px]" data-icon="check_circle">check_circle</span>
+<span>Xong</span>
+</button>
+<!-- Row 4 -->
+<button class="h-14 bg-surface-card-light active:bg-surface-elevated-light rounded-xl font-body-md text-body-md font-semibold text-on-surface shadow-sm border border-border-hairline flex items-center justify-center active:scale-95 transition-transform duration-100" onclick="pressDigit('000')" type="button">
+          000
+        </button>
+<button class="h-14 bg-surface-card-light active:bg-surface-elevated-light rounded-xl font-headline-md text-headline-md text-on-surface shadow-sm border border-border-hairline flex items-center justify-center active:scale-95 transition-transform duration-100" onclick="pressDigit('0')" type="button">
+          0
+        </button>
+<button class="h-14 bg-surface-card-light active:bg-surface-elevated-light rounded-xl font-headline-md text-headline-md text-on-surface shadow-sm border border-border-hairline flex items-center justify-center active:scale-95 transition-transform duration-100" onclick="pressDigit('.')" type="button">
+          .
+        </button>
+</div>
+<!-- iOS Home Indicator -->
+<div class="w-full flex justify-center pt-3 pb-1">
+<div class="w-32 h-1 bg-on-surface-variant/40 rounded-full"></div>
+</div>
+</div>
+</main>
+<!-- Interactive JavaScript logic for Numpad & Visual Switching -->
+<script>
+    let rawAmount = "150000";
+    let transactionType = "expense";
+
+    function updateDisplay() {
+      const displayEl = document.getElementById("display-amount");
+      if (!rawAmount || rawAmount === "0") {
+        displayEl.innerText = "0";
+      } else {
+        const num = parseInt(rawAmount, 10);
+        displayEl.innerText = isNaN(num) ? "0" : num.toLocaleString("vi-VN");
+      }
+    }
+
+    function pressDigit(val) {
+      if (rawAmount === "0" && val !== ".") {
+        rawAmount = val;
+      } else {
+        if (rawAmount.length < 11) {
+          rawAmount += val;
+        }
+      }
+      updateDisplay();
+    }
+
+    function backspace() {
+      if (rawAmount.length > 0) {
+        rawAmount = rawAmount.slice(0, -1);
+      }
+      if (rawAmount === "") {
+        rawAmount = "0";
+      }
+      updateDisplay();
+    }
+
+    function clearAmount() {
+      rawAmount = "0";
+      updateDisplay();
+    }
+
+    function quickAdd(val) {
+      let current = parseInt(rawAmount, 10) || 0;
+      current += val;
+      rawAmount = current.toString();
+      updateDisplay();
+    }
+
+    function switchType(type) {
+      transactionType = type;
+      const tabExp = document.getElementById("tab-expense");
+      const tabInc = document.getElementById("tab-income");
+      const tabTrans = document.getElementById("tab-transfer");
+      const signEl = document.getElementById("amount-sign");
+
+      [tabExp, tabInc, tabTrans].forEach(btn => {
+        btn.className = "flex-1 py-1.5 rounded-lg text-label-md font-label-md text-on-surface-variant hover:text-on-surface transition-all flex items-center justify-center gap-space-xs";
+        btn.innerHTML = btn.innerText;
+      });
+
+      if (type === 'expense') {
+        tabExp.className = "flex-1 py-1.5 rounded-lg text-label-md font-label-md bg-surface-card-light text-expense-red font-semibold shadow-sm transition-all flex items-center justify-center gap-space-xs";
+        tabExp.innerHTML = `<span class="w-2 h-2 rounded-full bg-expense-red"></span> Chi tiền`;
+        signEl.innerText = "-";
+        signEl.className = "text-expense-red text-currency-display font-currency-display font-bold";
+      } else if (type === 'income') {
+        tabInc.className = "flex-1 py-1.5 rounded-lg text-label-md font-label-md bg-surface-card-light text-primary font-semibold shadow-sm transition-all flex items-center justify-center gap-space-xs";
+        tabInc.innerHTML = `<span class="w-2 h-2 rounded-full bg-primary"></span> Thu tiền`;
+        signEl.innerText = "+";
+        signEl.className = "text-primary text-currency-display font-currency-display font-bold";
+      } else {
+        tabTrans.className = "flex-1 py-1.5 rounded-lg text-label-md font-label-md bg-surface-card-light text-secondary font-semibold shadow-sm transition-all flex items-center justify-center gap-space-xs";
+        tabTrans.innerHTML = `<span class="w-2 h-2 rounded-full bg-secondary"></span> Chuyển khoản`;
+        signEl.innerText = "";
+      }
+    }
+
+    function selectCategory(buttonElement, catName) {
+      // Remove badge and selected styles from all category buttons
+      const container = buttonElement.parentElement;
+      const allButtons = container.querySelectorAll('button');
+      
+      allButtons.forEach(btn => {
+        btn.className = "flex flex-col items-center p-2 rounded-xl hover:bg-surface-elevated-light border-2 border-transparent group transition-all";
+        const badge = btn.querySelector('.absolute');
+        if (badge) badge.remove();
+        const label = btn.querySelector('span.text-label-sm');
+        if (label) {
+          label.classList.remove('text-on-surface', 'font-semibold');
+          label.classList.add('text-on-surface-variant');
+        }
+      });
+
+      // Apply selected style to chosen category
+      buttonElement.className = "relative flex flex-col items-center p-2 rounded-xl bg-orange-50 border-2 border-orange-400 group transition-all";
+      const label = buttonElement.querySelector('span.text-label-sm');
+      if (label) {
+        label.classList.add('text-on-surface', 'font-semibold');
+        label.classList.remove('text-on-surface-variant');
+      }
+
+      // Append check badge
+      const badge = document.createElement('span');
+      badge.className = "absolute -top-1 -right-1 w-4 h-4 bg-primary text-on-primary rounded-full flex items-center justify-center text-[10px] ring-2 ring-white";
+      badge.innerHTML = `<span class="material-symbols-outlined text-[12px]" data-icon="check">check</span>`;
+      buttonElement.appendChild(badge);
+    }
+
+    function completeEntry() {
+      const btn = document.getElementById("save-btn");
+      btn.classList.add('scale-110', 'text-primary-container');
+      setTimeout(() => {
+        btn.classList.remove('scale-110', 'text-primary-container');
+        alert("Đã lưu giao dịch thành công!");
+      }, 150);
+    }
+  </script>
+</body></html>

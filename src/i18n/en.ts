@@ -85,6 +85,7 @@ export const en: Record<TranslationKey, string> = {
     'The app will stop opening in {days} days ({time} on {date}). Export a backup, then re-sign it with Sideloadly.',
   'signing.today': 'The app will stop opening at {time} today. Export a backup and re-sign it with Sideloadly now.',
   'signing.daysLeftShort': '{days} days until the app needs re-signing (expires {time} on {date}).',
+  'signing.hint': 'Tap to see details and export data.',
   'signing.settingsLabel': 'App signature expires at {time} on {date} ({days} days left).',
 
   'auth.rememberMe': 'Remember me',

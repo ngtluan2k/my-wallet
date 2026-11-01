@@ -207,8 +207,19 @@ export default function TransactionScreen() {
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   field: { gap: spacing.sm },
-  input: { borderWidth: 1, borderRadius: radius.md, paddingHorizontal: spacing.md, paddingVertical: 12, fontSize: 16 },
-  amount: { fontSize: 28, fontWeight: '700' },
+  input: { 
+    borderWidth: 1, 
+    borderRadius: radius.md, 
+    paddingHorizontal: spacing.md, 
+    paddingVertical: 12, 
+    fontSize: 16,
+    backgroundColor: 'transparent',
+  },
+  amount: { 
+    fontSize: 28, 
+    fontWeight: '700',
+    color: '#059669', // match primary color
+  },
   note: { minHeight: 80, textAlignVertical: 'top' },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   dateRow: {
@@ -218,6 +229,21 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     paddingHorizontal: spacing.md,
     paddingVertical: 12,
+    backgroundColor: 'transparent',
   },
   dateText: { flex: 1, textAlign: 'center' },
+  button: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    paddingVertical: 14,
+    borderRadius: radius.md,
+    borderWidth: 0,
+    shadowColor: '#000',
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
+  },
 });
