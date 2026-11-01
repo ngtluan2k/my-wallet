@@ -25,11 +25,7 @@ export type TranslationKey = TranslationKeys<typeof vi>;
 const dictionaries: Record<Language, Record<string, string>> = { vi, en };
 
 export function translate(language: Language, key: TranslationKey, params?: Record<string, string | number>): string {
-  const keys = key.split('.');
-  let value: any = dictionaries[language];
-  for (const k of keys) {
-    value = value?.[k];
-  }
+  const value = dictionaries[language][key];
   if (typeof value !== 'string') return key;
   return params ? value.replace(/\{(\w+)\}/g, (match, name) => String(params[name] ?? match)) : value;
 }

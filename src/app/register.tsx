@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { Alert, Animated, Easing, KeyboardAvoidingView, Platform, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
-import { useT } from '@/i18n';
+import { useT, type TranslationKey } from '@/i18n';
 import { useAuth } from '@/state/auth';
 import { spacing } from '@/theme';
 
@@ -48,21 +48,21 @@ function getPasswordStrength(password: string): { level: StrengthLevel; color: s
 }
 
 function validateEmail(email: string): string | undefined {
-  if (!email.trim()) return 'Vui lòng nhập email';
+  if (!email.trim()) return 'form.error.email_required';
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(email)) return 'Email không hợp lệ';
+  if (!emailRegex.test(email)) return 'form.error.email_invalid';
   return undefined;
 }
 
 function validatePassword(password: string): string | undefined {
-  if (!password) return 'Vui lòng nhập mật khẩu';
-  if (password.length < 8) return 'Mật khẩu phải có ít nhất 8 ký tự';
+  if (!password) return 'form.error.password_required';
+  if (password.length < 8) return 'form.error.password_too_short';
   return undefined;
 }
 
 function validateConfirmPassword(password: string, confirmPassword: string): string | undefined {
-  if (!confirmPassword) return 'Vui lòng nhập lại mật khẩu';
-  if (password !== confirmPassword) return 'Mật khẩu không khớp';
+  if (!confirmPassword) return 'form.error.confirm_required';
+  if (password !== confirmPassword) return 'form.error.confirm_mismatch';
   return undefined;
 }
 
@@ -495,8 +495,8 @@ export default function RegisterScreen() {
       confirmPassword: validateConfirmPassword(password, confirmPassword),
     };
     
-    if (!fullName.trim()) newErrors.fullName = t('register.error.fullName');
-    if (!agreed) newErrors.confirmPassword = t('register.error.agreeTerms');
+    if (!fullName.trim()) newErrors.fullName = 'register.error.fullName';
+    if (!agreed) newErrors.confirmPassword = 'register.error.agreeTerms';
     
     setErrors(newErrors);
     setTouched({ fullName: true, email: true, password: true, confirmPassword: true });
@@ -589,7 +589,7 @@ export default function RegisterScreen() {
                   />
                 </View>
                 {touched.fullName && errors.fullName && (
-                  <Text style={styles.errorText}>{errors.fullName}</Text>
+                  <Text style={styles.errorText}>{t(errors.fullName as TranslationKey)}</Text>
                 )}
               </Animated.View>
 
@@ -614,7 +614,7 @@ export default function RegisterScreen() {
                   />
                 </View>
                 {touched.email && errors.email && (
-                  <Text style={styles.errorText}>{errors.email}</Text>
+                  <Text style={styles.errorText}>{t(errors.email as TranslationKey)}</Text>
                 )}
               </Animated.View>
 
@@ -668,7 +668,7 @@ export default function RegisterScreen() {
                 )}
                 
                 {touched.password && errors.password && (
-                  <Text style={styles.errorText}>{errors.password}</Text>
+                  <Text style={styles.errorText}>{t(errors.password as TranslationKey)}</Text>
                 )}
               </Animated.View>
 
@@ -695,7 +695,7 @@ export default function RegisterScreen() {
                   )}
                 </View>
                 {touched.confirmPassword && errors.confirmPassword && (
-                  <Text style={styles.errorText}>{errors.confirmPassword}</Text>
+                  <Text style={styles.errorText}>{t(errors.confirmPassword as TranslationKey)}</Text>
                 )}
               </Animated.View>
 

@@ -5,7 +5,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 
 import { useAuth } from '@/state/auth';
 import { spacing } from '@/theme';
-import { useT } from '@/i18n';
+import { useT, type TranslationKey } from '@/i18n';
 
 // Mockup colors
 const C = {
@@ -27,15 +27,15 @@ const C = {
 
 // Validation helpers
 function validateEmail(email: string): string | undefined {
-  if (!email.trim()) return 'common.email_required';
+  if (!email.trim()) return 'form.error.email_required';
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(email)) return 'common.email_invalid';
+  if (!emailRegex.test(email)) return 'form.error.email_invalid';
   return undefined;
 }
 
 function validatePassword(password: string): string | undefined {
-  if (!password) return 'common.password_length_error';
-  if (password.length < 8) return 'common.password_length_error';
+  if (!password) return 'form.error.password_required';
+  if (password.length < 8) return 'form.error.password_too_short';
   return undefined;
 }
 
@@ -481,7 +481,7 @@ export default function LoginScreen() {
                   />
                 </View>
                 {touched.email && errors.email && (
-                  <Text style={styles.errorText}>{errors.email}</Text>
+                  <Text style={styles.errorText}>{t(errors.email as TranslationKey)}</Text>
                 )}
               </Animated.View>
 
@@ -508,7 +508,7 @@ export default function LoginScreen() {
                   </TouchableOpacity>
                 </View>
                 {touched.password && errors.password && (
-                  <Text style={styles.errorText}>{errors.password}</Text>
+                  <Text style={styles.errorText}>{t(errors.password as TranslationKey)}</Text>
                 )}
               </Animated.View>
 
