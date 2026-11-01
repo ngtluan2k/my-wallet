@@ -169,16 +169,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    height: 50,
+    height: 48,
     borderRadius: 12,
     gap: 8,
     marginTop: 4,
     backgroundColor: C.primary,
     shadowColor: C.primary,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.35,
-    shadowRadius: 10,
-    elevation: 6,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
   },
   primaryBtnTxt: {
     color: C.onPrimary,
@@ -192,7 +192,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    height: 50,
+    height: 48,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: C.border,
@@ -228,7 +228,6 @@ const styles = StyleSheet.create({
   socialRow: {
     flexDirection: 'row',
     gap: 12,
-    marginHorizontal: 16,
     marginTop: 16,
   },
   socialBtn: {
@@ -241,10 +240,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     gap: 8,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
   },
   appleBtn: {
     backgroundColor: C.appleBg,
@@ -344,7 +343,7 @@ export default function LoginScreen() {
   const onPressBtn = (to: number) =>
     Animated.timing(btnSc, { toValue: to, duration: 90, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start();
   const onPressSoc = (to: number) =>
-    Animated.timing(socSc, { toValue: to, duration: 90, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start();
+    Animated.timing(socSc, { toValue: to, duration: 150, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start();
 
   async function handleAuth() {
     if (!email || !password) return;
@@ -482,7 +481,7 @@ export default function LoginScreen() {
             <Animated.View style={{ flex: 1, transform: [{ scale: socSc }] }}>
               <TouchableOpacity
                 style={[styles.socialBtn, styles.appleBtn]}
-                onPressIn={() => onPressSoc(0.96)}
+                onPressIn={() => onPressSoc(0.95)}
                 onPressOut={() => onPressSoc(1)}
                 activeOpacity={0.82}
               >
@@ -493,7 +492,7 @@ export default function LoginScreen() {
             <Animated.View style={{ flex: 1, transform: [{ scale: socSc }] }}>
               <TouchableOpacity
                 style={[styles.socialBtn, styles.googleBtn]}
-                onPressIn={() => onPressSoc(0.96)}
+                onPressIn={() => onPressSoc(0.95)}
                 onPressOut={() => onPressSoc(1)}
                 activeOpacity={0.82}
               >
