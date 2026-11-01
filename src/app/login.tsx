@@ -5,6 +5,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 
 import { useAuth } from '@/state/auth';
 import { spacing } from '@/theme';
+import { useT } from '@/i18n';
 
 // Mockup colors
 const C = {
@@ -26,15 +27,15 @@ const C = {
 
 // Validation helpers
 function validateEmail(email: string): string | undefined {
-  if (!email.trim()) return 'Vui lòng nhập email';
+  if (!email.trim()) return 'common.email_required';
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(email)) return 'Email không hợp lệ';
+  if (!emailRegex.test(email)) return 'common.email_invalid';
   return undefined;
 }
 
 function validatePassword(password: string): string | undefined {
-  if (!password) return 'Vui lòng nhập mật khẩu';
-  if (password.length < 8) return 'Mật khẩu phải có ít nhất 8 ký tự';
+  if (!password) return 'common.password_length_error';
+  if (password.length < 8) return 'common.password_length_error';
   return undefined;
 }
 
@@ -320,8 +321,8 @@ interface FormErrors {
 }
 
 export default function LoginScreen() {
-  console.log('[Login] LoginScreen rendering');
   const { signIn, loadRememberEmail, rememberEmail, setRememberEmail } = useAuth();
+  const { t } = useT();
   const [email, setEmail] = useState(rememberEmail ?? '');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -410,13 +411,13 @@ export default function LoginScreen() {
         console.error('[Login] Sign in failed:', error);
         // Show error to user
         if (error.message?.includes('Invalid login credentials')) {
-          setErrors(prev => ({ ...prev, password: 'Email hoặc mật khẩu không đúng' }));
+          setErrors(prev => ({ ...prev, password: 'login.error.invalidCredentials' }));
         } else if (error.message?.includes('Invalid API key')) {
-          Alert.alert('Lỗi', 'Không thể kết nối đến máy chủ. Vui lòng kiểm tra lại cấu hình Supabase.');
+          Alert.alert(t('common.error'), t('login.error.apiKey'));
         } else if (error.message?.includes('Network error') || error.message?.includes('Failed to fetch')) {
-          Alert.alert('Lỗi kết nối', 'Không thể kết nối đến mạng. Vui lòng kiểm tra kết nối Internet.');
+          Alert.alert(t('login.error.network'), t('login.error.networkDesc'));
         } else {
-          setErrors(prev => ({ ...prev, email: error.message || 'Đăng nhập thất bại' }));
+          setErrors(prev => ({ ...prev, email: error.message || t('login.error.unknown') }));
         }
         return;
       }
@@ -426,7 +427,7 @@ export default function LoginScreen() {
       router.replace('/(tabs)');
     } catch (err) {
       console.error('[Login] Unexpected error:', err);
-      Alert.alert('Lỗi', 'Đã có lỗi xảy ra. Vui lòng thử lại.');
+      Alert.alert(t('common.error'), t('login.error.unexpected'));
     } finally {
       setLoading(false);
     }
@@ -434,7 +435,7 @@ export default function LoginScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={0}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={0}>
         <ScrollView
           style={styles.scroll}
           contentContainerStyle={styles.scrollContent}
@@ -449,10 +450,10 @@ export default function LoginScreen() {
                 <Ionicons name="wallet-outline" size={30} color="#ffffff" />
               </Animated.View>
               <Animated.View style={{ opacity: txtOp, transform: [{ translateY: txtOp.interpolate({ inputRange: [0, 1], outputRange: [8, 0] }) }] }}>
-                <Text style={styles.title}>Chào mừng trở lại!</Text>
+                <Text style={styles.title}>{t('login.title')}</Text>
               </Animated.View>
               <Animated.View style={{ opacity: txtOp }}>
-                <Text style={styles.subtitle}>Đăng nhập để tiếp tục quản lý tài chính thông minh & an toàn.</Text>
+                <Text style={styles.subtitle}>{t('login.subtitle')}</Text>
               </Animated.View>
             </View>
 
@@ -462,14 +463,14 @@ export default function LoginScreen() {
               {/* Email */}
               <Animated.View style={[styles.inputGroup, { opacity: i1Op, transform: [{ translateX: i1Op.interpolate({ inputRange: [0, 1], outputRange: [-16, 0] }) }] }]}>
                 <View style={styles.labelRow}>
-                  <Text style={styles.label}>Email</Text>
+                  <Text style={styles.label}>{t('login.email')}</Text>
                   <Text style={styles.required}>*</Text>
                 </View>
                 <View style={[styles.inputRow, errors.email && styles.inputRowError]}>
                   <Ionicons name="mail-outline" size={20} style={styles.inputIcon} />
                   <TextInput
                     style={styles.input}
-                    placeholder="email@example.com"
+                    placeholder={t('login.emailPlaceholder')}
                     placeholderTextColor={`${C.outline}b3`}
                     value={email}
                     onChangeText={setEmail}
@@ -480,21 +481,21 @@ export default function LoginScreen() {
                   />
                 </View>
                 {touched.email && errors.email && (
-                  <Text style={styles.errorText}>{errors.email}</Text>
+                  <Text style={styles.errorText}>{t(errors.email)}</Text>
                 )}
               </Animated.View>
 
               {/* Password */}
               <Animated.View style={[styles.inputGroup, { opacity: i2Op, transform: [{ translateX: i2Op.interpolate({ inputRange: [0, 1], outputRange: [-16, 0] }) }] }]}>
                 <View style={styles.labelRow}>
-                  <Text style={styles.label}>Mật khẩu</Text>
+                  <Text style={styles.label}>{t('login.password')}</Text>
                   <Text style={styles.required}>*</Text>
                 </View>
                 <View style={[styles.inputRow, errors.password && styles.inputRowError]}>
                   <Ionicons name="lock-closed-outline" size={20} style={styles.inputIcon} />
                   <TextInput
                     style={[styles.input, { paddingRight: 44 }]}
-                    placeholder="Nhập mật khẩu"
+                    placeholder={t('login.passwordPlaceholder')}
                     placeholderTextColor={`${C.outline}b3`}
                     value={password}
                     onChangeText={setPassword}
@@ -507,7 +508,7 @@ export default function LoginScreen() {
                   </TouchableOpacity>
                 </View>
                 {touched.password && errors.password && (
-                  <Text style={styles.errorText}>{errors.password}</Text>
+                  <Text style={styles.errorText}>{t(errors.password)}</Text>
                 )}
               </Animated.View>
 
@@ -518,11 +519,11 @@ export default function LoginScreen() {
                     <Animated.View style={[styles.checkbox, rememberMe && styles.checkboxOn, { transform: [{ scale: rememberMe ? 1.08 : 1 }] }]}>
                       {rememberMe && <Ionicons name="checkmark" size={12} color="#ffffff" />}
                     </Animated.View>
-                    <Text style={styles.rememberTxt}>Ghi nhớ đăng nhập</Text>
+                    <Text style={styles.rememberTxt}>{t('login.remember')}</Text>
                   </View>
                 </TouchableOpacity>
                 <TouchableOpacity activeOpacity={0.7}>
-                  <Text style={styles.forgotTxt}>Quên mật khẩu?</Text>
+                  <Text style={styles.forgotTxt}>{t('login.forgot')}</Text>
                 </TouchableOpacity>
               </Animated.View>
 
@@ -537,7 +538,7 @@ export default function LoginScreen() {
                   activeOpacity={0.85}
                 >
                   <Text style={[styles.primaryBtnTxt, { opacity: loading ? 0.8 : 1 }]}>
-                    Đăng nhập
+                    {t('login.signIn')}
                   </Text>
                   {!loading && <Ionicons name="arrow-forward" size={20} color="#ffffff" />}
                 </TouchableOpacity>
@@ -552,7 +553,7 @@ export default function LoginScreen() {
                   activeOpacity={0.82}
                 >
                   <Ionicons name="lock-open-outline" size={20} color={C.primary} />
-                  <Text style={styles.faceBtnTxt}>Đăng nhập bằng Face ID</Text>
+                  <Text style={styles.faceBtnTxt}>{t('login.faceId')}</Text>
                 </TouchableOpacity>
               </Animated.View>
             </View>
@@ -560,7 +561,7 @@ export default function LoginScreen() {
             {/* ── Divider ── */}
             <View style={styles.divider}>
               <View style={styles.dividerLine} />
-              <Text style={styles.dividerTxt}>Hoặc tiếp tục với</Text>
+              <Text style={styles.dividerTxt}>{t('login.divider')}</Text>
               <View style={styles.dividerLine} />
             </View>
 
@@ -574,7 +575,7 @@ export default function LoginScreen() {
                   activeOpacity={0.82}
                 >
                   <Ionicons name="logo-apple" size={16} color="#ffffff" />
-                  <Text style={[styles.socialTxt, { color: '#ffffff' }]}>Apple ID</Text>
+                  <Text style={[styles.socialTxt, { color: '#ffffff' }]}>{t('login.appleId')}</Text>
                 </TouchableOpacity>
               </Animated.View>
               <Animated.View style={{ flex: 1, transform: [{ scale: socSc }] }}>

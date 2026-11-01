@@ -8,6 +8,37 @@ export type IconName = ComponentProps<typeof Ionicons>['name'];
 
 type Tone = 'default' | 'muted' | 'income' | 'expense' | 'warning' | 'danger' | 'primary' | 'white' | 'white80' | 'white70' | 'white90';
 
+const shadows = {
+  level0: {
+    shadowColor: '#000',
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    shadowOffset: { width: 0, height: 0 },
+    elevation: 0,
+  },
+  level1: {
+    shadowColor: '#000',
+    shadowOpacity: 0.04,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: -2 },
+    elevation: 4,
+  },
+  level2: {
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 8,
+  },
+  level3: {
+    shadowColor: '#000',
+    shadowOpacity: 0.12,
+    shadowRadius: 32,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 12,
+  },
+};
+
 export function Screen({ children, scroll = true }: { children: ReactNode; scroll?: boolean }) {
   const { colors } = useTheme();
   if (!scroll) return <View style={[styles.screen, { backgroundColor: colors.background }]}>{children}</View>;
@@ -344,37 +375,6 @@ export function AppText({
 
   return <Text {...props} style={[{ color, fontSize: size, fontWeight: weight }, style]} />;
 }
-
-const shadows = {
-  level0: {
-    shadowColor: '#000',
-    shadowOpacity: 0,
-    shadowRadius: 0,
-    shadowOffset: { width: 0, height: 0 },
-    elevation: 0,
-  },
-  level1: {
-    shadowColor: '#000',
-    shadowOpacity: 0.04,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: -2 },
-    elevation: 4,
-  },
-  level2: {
-    shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowRadius: 24,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 8,
-  },
-  level3: {
-    shadowColor: '#000',
-    shadowOpacity: 0.12,
-    shadowRadius: 32,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 12,
-  },
-};
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },

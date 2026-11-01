@@ -39,22 +39,6 @@
     "login": "Đăng nhập",
     "security_badge": "Bảo mật dữ liệu 100% cục bộ & mã hóa thiết bị"
   },
-  "category": {
-    "unknown": "Không xác định",
-    "income": "Thu nhập",
-    "expense": "Chi tiêu",
-    "food": "Ăn uống",
-    "transport": "Giao thông",
-    "entertainment": "Giải trí",
-    "shopping": "Mua sắm",
-    "health": "Y tế",
-    "education": "Giáo dục",
-    "salary": "Lương",
-    "bonus": "Thưởng",
-    "gift": "Quà tặng",
-    "investment": "Đầu tư",
-    "other": "Khác"
-  },
   "common": {
     "loading": "Đang tải...",
     "error": "Lỗi",
@@ -75,117 +59,20 @@
     "required_field": "*",
     "field_required": "Vui lòng nhập {field}"
   },
-  "storage": {
-    "error": {
-      "title": "Lỗi tải dữ liệu",
-      "corrupt": "File dữ liệu bị hỏng. Bạn có thể khôi phục từ file sao lưu. Ứng dụng sẽ không ghi đè dữ liệu cho đến khi bạn khôi phục.",
-      "unsupported_version": "Dữ liệu được tạo từ phiên bản mới hơn. Hãy cập nhật ứng dụng.",
-      "read_failed": "Không thể đọc dữ liệu. Vui lòng thử lại.",
-      "write_failed": "Không thể lưu dữ liệu. Vui lòng thử lại."
-    }
-  },
-  "transactions": {
-    "add": "Thêm giao dịch",
-    "edit": "Chỉnh sửa giao dịch",
-    "delete": "Xóa giao dịch",
-    "deleteConfirm": "Xóa giao dịch này?",
-    "amount": "Số tiền",
-    "category": "Danh mục",
-    "date": "Ngày",
-    "description": "Mô tả",
-    "select_category": "Chọn danh mục",
-    "custom": "Tùy chỉnh",
-    "no_transactions": "Chưa có giao dịch nào"
-  },
-  "settings": {
-    "title": "Cài đặt",
-    "language": "Ngôn ngữ",
-    "theme": "Chủ đề",
-    "currency": "Tiền tệ",
-    "backup": "Sao lưu",
-    "restore": "Khôi phục",
-    "security": "Bảo mật",
-    "notifications": "Thông báo",
-    "privacy": "Quyền riêng tư"
-  },
-  "summary": {
-    "income": "Tổng thu",
-    "expense": "Tổng chi",
-    "difference": "Chênh lệch thu chi"
-  },
-  "dashboard": {
-    "spendingByCategory": "Cơ cấu chi tiêu",
-    "noExpenses": "Chưa có khoản chi nào trong tháng này.",
-    "recent": "Giao dịch gần đây",
-    "budgetAlerts": "Cảnh báo ngân sách",
-    "availableBalance": "Số dư khả dụng",
-    "security": "An toàn",
-    "totalIncome": "Tổng thu",
-    "totalExpense": "Tổng chi",
-    "quickActions": {
-      "add": " Thêm thu/chi",
-      "scan": "Quét hóa đơn",
-      "budget": "Đặt ngân sách",
-      "report": "Báo cáo tuần"
-    },
-    "seeDetail": "Chi tiết",
-    "seeAll": "Xem tất cả",
-    "updatedJustNow": "Cập nhật vừa xong",
-    "greeting": {
-      "morning": "Chào buổi sáng",
-      "afternoon": "Chào buổi chiều",
-      "evening": "Chào buổi tối"
-    },
-    "alert": {
-      "spentOf": "Đã chi {percent}% hạn mức đặt ra",
-      "used": "Đã dùng",
-      "limit": "Giới hạn"
-    },
-    "analysis": {
-      "allocated": "Tổng chi tiêu đã phân bổ"
-    },
-    "category": {
-      "food": "Ăn uống",
-      "housing": "Tiền nhà",
-      "transport": "Di chuyển",
-      "entertainment": "Giải trí"
-    }
-  },
-  "type": {
-    "income": "Thu",
-    "expense": "Chi"
-  },
-  "form": {
-    "amount": "Số tiền",
-    "category": "Danh mục",
-    "date": "Ngày",
-    "note": "Ghi chú",
-    "notePlaceholder": "Không bắt buộc",
-    "today": "Hôm nay",
-    "selectDate": "Chọn ngày",
-    "error": {
-      "amount_invalid": "Nhập số tiền lớn hơn 0.",
-      "category_invalid": "Chọn một danh mục.",
-      "category_type_mismatch": "Danh mục không khớp với loại giao dịch.",
-      "date_invalid": "Ngày không hợp lệ.",
-      "note_too_long": "Ghi chú quá dài."
-    }
-  },
-  "budget": {
-    "intro": "Hạn mức chi mỗi tháng theo danh mục. Áp dụng cho mọi tháng.",
-    "limitPlaceholder": "Chưa đặt",
-    "spentOf": "Đã chi {spent} / {limit}",
-    "remaining": "Còn lại {amount}",
-    "overBy": "Vượt {amount}",
-    "status": {
-      "warning": "Sắp hết ngân sách",
-      "over": "Vượt ngân sách"
-    }
-  },
-  "tab": {
-    "dashboard": "Tổng quan",
-    "transactions": "Giao dịch",
-    "budget": "Ngân sách",
-    "settings": "Cài đặt"
+  "category": {
+    "unknown": "Không xác định",
+    "income": "Thu nhập",
+    "expense": "Chi tiêu",
+    "food": "Ăn uống",
+    "transport": "Giao thông",
+    "entertainment": "Giải trí",
+    "shopping": "Mua sắm",
+    "health": "Y tế",
+    "education": "Giáo dục",
+    "salary": "Lương",
+    "bonus": "Thưởng",
+    "gift": "Quà tặng",
+    "investment": "Đầu tư",
+    "other": "Khác"
   }
 }
