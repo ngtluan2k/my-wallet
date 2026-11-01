@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from './supabaseClient';
-import type { WalletData, Category, Transaction, Budget } from '@/domain/types';
+import type { WalletData, Category, Transaction, Budget, Wallet } from '@/domain/types';
 import type { WalletRepository } from './WalletRepository';
 
 const LOCAL_DATA_KEY = 'viminh_local_wallet_data';
@@ -13,15 +13,17 @@ export class SupabaseRepository implements WalletRepository {
       const userId = session.session?.user.id;
       if (!userId) throw new Error('Not authenticated');
 
-      const [txRes, catRes, budRes] = await Promise.all([
+      const [txRes, catRes, budRes, walletRes] = await Promise.all([
         supabase.from('transactions').select('*').eq('user_id', userId),
         supabase.from('categories').select('*').eq('user_id', userId),
         supabase.from('budgets').select('*').eq('user_id', userId),
+        supabase.from('wallets').select('*').eq('user_id', userId),
       ]);
 
       if (txRes.error) throw new Error(txRes.error.message);
       if (catRes.error) throw new Error(catRes.error.message);
       if (budRes.error) throw new Error(budRes.error.message);
+      if (walletRes.error) throw new Error(walletRes.error.message);
 
       const categories: Category[] = (catRes.data ?? []).map((c: any) => ({
         id: c.id,
@@ -48,7 +50,15 @@ export class SupabaseRepository implements WalletRepository {
         limit: b.limit_amount,
       }));
 
-      const data: WalletData = { version: 1, transactions, categories, budgets };
+      const wallets: Wallet[] = (walletRes.data ?? []).map((w: any) => ({
+        id: w.id,
+        name: w.name,
+        openingBalance: w.opening_balance,
+        currency: w.currency,
+        isDefault: w.is_default,
+      }));
+
+      const data: WalletData = { version: 1, transactions, categories, budgets, wallets };
 
       // Cache locally for offline use
       await AsyncStorage.setItem(LOCAL_DATA_KEY, JSON.stringify(data));
@@ -75,6 +85,18 @@ export class SupabaseRepository implements WalletRepository {
       const { data: session } = await supabase.auth.getSession();
       const userId = session.session?.user.id;
       if (!userId) throw new Error('Not authenticated');
+
+      // Upsert wallets
+      const walletUpserts = data.wallets.map((w) => ({
+        id: w.id,
+        user_id: userId,
+        name: w.name,
+        opening_balance: w.openingBalance,
+        currency: w.currency,
+        is_default: w.isDefault,
+      }));
+      const { error: walletError } = await supabase.from('wallets').upsert(walletUpserts);
+      if (walletError) throw walletError;
 
       // Upsert categories
       const cats = data.categories.map((c) => ({
@@ -112,7 +134,7 @@ export class SupabaseRepository implements WalletRepository {
         month_key: new Date().toISOString().slice(0, 7),
         limit_amount: b.limit,
       }));
-      const { error: budError } = await supabase.from('budgets').upsert(buds);
+      const { error: budError } = await supabase.from('budgets').upsert(buds, { onConflict: 'user_id,category_id,month_key' });
       if (budError) throw budError;
 
       // Cache locally

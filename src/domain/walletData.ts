@@ -2,13 +2,13 @@ import { DEFAULT_CATEGORIES } from './categories';
 import { isValidLocalDate } from './dates';
 import { isValidAmount } from './money';
 import { MAX_NOTE_LENGTH } from './transactions';
-import type { Budget, Category, Transaction, WalletData } from './types';
+import type { Budget, Category, Transaction, Wallet, WalletData } from './types';
 
 export const CURRENT_VERSION = 1;
 export const BACKUP_APP_ID = 'my-wallet';
 
 export function createInitialData(): WalletData {
-  return { version: CURRENT_VERSION, transactions: [], categories: DEFAULT_CATEGORIES, budgets: [] };
+  return { version: CURRENT_VERSION, transactions: [], categories: DEFAULT_CATEGORIES, budgets: [], wallets: [] };
 }
 
 export type ParseError = 'not_json' | 'invalid_format' | 'unsupported_version' | 'not_a_backup';
@@ -56,6 +56,11 @@ function isBudget(v: unknown): v is Budget {
   return isObject(v) && isNonEmptyString(v.categoryId) && isValidAmount(v.limit);
 }
 
+function isWallet(v: unknown): v is Wallet {
+  return isObject(v) && isNonEmptyString(v.id) && isNonEmptyString(v.name) && 
+    isValidAmount(v.openingBalance) && isNonEmptyString(v.currency) && typeof v.isDefault === 'boolean';
+}
+
 /** Validates and migrates unknown input into WalletData. Never partially accepts invalid data. */
 export function parseWalletData(raw: unknown): ParseResult {
   if (!isObject(raw) || !Number.isInteger(raw.version) || (raw.version as number) < 1) {
@@ -68,11 +73,12 @@ export function parseWalletData(raw: unknown): ParseResult {
     data = { ...MIGRATIONS[v](data), version: v + 1 };
   }
 
-  const { transactions, categories, budgets } = data;
+  const { transactions, categories, budgets, wallets } = data;
   if (
     !Array.isArray(transactions) || !transactions.every(isTransaction) ||
     !Array.isArray(categories) || !categories.every(isCategory) ||
-    !Array.isArray(budgets) || !budgets.every(isBudget)
+    !Array.isArray(budgets) || !budgets.every(isBudget) ||
+    !Array.isArray(wallets) || !wallets.every(isWallet)
   ) {
     return { ok: false, error: 'invalid_format' };
   }
@@ -88,8 +94,14 @@ export function parseWalletData(raw: unknown): ParseResult {
   if (budgets.some((b) => categoryById.get(b.categoryId)?.type !== 'expense')) {
     return { ok: false, error: 'invalid_format' };
   }
+  // Validate wallet uniqueness
+  const walletIds = new Set<string>();
+  for (const w of wallets) {
+    if (walletIds.has(w.id)) return { ok: false, error: 'invalid_format' };
+    walletIds.add(w.id);
+  }
 
-  return { ok: true, data: { version: CURRENT_VERSION, transactions, categories, budgets } };
+  return { ok: true, data: { version: CURRENT_VERSION, transactions, categories, budgets, wallets } };
 }
 
 export function parseWalletJson(text: string): ParseResult {

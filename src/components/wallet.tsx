@@ -11,7 +11,7 @@ import { useWallet } from '@/state/wallet';
 import { useSelectedMonth } from '@/state/ui';
 import { spacing, useTheme } from '@/theme';
 
-import { AppText, Card, CategoryIcon, ModernCard, ModernSegmented, ModernChip, ModernProgressBar } from './ui';
+import { AppText, Card, CategoryIcon } from './ui';
 
 export function useCategories(): Map<string, Category> {
   const categories = useWallet((s) => s.data?.categories);

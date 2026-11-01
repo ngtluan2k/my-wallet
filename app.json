@@ -30,7 +30,8 @@
       "expo-router",
       "expo-localization",
       "expo-sharing",
-      "expo-font"
+      "expo-font",
+      "@react-native-community/datetimepicker"
     ],
     "scheme": "mywallet",
     "experiments": {

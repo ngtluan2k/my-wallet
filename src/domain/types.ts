@@ -37,9 +37,18 @@ export interface Budget {
   limit: number;
 }
 
+export interface Wallet {
+  id: string;
+  name: string;
+  openingBalance: number;
+  currency: string;
+  isDefault: boolean;
+}
+
 export interface WalletData {
   version: number;
   transactions: Transaction[];
   categories: Category[];
   budgets: Budget[];
+  wallets: Wallet[];
 }
