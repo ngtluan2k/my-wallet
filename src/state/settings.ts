@@ -24,8 +24,7 @@ export const useSettings = create<SettingsState>()((set, get) => ({
   },
   update(patch) {
     set(patch);
-    const { language, theme } = get();
     // A failed settings write only loses a preference, so it isn't surfaced.
-    saveSettings({ language, theme }).catch(() => undefined);
+    saveSettings(get()).catch(() => undefined);
   },
 }));

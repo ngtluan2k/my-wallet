@@ -10,7 +10,6 @@ import {
 import { SigningExpiryBanner } from '@/components/signing';
 import { TransactionRow, useCategories } from '@/components/wallet';
 import { AppText, EmptyState, Fab, ModernCard, Screen, Skeleton } from '@/components/ui';
-import { budgetUsage } from '@/domain/budgets';
 import { formatMoney } from '@/domain/money';
 import { filterTransactions, sortTransactions, summarize, totalsByCategory } from '@/domain/transactions';
 import { useT } from '@/i18n';
@@ -19,26 +18,81 @@ import { useBudgets, useTransactions, useWalletStatus } from '@/state/wallet';
 import { radius, spacing, useTheme } from '@/theme';
 
 const RECENT_COUNT = 5;
-const EMERALD_DARK = '#065F46';
-const EMERALD_MID = '#059669';
-const EMERALD_LIGHT = '#047857';
 
-type GreetingPeriod = 'morning' | 'afternoon' | 'evening';
-
-function getGreetingPeriod(): GreetingPeriod {
+function getGreetingPeriod() {
   const hour = new Date().getHours();
   if (hour < 12) return 'morning';
   if (hour < 18) return 'afternoon';
   return 'evening';
 }
 
-const worthCardShadow = {
-  shadowColor: '#000',
-  shadowOpacity: 0.08,
-  shadowRadius: 24,
-  shadowOffset: { width: 0, height: 8 },
-  elevation: 8,
-};
+function QuickAction({ icon, label, onPress, iconColor = '#006948' }: { icon: string; label: string; onPress(): void; iconColor?: string }) {
+  const { colors } = useTheme();
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [styles.quickActionBtn, { backgroundColor: colors.surface, borderColor: colors.border }, pressed && { opacity: 0.7 }]}
+    >
+      <View style={[styles.quickActionIcon, { backgroundColor: iconColor + '20' }]}>
+        <AppText size={26}>{icon}</AppText>
+      </View>
+      <AppText tone="default" size={12} weight="500" style={styles.quickActionLabel}>{label}</AppText>
+    </Pressable>
+  );
+}
+
+function DashboardNetWorthCard({ summary, language, t }: { summary: any; language: 'vi' | 'en'; t: any }) {
+  return (
+    <View style={styles.netWorthCard}>
+      <View style={styles.netWorthGradient}>
+        <View style={styles.netWorthContent}>
+          <View style={styles.netWorthHeader}>
+            <AppText tone="white80" size={13} weight="600">
+              {t('dashboard.availableBalance')}
+            </AppText>
+            <View style={styles.securityBadge}>
+              <AppText size={14} tone="white">🔒</AppText>
+              <AppText tone="white" size={11} weight="600">{t('dashboard.security')}</AppText>
+            </View>
+          </View>
+
+          <View style={styles.balanceRow}>
+            <AppText style={styles.balanceText}>
+              +{formatMoney(Math.max(summary.difference, 0), language)}
+            </AppText>
+            <AppText weight="600" size={24} tone="white90">₫</AppText>
+          </View>
+
+          <View style={styles.subCardsRow}>
+            <View style={[styles.subCard, styles.subCardIncome]}>
+              <View style={styles.subCardHeader}>
+                <View style={[styles.miniIcon, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
+                  <AppText size={12} tone="white">↓</AppText>
+                </View>
+                <AppText tone="white70" size={12}>{t('dashboard.totalIncome')}</AppText>
+              </View>
+              <AppText weight="700" size={14} tone="white">
+                +{formatMoney(summary.income, language)}
+              </AppText>
+            </View>
+
+            <View style={[styles.subCard, styles.subCardExpense]}>
+              <View style={styles.subCardHeader}>
+                <View style={[styles.miniIcon, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
+                  <AppText size={12} tone="white">↑</AppText>
+                </View>
+                <AppText tone="white70" size={12}>{t('dashboard.totalExpense')}</AppText>
+              </View>
+              <AppText weight="700" size={14} tone="white">
+                −{formatMoney(summary.expense, language)}
+              </AppText>
+            </View>
+          </View>
+        </View>
+      </View>
+    </View>
+  );
+}
 
 export default function DashboardScreen() {
   const { t, language, categoryName } = useT();
@@ -54,13 +108,22 @@ export default function DashboardScreen() {
   const summary = useMemo(() => summarize(monthTransactions), [monthTransactions]);
   const spending = useMemo(() => totalsByCategory(monthTransactions, 'expense'), [monthTransactions]);
   const alerts = useMemo(
-    () => budgetUsage(budgets, monthTransactions).filter((u) => u.status !== 'ok'),
+    () => budgets.filter((b) => {
+      const spent = monthTransactions.filter((tx) => tx.categoryId === b.categoryId && tx.type === 'expense')
+        .reduce((sum, tx) => sum + tx.amount, 0);
+      const percent = b.limit ? (spent / b.limit) * 100 : 0;
+      return percent >= 80;
+    }).map((b) => {
+      const spent = monthTransactions.filter((tx) => tx.categoryId === b.categoryId && tx.type === 'expense')
+        .reduce((sum, tx) => sum + tx.amount, 0);
+      const percent = b.limit ? Math.round((spent / b.limit) * 100) : 0;
+      return { ...b, spent, percent };
+    }),
     [budgets, monthTransactions],
   );
   const recent = useMemo(() => sortTransactions(monthTransactions).slice(0, RECENT_COUNT), [monthTransactions]);
   const greeting = t(`dashboard.greeting.${getGreetingPeriod()}`);
 
-  // Top 4 expense categories for the analysis section
   const topCategories = useMemo(() => spending.slice(0, 4), [spending]);
 
   return (
@@ -68,7 +131,6 @@ export default function DashboardScreen() {
       <Screen>
         <SigningExpiryBanner />
 
-        {/* ── Top App Bar ── */}
         <View style={styles.topBar}>
           <View style={styles.topBarLeft}>
             <View style={[styles.avatarRing, { borderColor: colors.primary + '30' }]}>
@@ -78,107 +140,51 @@ export default function DashboardScreen() {
               />
             </View>
             <View style={styles.greetingBox}>
-              <AppText tone="muted" size={11}>{greeting}</AppText>
-              <AppText weight="600" size={13}>Nam</AppText>
+              <AppText tone="muted" size={13}>{greeting}</AppText>
+              <AppText weight="600" size={14}>Nam</AppText>
             </View>
           </View>
-          <AppText weight="700" size={20} tone="primary" style={styles.appTitle}>
+
+          <AppText weight="700" size={18} tone="primary" style={styles.appTitle}>
             Ví Mình
           </AppText>
+
           <Pressable
             style={styles.notificationBtn}
             onPress={() => {}}
             hitSlop={12}
           >
             <View style={styles.notificationDot} />
-            <AppText size={22}>🔔</AppText>
+            <AppText size={24}>🔔</AppText>
           </Pressable>
         </View>
 
-        {/* ── Period Pill ── */}
         <View style={styles.periodRow}>
           <View>
             <AppText tone="muted" size={13}>
-              {month}
+              Tháng {month.split('-')[1]}/{month.split('-')[0]}
             </AppText>
-            <AppText weight="600" size={17}>
+            <AppText weight="600" size={18}>
               {t('tab.dashboard')}
             </AppText>
           </View>
           <View style={[styles.updatedPill, { borderColor: colors.border }]}>
             <View style={styles.pulseDot} />
-            <AppText tone="primary" size={11} weight="600">{t('dashboard.updatedJustNow')}</AppText>
+            <AppText tone="primary" size={12} weight="600">{t('dashboard.updatedJustNow')}</AppText>
           </View>
         </View>
 
-        {/* ── Net Worth Card (Emerald Gradient) ── */}
-        <View style={styles.worthCard}>
-          {/* Gradient overlay layers */}
-          <View style={[styles.gradientLayer, { backgroundColor: EMERALD_DARK }]} />
-          <View style={[styles.gradientLayer, { backgroundColor: EMERALD_MID, opacity: 0.85 }]} />
-          <View style={[styles.gradientLayer, { backgroundColor: EMERALD_LIGHT, opacity: 0.7 }]} />
-          {/* Decorative blurs */}
-          <View style={styles.blurOrb1} />
-          <View style={styles.blurOrb2} />
+        <DashboardNetWorthCard summary={summary} language={language as 'vi' | 'en'} t={t} />
 
-          <View style={styles.worthContent}>
-            <View style={styles.worthHeader}>
-              <AppText tone="white80" size={13} weight="600">
-                {t('dashboard.availableBalance')}
-              </AppText>
-              <View style={[styles.securityBadge, { backgroundColor: 'rgba(255,255,255,0.15)' }]}>
-                <AppText size={12} tone="white">🔒</AppText>
-                <AppText tone="white" size={11} weight="600">{t('dashboard.security')}</AppText>
-              </View>
-            </View>
-
-            <View style={styles.balanceRow}>
-              <AppText style={styles.balanceText}>
-                +{formatMoney(Math.max(summary.difference, 0), language)}
-              </AppText>
-              <AppText weight="600" size={20} tone="white90">₫</AppText>
-            </View>
-
-            <View style={styles.subCardsRow}>
-              {/* Total income */}
-              <View style={[styles.subCard, { backgroundColor: 'rgba(0,0,0,0.15)' }]}>
-                <View style={styles.subCardHeader}>
-                  <View style={[styles.miniIcon, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
-                    <AppText size={10} tone="white">↓</AppText>
-                  </View>
-                  <AppText tone="white70" size={11}>{t('dashboard.totalIncome')}</AppText>
-                </View>
-                <AppText weight="700" size={13} tone="white">
-                  +{formatMoney(summary.income, language)}
-                </AppText>
-              </View>
-              {/* Total expense */}
-              <View style={[styles.subCard, { backgroundColor: 'rgba(0,0,0,0.15)' }]}>
-                <View style={styles.subCardHeader}>
-                  <View style={[styles.miniIcon, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
-                    <AppText size={10} tone="white">↑</AppText>
-                  </View>
-                  <AppText tone="white70" size={11}>{t('dashboard.totalExpense')}</AppText>
-                </View>
-                <AppText weight="700" size={13} tone="white">
-                  −{formatMoney(summary.expense, language)}
-                </AppText>
-              </View>
-            </View>
-          </View>
-        </View>
-
-        {/* ── Quick Actions ── */}
         <View style={styles.quickActionsRow}>
-          <QuickAction icon="➕" label={t('dashboard.quickActions.add')} onPress={() => router.push('/transaction')} />
-          <QuickAction icon="📷" label={t('dashboard.quickActions.scan')} onPress={() => {}} />
-          <QuickAction icon="🏦" label={t('dashboard.quickActions.budget')} onPress={() => router.push('/budget')} />
-          <QuickAction icon="📊" label={t('dashboard.quickActions.report')} onPress={() => {}} />
+          <QuickAction icon="＋" label={t('dashboard.quickActions.add')} onPress={() => router.push('/transaction')} />
+          <QuickAction icon="📷" label={t('dashboard.quickActions.scan')} onPress={() => {}} iconColor="#006948" />
+          <QuickAction icon="🏦" label={t('dashboard.quickActions.budget')} onPress={() => router.push('/budget')} iconColor="#006948" />
+          <QuickAction icon="📊" label={t('dashboard.quickActions.report')} onPress={() => {}} iconColor="#006948" />
         </View>
 
-        {/* ── Budget Alert Card ── */}
         {loading ? (
-          <ModernCard>
+          <ModernCard style={styles.alertCard}>
             <Skeleton width="100%" height={20} />
             <View style={{ marginTop: spacing.sm }}>
               <Skeleton width="100%" height={8} borderRadius={4} />
@@ -189,129 +195,95 @@ export default function DashboardScreen() {
             </View>
           </ModernCard>
         ) : alerts.length > 0 ? (
-          alerts.map((alert) => {
-            const cat = categories.get(alert.categoryId);
-            const catName = categoryName(cat);
-            const percent = Math.round((alert.spent / alert.limit) * 100);
-            return (
-              <ModernCard key={alert.categoryId} style={styles.alertCard}>
-                <View style={styles.alertHeader}>
-                  <View style={styles.alertIconRow}>
-                    <View style={[styles.alertIcon, { backgroundColor: colors.warning + '20' }]}>
-                      <AppText size={16}>⚠️</AppText>
+          <View>
+            {alerts.map((alert) => {
+              const cat = categories.get(alert.categoryId);
+              const catName = categoryName(cat);
+              const percent = alert.percent;
+              return (
+                <ModernCard key={alert.categoryId} style={styles.alertCard}>
+                  <View style={styles.alertHeader}>
+                    <View style={styles.alertIconRow}>
+                      <View style={[styles.alertIcon, { backgroundColor: '#F59E0B' + '20' }]}>
+                        <AppText size={16}>⚠️</AppText>
+                      </View>
+                      <View>
+                        <AppText weight="600" size={13}>{t('dashboard.budgetAlerts')} {catName}</AppText>
+                        <AppText tone="muted" size={12}>{t('dashboard.alert.spentOf', { percent: String(percent) })}</AppText>
+                      </View>
                     </View>
-                    <View>
-                      <AppText weight="600" size={13}>{t('dashboard.budgetAlerts')} {catName}</AppText>
-                      <AppText tone="muted" size={12}>{t('dashboard.alert.spentOf', { percent: String(percent) })}</AppText>
+                    <View style={[styles.alertPercentBadge, { backgroundColor: '#F59E0B' + '20' }]}>
+                      <AppText tone="warning" size={11} weight="700">{percent}%</AppText>
                     </View>
                   </View>
-                  <View style={[styles.alertPercentBadge, { backgroundColor: colors.warning + '20' }]}>
-                    <AppText tone="warning" size={11} weight="700">{percent}%</AppText>
+                  <View style={[styles.progressTrack, { backgroundColor: colors.surface }]}>
+                    <View
+                      style={[
+                        styles.progressFill,
+                        {
+                          width: `${Math.min(percent, 100)}%`,
+                          backgroundColor: percent >= 100 ? colors.danger : '#F59E0B',
+                        },
+                      ]}
+                    />
                   </View>
-                </View>
-                <View style={[styles.progressTrack, { backgroundColor: colors.surfaceMuted }]}>
-                  <View
-                    style={[
-                      styles.progressFill,
-                      {
-                        width: `${Math.min(percent, 100)}%`,
-                        backgroundColor: percent >= 100 ? colors.danger : colors.warning,
-                      },
-                    ]}
-                  />
-                </View>
-                <View style={styles.alertFooter}>
-                  <AppText tone="muted" size={11}>
-                    {t('dashboard.alert.used')}: <AppText weight="600" tone="default">{formatMoney(alert.spent, language)}</AppText>
-                  </AppText>
-                  <AppText tone="muted" size={11}>
-                    {t('dashboard.alert.limit')}: <AppText weight="600" tone="default">{formatMoney(alert.limit, language)}</AppText>
-                  </AppText>
-                </View>
-              </ModernCard>
-            );
-          })
+                  <View style={styles.alertFooter}>
+                    <AppText tone="muted" size={12}>
+                      {t('dashboard.alert.used')}: <AppText weight="600" tone="default">{formatMoney(alert.spent, language)}</AppText>
+                    </AppText>
+                    <AppText tone="muted" size={12}>
+                      {t('dashboard.alert.limit')}: <AppText weight="600" tone="default">{formatMoney(alert.limit, language)}</AppText>
+                    </AppText>
+                  </View>
+                </ModernCard>
+              );
+            })}
+          </View>
         ) : null}
 
-        {/* ── Expense Analysis ── */}
         <ModernCard>
           <View style={styles.sectionHeader}>
             <View>
-              <AppText weight="600" size={17}>{t('dashboard.spendingByCategory')}</AppText>
-              <AppText tone="muted" size={12}>{t('dashboard.analysis.structural')} {month}</AppText>
+              <AppText weight="600" size={18}>{t('dashboard.spendingByCategory')}</AppText>
+              <AppText tone="muted" size={13}>{t('dashboard.analysis.structural')} Tháng {month.split('-')[1]}/{month.split('-')[0]}</AppText>
             </View>
             <Pressable onPress={() => router.push('/budget')} hitSlop={8}>
               <View style={styles.seeDetailRow}>
-                <AppText tone="primary" size={12} weight="600">{t('dashboard.seeDetail')}</AppText>
-                <AppText size={14} tone="primary">›</AppText>
+                <AppText tone="primary" size={13} weight="600">{t('dashboard.seeDetail')}</AppText>
+                <AppText size={16} tone="primary">›</AppText>
               </View>
             </Pressable>
           </View>
 
-          {/* Stacked progress bar */}
-          {spending.length > 0 ? (
-            <View style={styles.stackedBarContainer}>
-              <View style={[styles.stackedBarTrack, { backgroundColor: colors.surfaceMuted }]}>
-                {(() => {
-                  const total = summary.expense || 1;
-                  let cumPercent = 0;
-                  const catColors = ['#006948', '#0284C7', '#EAB308', '#8B5CF6'];
-                  return topCategories.map((s, i) => {
-                    const pct = (s.amount / total) * 100;
-                    const left = cumPercent;
-                    cumPercent += pct;
-                    return (
-                      <View
-                        key={s.categoryId}
-                        style={[
-                          styles.stackedBarSegment,
-                          {
-                            width: `${pct}%`,
-                            left: `${left}%`,
-                            backgroundColor: catColors[i] ?? colors.primary,
-                          },
-                        ]}
-                      />
-                    );
-                  });
-                })()}
-              </View>
-              <View style={styles.stackedBarFooter}>
-                <AppText tone="muted" size={11}>{t('dashboard.analysis.allocated')}</AppText>
-                <AppText weight="700" size={11}>{formatMoney(summary.expense, language)}</AppText>
-              </View>
-            </View>
-          ) : null}
-
-          {/* Category tiles */}
-          <View style={styles.categoryGrid}>
+          <View style={styles.categoryGridContainer}>
             {topCategories.length === 0 ? (
               <View style={{ paddingVertical: spacing.md, alignItems: 'center' }}>
-                <AppText tone="muted" size={13}>{t('dashboard.noExpenses')}</AppText>
+                <AppText tone="muted" size={14}>{t('dashboard.noExpenses')}</AppText>
               </View>
             ) : (
-              topCategories.map((s, i) => {
-                const cat = categories.get(s.categoryId);
-                const color = cat?.color ?? colors.textMuted;
-                const percent = Math.round((s.amount / summary.expense) * 100);
-                return (
-                  <View key={s.categoryId} style={[styles.categoryTile, { borderColor: colors.border }]}>
-                    <View style={styles.categoryTileLeft}>
-                      <View style={[styles.colorDot, { backgroundColor: color }]} />
-                      <AppText size={12} weight="500">{categoryName(cat)}</AppText>
+              <View style={styles.categoryTilesContainer}>
+                {topCategories.map((s, i) => {
+                  const cat = categories.get(s.categoryId);
+                  const color = cat?.color ?? colors.textMuted;
+                  const percent = Math.round((s.amount / summary.expense) * 100);
+                  return (
+                    <View key={s.categoryId} style={styles.categoryTile}>
+                      <View style={styles.categoryTileLeft}>
+                        <View style={[styles.colorDot, { backgroundColor: color }]} />
+                        <AppText size={14} weight="500">{categoryName(cat)}</AppText>
+                      </View>
+                      <AppText weight="700" size={14}>{percent}%</AppText>
                     </View>
-                    <AppText weight="700" size={13}>{percent}%</AppText>
-                  </View>
-                );
-              })
+                  );
+                })}
+              </View>
             )}
           </View>
         </ModernCard>
 
-        {/* ── Recent Transactions ── */}
         {loading ? (
           <ModernCard>
-            <Skeleton width={120} height={18} />
+            <Skeleton width={120} height={20} />
             <View style={{ marginTop: spacing.md, gap: spacing.sm }}>
               {Array.from({ length: 3 }).map((_, i) => (
                 <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingVertical: spacing.sm }}>
@@ -328,9 +300,9 @@ export default function DashboardScreen() {
         ) : recent.length > 0 ? (
           <ModernCard>
             <View style={styles.sectionHeader}>
-              <AppText weight="600" size={17}>{t('dashboard.recent')}</AppText>
+              <AppText weight="600" size={18}>{t('dashboard.recent')}</AppText>
               <Pressable onPress={() => router.push('/transactions')} hitSlop={8}>
-                <AppText tone="primary" size={12} weight="600">{t('dashboard.seeAll')}</AppText>
+                <AppText tone="primary" size={13} weight="600">{t('dashboard.seeAll')}</AppText>
               </Pressable>
             </View>
             <View style={styles.divider} />
@@ -354,31 +326,12 @@ export default function DashboardScreen() {
             onPress={() => router.push('/transaction')}
           />
         )}
-      </Screen>
 
-      <Fab label={t('transactions.add')} onPress={() => router.push('/transaction')} />
+        <Fab label={t('transactions.add')} onPress={() => router.push('/transaction')} />
+      </Screen>
     </View>
   );
 }
-
-/* ── Sub-components ── */
-
-function QuickAction({ icon, label, onPress }: { icon: string; label: string; onPress(): void }) {
-  const { colors } = useTheme();
-  return (
-    <Pressable
-      onPress={onPress}
-      style={({ pressed }) => [styles.quickActionBtn, { backgroundColor: colors.surface, borderColor: colors.border }, pressed && { opacity: 0.7 }]}
-    >
-      <View style={[styles.quickActionIcon, { backgroundColor: colors.primary + '18' }]}>
-        <AppText size={22}>{icon}</AppText>
-      </View>
-      <AppText tone="default" size={10} weight="500" style={styles.quickActionLabel}>{label}</AppText>
-    </Pressable>
-  );
-}
-
-/* ── Styles ── */
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
@@ -450,41 +403,25 @@ const styles = StyleSheet.create({
   },
 
   // Net worth card
-  worthCard: {
+  netWorthCard: {
     marginHorizontal: spacing.lg,
     borderRadius: 20,
     overflow: 'hidden',
     minHeight: 160,
-    ...worthCardShadow,
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 8,
   },
-  gradientLayer: {
-    ...StyleSheet.absoluteFill,
+  netWorthGradient: {
+    backgroundColor: '#065F46',
   },
-  blurOrb1: {
-    position: 'absolute',
-    right: -30,
-    bottom: -30,
-    width: 140,
-    height: 140,
-    borderRadius: 70,
-    backgroundColor: 'rgba(255,255,255,0.08)',
-  },
-  blurOrb2: {
-    position: 'absolute',
-    left: -40,
-    top: -30,
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: 'rgba(167,243,208,0.1)',
-  },
-  worthContent: {
-    position: 'relative',
-    zIndex: 1,
+  netWorthContent: {
     padding: spacing.lg,
     gap: spacing.md,
   },
-  worthHeader: {
+  netWorthHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -496,6 +433,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 3,
     borderRadius: radius.pill,
+    backgroundColor: 'rgba(255,255,255,0.15)',
   },
   balanceRow: {
     flexDirection: 'row',
@@ -522,6 +460,8 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: 'rgba(255,255,255,0.1)',
   },
+  subCardIncome: { backgroundColor: 'rgba(0,0,0,0.15)' },
+  subCardExpense: { backgroundColor: 'rgba(0,0,0,0.15)' },
   subCardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -625,31 +565,12 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xs,
   },
 
-  // Stacked bar
-  stackedBarContainer: { marginBottom: spacing.sm },
-  stackedBarTrack: {
-    height: 12,
-    borderRadius: 6,
-    overflow: 'hidden',
-    flexDirection: 'row',
-  },
-  stackedBarSegment: {
-    position: 'absolute',
-    height: '100%',
-    borderRadius: 6,
-  },
-  stackedBarFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingTop: 4,
-  },
-
   // Category grid
-  categoryGrid: {
+  categoryGridContainer: { marginBottom: spacing.sm },
+  categoryTilesContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: spacing.sm,
-    paddingTop: spacing.xs,
   },
   categoryTile: {
     width: '48%',
@@ -659,6 +580,7 @@ const styles = StyleSheet.create({
     padding: spacing.sm,
     borderRadius: 12,
     borderWidth: StyleSheet.hairlineWidth,
+    borderColor: '#e2e8f0',
   },
   categoryTileLeft: {
     flexDirection: 'row',

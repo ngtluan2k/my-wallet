@@ -2,7 +2,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useMemo } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
-import { addMonths, formatLocalDate, formatMonth } from '@/domain/dates';
+import { addMonths, formatMonth } from '@/domain/dates';
 import { formatMoney } from '@/domain/money';
 import type { Summary } from '@/domain/transactions';
 import type { Category, Transaction } from '@/domain/types';
@@ -80,16 +80,17 @@ export function TransactionRow({
 }) {
   const { language, categoryName } = useT();
   const income = transaction.type === 'income';
+  const walletName = 'Ví chính';
+  
   return (
     <Pressable onPress={onPress} accessibilityRole="button" style={({ pressed }) => [styles.txRow, pressed && { opacity: 0.6 }]}>
       <CategoryIcon icon={category?.icon ?? 'help'} color={category?.color ?? '#64748B'} />
       <View style={styles.txText}>
         <AppText weight="500" numberOfLines={1}>
-          {categoryName(category)}
+          {transaction.note || categoryName(category)}
         </AppText>
         <AppText tone="muted" size={13} numberOfLines={1}>
-          {formatLocalDate(transaction.transactionDate, language)}
-          {transaction.note ? ` · ${transaction.note}` : ''}
+          {transaction.transactionDate} • {walletName}
         </AppText>
       </View>
       <AppText weight="600" tone={income ? 'income' : 'expense'}>

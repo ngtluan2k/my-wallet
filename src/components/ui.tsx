@@ -376,6 +376,94 @@ export function AppText({
   return <Text {...props} style={[{ color, fontSize: size, fontWeight: weight }, style]} />;
 }
 
+export function IOSwitch({ value, onValueChange }: { value: boolean; onValueChange(v: boolean): void }) {
+  const { colors } = useTheme();
+  return (
+    <Pressable onPress={() => onValueChange(!value)} accessibilityRole="switch" accessibilityState={{ checked: value }}>
+      <View
+        style={[
+          styles.iosSwitchTrack,
+          value && { backgroundColor: colors.primary },
+        ]}
+      >
+        <View
+          style={[
+            styles.iosSwitchThumb,
+            { transform: [{ translateX: value ? 20 : 0 }] },
+          ]}
+        />
+      </View>
+    </Pressable>
+  );
+}
+
+export function SettingsGroup({ children }: { children: ReactNode }) {
+  return <View style={styles.settingsGroup}>{children}</View>;
+}
+
+export function SettingsRow({
+  icon,
+  iconBg,
+  title,
+  subtitle,
+  accessory,
+  destructive,
+  onPress,
+}: {
+  icon: IconName;
+  iconBg: string;
+  title: string;
+  subtitle?: string;
+  accessory?: ReactNode;
+  destructive?: boolean;
+  onPress?: () => void;
+}) {
+  const { colors } = useTheme();
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.settingsRow,
+        onPress && { backgroundColor: pressed ? colors.surfaceContainerLow : 'transparent' },
+      ]}
+    >
+      <View style={[styles.settingsIconContainer, { backgroundColor: `${iconBg}22` }]}>
+        <Ionicons name={icon} size={18} color={iconBg} />
+      </View>
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <Text
+          style={[
+            styles.settingsTitle,
+            destructive && { color: colors.danger },
+          ]}
+          numberOfLines={1}
+        >
+          {title}
+        </Text>
+        {subtitle && (
+          <Text
+            style={[
+              styles.settingsSubtitle,
+              destructive && { color: colors.danger },
+            ]}
+            numberOfLines={1}
+          >
+            {subtitle}
+          </Text>
+        )}
+      </View>
+      {accessory && <View style={styles.settingsRightAccessory}>{accessory}</View>}
+    </Pressable>
+  );
+}
+
+export function SectionLabel({ children }: { children: ReactNode }) {
+  const { colors } = useTheme();
+  return (
+    <Text style={[styles.settingsSectionLabel, { color: colors.tertiary }]}>{children}</Text>
+  );
+}
+
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   screenContent: { padding: spacing.lg, gap: spacing.xl, paddingBottom: 96 },
@@ -523,5 +611,109 @@ const styles = StyleSheet.create({
     height: 24,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+
+  // Settings screen components
+  iosSwitchTrack: {
+    width: 51,
+    height: 31,
+    borderRadius: 16,
+    backgroundColor: '#e2e8f0',
+    justifyContent: 'center',
+    padding: 2,
+  },
+  iosSwitchThumb: {
+    width: 27,
+    height: 27,
+    borderRadius: 14,
+    backgroundColor: '#ffffff',
+    shadowColor: '#000',
+    shadowOpacity: 0.15,
+    shadowRadius: 3,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 3,
+  },
+  iosSwitchTrackActive: {
+    backgroundColor: '#006948',
+  },
+  settingsGroup: {
+    borderRadius: radius.lg,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: '#e2e8f0',
+    overflow: 'hidden',
+    backgroundColor: '#ffffff',
+    marginTop: 4,
+  },
+  settingsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    gap: 14,
+  },
+  settingsRowDivider: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: '#e2e8f0',
+    marginLeft: 54,
+  },
+  settingsIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  settingsTitle: {
+    fontSize: 17,
+    fontWeight: '600',
+    color: '#0b1c30',
+    lineHeight: 22,
+  },
+  settingsSubtitle: {
+    fontSize: 13,
+    fontWeight: '400',
+    color: '#3d4a42',
+    lineHeight: 18,
+    marginTop: 2,
+  },
+  settingsSectionLabel: {
+    fontSize: 11,
+    fontWeight: '500',
+    color: '#545c72',
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+    paddingHorizontal: 4,
+    marginBottom: 4,
+    marginTop: 12,
+  },
+  settingsRightAccessory: {
+    marginLeft: 'auto',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  settingsChevron: {
+    fontSize: 18,
+    color: '#bccac0',
+  },
+  heroCard: {
+    borderRadius: radius.lg,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: '#e2e8f0',
+    backgroundColor: '#ffffff',
+    padding: 16,
+    marginTop: 8,
+    shadowColor: '#0f172a',
+    shadowOpacity: 0.04,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: -2 },
+    elevation: 4,
+  },
+  philoBox: {
+    borderRadius: radius.md,
+    backgroundColor: '#f1f5f9',
+    padding: 12,
+    marginBottom: 4,
   },
 });
