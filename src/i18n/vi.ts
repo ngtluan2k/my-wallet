@@ -84,6 +84,7 @@ export const vi = {
   'signing.today':
     'Ứng dụng sẽ không mở được từ {time} hôm nay. Hãy xuất file sao lưu rồi ký lại bằng Sideloadly ngay.',
   'signing.daysLeftShort': 'Ứng dụng còn {days} ngày trước khi cần ký lại (hết hạn {time} ngày {date}).',
+  'signing.hint': 'Nhấn để xem chi tiết và xuất dữ liệu.',
   'signing.settingsLabel': 'Chữ ký ứng dụng hết hạn lúc {time} ngày {date} (còn {days} ngày).',
 
   'auth.rememberMe': 'Ghi nhớ tôi',

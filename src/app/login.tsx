@@ -104,7 +104,7 @@ export default function LoginScreen() {
           ]}
         >
           <View style={styles.header}>
-            <AppText size={32} weight="700" style={[styles.title, { color: colors.text }]}>
+            <AppText weight="700" size={34} style={[styles.title, { color: colors.text }]}>
               Ví Mình
             </AppText>
             <AppText tone="muted" size={15} style={styles.subtitle}>
@@ -114,8 +114,17 @@ export default function LoginScreen() {
 
           <View style={styles.inputGroup}>
             <TextInput
-              style={[styles.input, { backgroundColor: colors.surfaceMuted, borderColor: colors.border, color: colors.text }]}
+              style={[styles.input, { 
+                backgroundColor: colors.surface, 
+                borderColor: colors.border, 
+                color: colors.text,
+                borderRadius: radius.md,
+                paddingHorizontal: spacing.md,
+                paddingVertical: 14,
+                fontSize: 16,
+              }]}
               placeholder="Email"
+              placeholderTextColor={colors.textMuted}
               value={email}
               onChangeText={setEmail}
               autoCapitalize="none"
@@ -123,8 +132,17 @@ export default function LoginScreen() {
               autoComplete="email"
             />
             <TextInput
-              style={[styles.input, { backgroundColor: colors.surfaceMuted, borderColor: colors.border, color: colors.text }]}
+              style={[styles.input, { 
+                backgroundColor: colors.surface, 
+                borderColor: colors.border, 
+                color: colors.text,
+                borderRadius: radius.md,
+                paddingHorizontal: spacing.md,
+                paddingVertical: 14,
+                fontSize: 16,
+              }]}
               placeholder="Mật khẩu"
+              placeholderTextColor={colors.textMuted}
               value={password}
               onChangeText={setPassword}
               secureTextEntry
@@ -132,14 +150,18 @@ export default function LoginScreen() {
             />
           </View>
 
-          <View style={styles.rememberRow}>
-            <TouchableOpacity onPress={() => setRememberMe(!rememberMe)} activeOpacity={0.7} style={styles.checkboxContainer}>
+          <TouchableOpacity 
+            onPress={() => setRememberMe(!rememberMe)} 
+            activeOpacity={0.7} 
+            style={styles.rememberMeContainer}
+          >
+            <View style={styles.checkboxWrapper}>
               <Animated.View style={[styles.checkbox, rememberMe && { backgroundColor: colors.primary, borderColor: colors.primary, transform: [{ scale: 1.1 }] }]} />
-              <AppText size={14} tone="muted">
-                {t('auth.rememberMe')}
-              </AppText>
-            </TouchableOpacity>
-          </View>
+            </View>
+            <AppText size={14} weight={rememberMe ? "600" : "400"} tone="default">
+              {t('auth.rememberMe')}
+            </AppText>
+          </TouchableOpacity>
 
           <Button label={isSignUp ? t('common.signUp') : t('common.signIn')} onPress={handleAuth} disabled={loading} />
 
@@ -177,6 +199,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: spacing.xl,
     paddingTop: spacing.xl,
+    paddingBottom: spacing.xl,
     borderRadius: radius.lg,
     elevation: 20,
     shadowColor: '#000',
@@ -185,16 +208,54 @@ const styles = StyleSheet.create({
     shadowRadius: 24,
   },
   header: { alignItems: 'center', gap: spacing.sm, marginBottom: spacing.md },
-  title: { fontSize: 32 },
-  subtitle: { textAlign: 'center' },
-  inputGroup: { gap: spacing.sm },
-  input: { borderWidth: 1, borderRadius: radius.md, paddingHorizontal: spacing.md, paddingVertical: 14, fontSize: 16 },
-  rememberRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginVertical: spacing.sm },
-  checkboxContainer: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  checkbox: { width: 22, height: 22, borderRadius: 6, borderWidth: 2, borderColor: '#ccc' },
+  title: { 
+    fontSize: 34, 
+    fontWeight: '700', 
+    lineHeight: 41,
+  },
+  subtitle: { 
+    textAlign: 'center', 
+    lineHeight: 20,
+    paddingHorizontal: spacing.md,
+  },
+  inputGroup: { gap: spacing.md },
+  input: { 
+    borderWidth: 1, 
+    borderRadius: radius.md, 
+    paddingHorizontal: spacing.md, 
+    paddingVertical: 14, 
+    fontSize: 16,
+    backgroundColor: 'transparent',
+  },
+  rememberMeContainer: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    gap: spacing.sm, 
+    marginVertical: spacing.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.md,
+    backgroundColor: 'transparent',
+  },
+  checkboxWrapper: { 
+    width: 22, 
+    height: 22, 
+    borderRadius: 6, 
+    borderWidth: 2, 
+    borderColor: '#ccc',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'transparent',
+  },
+  checkbox: { 
+    width: 12, 
+    height: 12, 
+    borderRadius: 3, 
+    backgroundColor: 'transparent',
+  },
   divider: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginVertical: spacing.md },
   dividerLine: { flex: 1, height: 1, backgroundColor: '#e2e8f0' },
   dividerText: { },
-  footer: { alignItems: 'center' },
+  footer: { alignItems: 'center', marginTop: spacing.md },
   footerText: { textAlign: 'center' },
 });

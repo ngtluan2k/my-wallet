@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+
+<html class="light" lang="vi"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, viewport-fit=cover" name="viewport"/>
+<title>Ví Mình - Cài đặt &amp; Sao lưu dữ liệu</title>
+<!-- Tailwind CSS CDN -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Google Fonts Inter & Material Symbols -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "on-primary-fixed-variant": "#005137",
+            "primary-fixed-dim": "#68dba9",
+            "tertiary": "#545c72",
+            "primary": "#006948",
+            "on-primary-fixed": "#002114",
+            "on-tertiary": "#ffffff",
+            "on-error": "#ffffff",
+            "on-secondary-fixed-variant": "#005236",
+            "inverse-primary": "#68dba9",
+            "primary-fixed": "#85f8c4",
+            "border-hairline": "#E2E8F0",
+            "surface-variant": "#d3e4fe",
+            "secondary-fixed": "#6ffbbe",
+            "error-container": "#ffdad6",
+            "secondary-fixed-dim": "#4edea3",
+            "on-surface-variant": "#3d4a42",
+            "surface": "#f8f9ff",
+            "secondary": "#006c49",
+            "on-error-container": "#93000a",
+            "tertiary-container": "#6c748b",
+            "on-secondary-container": "#00714d",
+            "on-primary": "#ffffff",
+            "surface-elevated-light": "#F1F5F9",
+            "on-primary-container": "#f5fff7",
+            "on-tertiary-fixed-variant": "#3f465c",
+            "on-secondary-fixed": "#002113",
+            "surface-dim": "#cbdbf5",
+            "surface-bg-light": "#F8FAFC",
+            "surface-container-high": "#dce9ff",
+            "error": "#ba1a1a",
+            "surface-container-highest": "#d3e4fe",
+            "background": "#f8f9ff",
+            "tertiary-fixed-dim": "#bec6e0",
+            "surface-container-low": "#eff4ff",
+            "surface-container": "#e5eeff",
+            "on-tertiary-fixed": "#131b2e",
+            "secondary-container": "#6cf8bb",
+            "outline": "#6d7a72",
+            "surface-tint": "#006c4a",
+            "on-surface": "#0b1c30",
+            "budget-warning": "#F59E0B",
+            "outline-variant": "#bccac0",
+            "inverse-surface": "#213145",
+            "surface-container-lowest": "#ffffff",
+            "surface-card-light": "#FFFFFF",
+            "surface-bright": "#f8f9ff",
+            "on-secondary": "#ffffff",
+            "on-tertiary-container": "#fefcff",
+            "on-background": "#0b1c30",
+            "primary-container": "#00855d",
+            "expense-red": "#EF4444",
+            "tertiary-fixed": "#dae2fd",
+            "inverse-on-surface": "#eaf1ff"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          "spacing": {
+            "space-lg": "1.25rem",
+            "gutter": "1rem",
+            "margin": "1rem",
+            "space-sm": "0.5rem",
+            "space-md": "1rem",
+            "space-xs": "0.25rem",
+            "space-xl": "1.75rem"
+          },
+          "fontFamily": {
+            "body-sm": ["Inter"],
+            "headline-lg": ["Inter"],
+            "headline-xl": ["Inter"],
+            "body-md": ["Inter"],
+            "currency-display": ["Inter"],
+            "headline-xl-mobile": ["Inter"],
+            "headline-md": ["Inter"],
+            "label-sm": ["Inter"],
+            "label-lg": ["Inter"],
+            "body-lg": ["Inter"],
+            "label-md": ["Inter"]
+          },
+          "fontSize": {
+            "body-sm": ["13px", {"lineHeight": "18px", "fontWeight": "400"}],
+            "headline-lg": ["24px", {"lineHeight": "30px", "fontWeight": "700"}],
+            "headline-xl": ["34px", {"lineHeight": "41px", "fontWeight": "700"}],
+            "body-md": ["15px", {"lineHeight": "20px", "fontWeight": "400"}],
+            "currency-display": ["32px", {"lineHeight": "38px", "fontWeight": "700"}],
+            "headline-xl-mobile": ["28px", {"lineHeight": "34px", "fontWeight": "700"}],
+            "headline-md": ["20px", {"lineHeight": "26px", "fontWeight": "600"}],
+            "label-sm": ["11px", {"lineHeight": "14px", "fontWeight": "500"}],
+            "label-lg": ["17px", {"lineHeight": "22px", "fontWeight": "600"}],
+            "body-lg": ["17px", {"lineHeight": "24px", "fontWeight": "400"}],
+            "label-md": ["13px", {"lineHeight": "18px", "fontWeight": "600"}]
+          }
+        },
+      },
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-family: 'Material Symbols Outlined';
+      font-weight: normal;
+      font-style: normal;
+      font-size: 22px;
+      line-height: 1;
+      letter-spacing: normal;
+      text-transform: none;
+      display: inline-block;
+      white-space: nowrap;
+      word-wrap: normal;
+      direction: ltr;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    .safe-top {
+      padding-top: env(safe-area-inset-top, 20px);
+    }
+    .pb-safe {
+      padding-bottom: max(env(safe-area-inset-bottom, 16px), 12px);
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface-bg-light text-on-surface antialiased min-h-screen flex justify-center selection:bg-primary-fixed selection:text-on-primary-fixed">
+<!-- Mobile Viewport Frame Container (Max 640px for iOS fidelity) -->
+<div class="w-full max-w-[440px] min-h-screen flex flex-col relative pb-28">
+<!-- Top Navigation Bar (Shared Component TopAppBar Anchor) -->
+<header class="bg-surface/80 dark:bg-inverse-surface/80 backdrop-blur-md shadow-sm dark:shadow-none fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-margin h-14 w-full max-w-[440px] mx-auto border-b border-border-hairline/60 dark:border-outline-variant/20">
+<div class="flex items-center gap-space-sm">
+<div class="w-8 h-8 rounded-full bg-primary-fixed-dim/30 flex items-center justify-center text-primary overflow-hidden">
+<span class="material-symbols-outlined text-[18px]">account_circle</span>
+</div>
+<span class="text-headline-md font-headline-md text-primary dark:text-inverse-primary tracking-tight">Ví Mình</span>
+</div>
+<div class="flex items-center gap-space-xs">
+<button class="w-9 h-9 rounded-full flex items-center justify-center text-on-surface-variant hover:opacity-80 transition-opacity active:scale-95 duration-150">
+<span class="material-symbols-outlined text-primary">notifications</span>
+</button>
+</div>
+</header>
+<!-- Main Content Canvas (Scrollable iOS Inset Grouped Format) -->
+<main class="flex-1 px-margin pt-20 flex flex-col gap-space-lg">
+<!-- iOS Large Title Anchor -->
+<section class="pt-space-sm pb-space-xs">
+<p class="text-label-md font-label-md text-primary uppercase tracking-wider mb-1">Thiết lập hệ thống</p>
+<h1 class="text-headline-xl-mobile font-headline-xl-mobile text-on-surface tracking-tight">Cài đặt &amp; Dữ liệu</h1>
+</section>
+<!-- Offline Status Banner & App Version Hero Card -->
+<section class="bg-surface-card-light rounded-xl p-space-md border border-border-hairline shadow-[0px_4px_20px_-2px_rgba(15,23,42,0.04)] relative overflow-hidden">
+<div class="flex items-start justify-between gap-space-md">
+<div class="flex items-center gap-space-md">
+<div class="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
+<span class="material-symbols-outlined text-[28px]" style="font-variation-settings: 'FILL' 1;">shield_locked</span>
+</div>
+<div>
+<div class="flex items-center gap-space-xs">
+<span class="text-label-lg font-label-lg text-on-surface">Ví Mình</span>
+<span class="text-label-sm font-label-sm px-space-xs py-0.5 rounded bg-surface-elevated-light text-on-surface-variant">v1.0 (MVP)</span>
+</div>
+<p class="text-body-sm font-body-sm text-on-surface-variant mt-0.5">Offline First &amp; Privacy Architecture</p>
+</div>
+</div>
+</div>
+<div class="mt-space-md pt-space-sm border-t border-border-hairline flex items-center justify-between">
+<div class="flex items-center gap-space-xs">
+<span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
+<span class="text-body-sm font-body-sm font-medium text-primary">Dữ liệu lưu 100% trên máy</span>
+</div>
+<span class="text-label-sm font-label-sm text-tertiary">An toàn tuyệt đối</span>
+</div>
+</section>
+<!-- Nhóm 1: Quản lý dữ liệu & Sao lưu (Core MVP Highlight) -->
+<section class="flex flex-col gap-space-xs">
+<h2 class="text-label-sm font-label-sm text-tertiary uppercase tracking-wider px-space-xs">
+          Quản lý dữ liệu &amp; Sao lưu
+        </h2>
+<div class="bg-surface-card-light rounded-xl border border-border-hairline shadow-[0px_4px_20px_-2px_rgba(15,23,42,0.04)] overflow-hidden divide-y divide-border-hairline">
+<!-- Item: Xuất dữ liệu sao lưu -->
+<div class="p-space-md flex flex-col gap-space-sm">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-space-md">
+<div class="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0">
+<span class="material-symbols-outlined text-[20px]">file_download</span>
+</div>
+<div>
+<h3 class="text-label-lg font-label-lg text-on-surface">Xuất dữ liệu sao lưu (JSON)</h3>
+<p class="text-body-sm font-body-sm text-on-surface-variant">Tải file <code class="text-primary font-medium text-[12px] bg-primary/5 px-1 py-0.5 rounded">vi-minh-backup.json</code> về máy hoặc chia sẻ qua AirDrop/Files</p>
+</div>
+</div>
+</div>
+<div class="pt-space-xs flex justify-end">
+<button class="h-10 px-space-lg rounded-full bg-primary text-on-primary font-label-md text-label-md flex items-center gap-space-xs shadow-sm hover:opacity-90 active:scale-95 transition-all duration-150">
+<span class="material-symbols-outlined text-[18px]">share</span>
+<span>Xuất file sao lưu</span>
+</button>
+</div>
+</div>
+<!-- Item: Nhập dữ liệu từ file sao lưu -->
+<button class="w-full p-space-md flex items-center justify-between text-left hover:bg-surface-bg-light/60 active:bg-surface-elevated-light transition-colors">
+<div class="flex items-center gap-space-md">
+<div class="w-9 h-9 rounded-full bg-secondary-container/40 flex items-center justify-center text-primary shrink-0">
+<span class="material-symbols-outlined text-[20px]">file_upload</span>
+</div>
+<div>
+<span class="text-label-lg font-label-lg text-on-surface">Nhập dữ liệu từ file sao lưu</span>
+<p class="text-body-sm font-body-sm text-on-surface-variant">Khôi phục toàn bộ sổ thu chi từ file JSON</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-outline-variant text-[20px]">arrow_forward_ios</span>
+</button>
+<!-- Item: Xóa toàn bộ dữ liệu (Destructive) -->
+<button class="w-full p-space-md flex items-center justify-between text-left hover:bg-error-container/20 active:bg-error-container/40 transition-colors">
+<div class="flex items-center gap-space-md">
+<div class="w-9 h-9 rounded-full bg-expense-red/10 flex items-center justify-center text-expense-red shrink-0">
+<span class="material-symbols-outlined text-[20px]">delete_forever</span>
+</div>
+<div>
+<span class="text-label-lg font-label-lg text-expense-red">Xóa toàn bộ dữ liệu</span>
+<p class="text-body-sm font-body-sm text-outline">Làm mới sổ ví, hành động không thể hoàn tác</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-expense-red/60 text-[20px]">chevron_right</span>
+</button>
+</div>
+</section>
+<!-- Nhóm 2: Bảo mật & Riêng tư -->
+<section class="flex flex-col gap-space-xs">
+<h2 class="text-label-sm font-label-sm text-tertiary uppercase tracking-wider px-space-xs">
+          Bảo mật &amp; Riêng tư
+        </h2>
+<div class="bg-surface-card-light rounded-xl border border-border-hairline shadow-[0px_4px_20px_-2px_rgba(15,23,42,0.04)] overflow-hidden divide-y divide-border-hairline">
+<!-- Item: Face ID Switch -->
+<div class="p-space-md flex items-center justify-between">
+<div class="flex items-center gap-space-md">
+<div class="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0">
+<span class="material-symbols-outlined text-[20px]">center_focus_strong</span>
+</div>
+<span class="text-label-lg font-label-lg text-on-surface">Khóa bằng Face ID / Touch ID</span>
+</div>
+<!-- iOS Toggle Switch -->
+<label class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox"/>
+<div class="w-12 h-7 bg-surface-elevated-light peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-6 after:w-6 after:transition-all after:shadow-sm peer-checked:bg-primary"></div>
+</label>
+</div>
+<!-- Item: Mã PIN -->
+<button class="w-full p-space-md flex items-center justify-between text-left hover:bg-surface-bg-light/60 active:bg-surface-elevated-light transition-colors">
+<div class="flex items-center gap-space-md">
+<div class="w-9 h-9 rounded-full bg-tertiary/10 flex items-center justify-center text-tertiary shrink-0">
+<span class="material-symbols-outlined text-[20px]">pin</span>
+</div>
+<div>
+<span class="text-label-lg font-label-lg text-on-surface">Mã PIN bảo vệ</span>
+<p class="text-body-sm font-body-sm text-on-surface-variant">Đã kích hoạt mã 4 số</p>
+</div>
+</div>
+<div class="flex items-center gap-space-xs text-on-surface-variant">
+<span class="text-body-md font-body-md">Đổi mã</span>
+<span class="material-symbols-outlined text-outline-variant text-[18px]">chevron_right</span>
+</div>
+</button>
+</div>
+</section>
+<!-- Nhóm 3: Tùy biến & Trải nghiệm -->
+<section class="flex flex-col gap-space-xs">
+<h2 class="text-label-sm font-label-sm text-tertiary uppercase tracking-wider px-space-xs">
+          Tùy biến &amp; Trải nghiệm
+        </h2>
+<div class="bg-surface-card-light rounded-xl border border-border-hairline shadow-[0px_4px_20px_-2px_rgba(15,23,42,0.04)] overflow-hidden divide-y divide-border-hairline">
+<!-- Item: Tiền tệ -->
+<div class="p-space-md flex items-center justify-between hover:bg-surface-bg-light/60 active:bg-surface-elevated-light transition-colors cursor-pointer">
+<div class="flex items-center gap-space-md">
+<div class="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0">
+<span class="material-symbols-outlined text-[20px]">payments</span>
+</div>
+<span class="text-label-lg font-label-lg text-on-surface">Đơn vị tiền tệ</span>
+</div>
+<div class="flex items-center gap-space-xs">
+<span class="text-body-md font-body-md text-on-surface-variant">VND (₫)</span>
+<span class="material-symbols-outlined text-outline-variant text-[18px]">chevron_right</span>
+</div>
+</div>
+<!-- Item: Ngôn ngữ -->
+<div class="p-space-md flex items-center justify-between hover:bg-surface-bg-light/60 active:bg-surface-elevated-light transition-colors cursor-pointer">
+<div class="flex items-center gap-space-md">
+<div class="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0">
+<span class="material-symbols-outlined text-[20px]">language</span>
+</div>
+<span class="text-label-lg font-label-lg text-on-surface">Ngôn ngữ</span>
+</div>
+<div class="flex items-center gap-space-xs">
+<span class="text-body-md font-body-md text-on-surface-variant">Tiếng Việt (VN)</span>
+<span class="material-symbols-outlined text-outline-variant text-[18px]">chevron_right</span>
+</div>
+</div>
+<!-- Item: Giao diện -->
+<div class="p-space-md flex items-center justify-between hover:bg-surface-bg-light/60 active:bg-surface-elevated-light transition-colors cursor-pointer">
+<div class="flex items-center gap-space-md">
+<div class="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0">
+<span class="material-symbols-outlined text-[20px]">brightness_medium</span>
+</div>
+<span class="text-label-lg font-label-lg text-on-surface">Giao diện</span>
+</div>
+<div class="flex items-center gap-space-xs">
+<span class="text-body-md font-body-md text-on-surface-variant">Hệ thống (Sáng/Tối)</span>
+<span class="material-symbols-outlined text-outline-variant text-[18px]">chevron_right</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Nhóm 4: Giới thiệu & Hỗ trợ -->
+<section class="flex flex-col gap-space-xs">
+<h2 class="text-label-sm font-label-sm text-tertiary uppercase tracking-wider px-space-xs">
+          Giới thiệu &amp; Hỗ trợ
+        </h2>
+<div class="bg-surface-card-light rounded-xl border border-border-hairline shadow-[0px_4px_20px_-2px_rgba(15,23,42,0.04)] overflow-hidden divide-y divide-border-hairline">
+<!-- Slogan / Philosophy Box -->
+<div class="p-space-md bg-surface-bg-light/80">
+<div class="flex items-center gap-space-sm mb-1">
+<span class="material-symbols-outlined text-primary text-[18px]">spa</span>
+<span class="text-label-md font-label-md text-primary">Triết lý thiết kế</span>
+</div>
+<p class="text-body-md font-body-md text-on-surface italic">"Hiểu dòng tiền, sống chủ động"</p>
+</div>
+<!-- Item: Về ứng dụng -->
+<button class="w-full p-space-md flex items-center justify-between text-left hover:bg-surface-bg-light/60 active:bg-surface-elevated-light transition-colors">
+<div class="flex items-center gap-space-md">
+<div class="w-9 h-9 rounded-full bg-tertiary/10 flex items-center justify-center text-tertiary shrink-0">
+<span class="material-symbols-outlined text-[20px]">info</span>
+</div>
+<span class="text-label-lg font-label-lg text-on-surface">Về ứng dụng Ví Mình</span>
+</div>
+<span class="material-symbols-outlined text-outline-variant text-[18px]">chevron_right</span>
+</button>
+<!-- Item: Đánh giá App Store -->
+<button class="w-full p-space-md flex items-center justify-between text-left hover:bg-surface-bg-light/60 active:bg-surface-elevated-light transition-colors">
+<div class="flex items-center gap-space-md">
+<div class="w-9 h-9 rounded-full bg-budget-warning/15 flex items-center justify-center text-budget-warning shrink-0">
+<span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">star</span>
+</div>
+<span class="text-label-lg font-label-lg text-on-surface">Đánh giá trên App Store</span>
+</div>
+<span class="material-symbols-outlined text-outline-variant text-[18px]">open_in_new</span>
+</button>
+</div>
+</section>
+<!-- Footer Brand Notice -->
+<footer class="pt-space-md pb-space-lg flex flex-col items-center justify-center text-center">
+<p class="text-body-sm font-body-sm text-outline">Ví Mình © 2025 • Tôn trọng 100% quyền riêng tư</p>
+<p class="text-label-sm font-label-sm text-outline-variant mt-1">Bản phát hành ổn định cho iOS</p>
+</footer>
+</main>
+<!-- Bottom Navigation Bar (Mandatory Shared Component BottomNavBar) -->
+<!-- Tab 5 'Cài đặt' is autonomously matched and set as ACTIVE state -->
+<nav class="bg-surface/90 dark:bg-inverse-surface/90 backdrop-blur-xl shadow-[0px_-4px_20px_-2px_rgba(15,23,42,0.04)] border-t border-border-hairline/60 dark:border-outline-variant/20 fixed bottom-0 left-0 right-0 z-50 flex items-center justify-around px-margin pb-safe pt-space-xs h-20 w-full max-w-[440px] mx-auto">
+<!-- Destination 1: Tổng quan (Inactive) -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-surface-variant font-normal gap-space-xs hover:text-primary dark:hover:text-inverse-primary transition-colors active:scale-90 duration-150" href="#">
+<span class="material-symbols-outlined text-[24px]">dashboard</span>
+<span class="text-label-sm font-label-sm">Tổng quan</span>
+</a>
+<!-- Destination 2: Sổ giao dịch (Inactive) -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-surface-variant font-normal gap-space-xs hover:text-primary dark:hover:text-inverse-primary transition-colors active:scale-90 duration-150" href="#">
+<span class="material-symbols-outlined text-[24px]">receipt_long</span>
+<span class="text-label-sm font-label-sm">Sổ giao dịch</span>
+</a>
+<!-- Destination 3: Thêm mới (Quick Entry Inactive) -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-surface-variant font-normal gap-space-xs hover:text-primary dark:hover:text-inverse-primary transition-colors active:scale-90 duration-150" href="#">
+<div class="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-white shadow-md active:scale-95 transition-transform -mt-2">
+<span class="material-symbols-outlined text-[24px]">add</span>
+</div>
+<span class="text-label-sm font-label-sm">Thêm mới</span>
+</a>
+<!-- Destination 4: Ngân sách (Inactive) -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-surface-variant font-normal gap-space-xs hover:text-primary dark:hover:text-inverse-primary transition-colors active:scale-90 duration-150" href="#">
+<span class="material-symbols-outlined text-[24px]">account_balance_wallet</span>
+<span class="text-label-sm font-label-sm">Ngân sách</span>
+</a>
+<!-- Destination 5: Cài đặt (ACTIVE per current page intent) -->
+<a class="flex flex-col items-center justify-center text-primary dark:text-inverse-primary font-semibold gap-space-xs active:scale-90 transition-transform duration-150" href="#">
+<span class="material-symbols-outlined text-[24px]" style="font-variation-settings: 'FILL' 1;">settings</span>
+<span class="text-label-sm font-label-sm">Cài đặt</span>
+</a>
+</nav>
+</div>
+</body></html>
