@@ -319,6 +319,7 @@ export const en: Record<TranslationKey, string> = {
   'auth.error.weak_password': 'The password is too weak. Use at least 8 characters.',
   'auth.error.rate_limited': 'Too many attempts. Please wait a moment.',
   'auth.error.network': 'Can’t reach the server. Check your connection and try again.',
+  'auth.error.server_error': 'The server ran into a problem and couldn’t handle the request. Please try again later.',
   'auth.error.unknown': 'Something went wrong. Please try again.',
   'auth.encrypted': 'Encrypted',
   'register.eyebrow': 'Start your financial journey',

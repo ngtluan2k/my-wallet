@@ -16,6 +16,7 @@ export type AuthErrorCode =
   | 'reauthentication_needed'
   | 'rate_limited'
   | 'link_invalid'
+  | 'server_error'
   | 'delete_failed'
   | 'network'
   | 'unknown';
@@ -34,6 +35,13 @@ export function authErrorCode(error: AuthError | Error | null | undefined): Auth
     return 'rate_limited';
   }
   if (message.includes('network') || message.includes('fetch')) return 'network';
+  // e.g. "Database error saving new user": a problem in the Supabase project, not in what the user typed.
+  const status = 'status' in error ? (error.status as number | undefined) : undefined;
+  if (code === 'unexpected_failure' || message.includes('database error') || (status !== undefined && status >= 500)) {
+    if (__DEV__) console.warn('[auth] server error', status, code, error.message);
+    return 'server_error';
+  }
+  if (__DEV__) console.warn('[auth] unmapped error', status, code, error.message);
   return 'unknown';
 }
 

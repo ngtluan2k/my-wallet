@@ -318,6 +318,7 @@ export const vi = {
   'auth.error.weak_password': 'Mật khẩu quá yếu. Hãy dùng ít nhất 8 ký tự.',
   'auth.error.rate_limited': 'Thử lại quá nhiều lần. Vui lòng đợi một lát.',
   'auth.error.network': 'Không kết nối được máy chủ. Kiểm tra Internet rồi thử lại.',
+  'auth.error.server_error': 'Máy chủ đang gặp lỗi nên chưa xử lý được yêu cầu. Vui lòng thử lại sau.',
   'auth.error.unknown': 'Đã có lỗi xảy ra. Vui lòng thử lại.',
   'auth.encrypted': 'Bảo mật mã hoá',
   'register.eyebrow': 'Bắt đầu hành trình tài chính',
