@@ -1,589 +1,491 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import DateTimePicker from '@react-native-community/datetimepicker';
-import { router, Stack, useLocalSearchParams } from 'expo-router';
+import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
-import {
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  TextInput,
-  View,
-} from 'react-native';
+import { Alert, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { useCategories } from '@/components/wallet';
-import { AppText } from '@/components/ui';
-
-import { formatLocalDate, today } from '@/domain/dates';
-import { parseAmountInput } from '@/domain/money';
-import { validateTransactionInput, MAX_NOTE_LENGTH } from '@/domain/transactions';
-
+import { AppText, Button, SegmentedControl, Sheet, type IconName } from '@/components/ui';
+import { CategoryGrid, CategorySheet, GridTile, useCategories, WalletSheet } from '@/components/wallet';
+import { formatLocalDate, formatTime, toLocalDate, toPickerDate, today } from '@/domain/dates';
+import { addAmount, appendDigits, removeLastDigit } from '@/domain/money';
+import { vietnameseAmountWords } from '@/domain/numberWords';
+import { MAX_NOTE_LENGTH, type TransactionError } from '@/domain/transactions';
 import type { TransactionType } from '@/domain/types';
+import { defaultWalletId, walletBalances } from '@/domain/wallets';
 import { useT } from '@/i18n';
 import { useSelectedMonth } from '@/state/ui';
-import { useWallet, walletStore } from '@/state/wallet';
+import { useTransactions, useWallet, useWallets, walletStore } from '@/state/wallet';
 import { ValidationError } from '@/state/walletStore';
 import { radius, spacing, useTheme } from '@/theme';
 
-const NUMPAD_BUTTONS = [
-  ['1', '2', '3', 'backspace'],
-  ['4', '5', '6', 'C'],
-  ['7', '8', '9', 'done'],
-  ['000', '0', '.', 'done'],
-];
+const GRID_SIZE = 7;
+const QUICK_AMOUNTS = [50_000, 100_000, 500_000];
+const DIGIT_ROWS = [
+  ['1', '2', '3'],
+  ['4', '5', '6'],
+  ['7', '8', '9'],
+  ['C', '0', '000'],
+] as const;
+
+type Picker = 'category' | 'wallet' | 'toWallet' | 'date' | 'time' | null;
 
 export default function TransactionScreen() {
   const { id } = useLocalSearchParams<{ id?: string }>();
   const existing = useWallet((s) => (id ? s.data?.transactions.find((t) => t.id === id) : undefined));
-  const { t, language, categoryName } = useT();
+  const { t, language, money, relativeDate } = useT();
   const { colors } = useTheme();
-  const categories = useCategories();
+  const insets = useSafeAreaInsets();
+  const categoriesMap = useCategories();
+  const categories = useMemo(() => [...categoriesMap.values()], [categoriesMap]);
+  const wallets = useWallets();
+  const transactions = useTransactions();
+  const balances = useMemo(() => walletBalances(wallets, transactions), [wallets, transactions]);
 
   const [type, setType] = useState<TransactionType>(existing?.type ?? 'expense');
-  const [rawAmount, setRawAmount] = useState(existing ? String(existing.amount) : '0');
-  const [categoryId, setCategoryId] = useState(existing?.categoryId ?? '');
+  const [amount, setAmount] = useState(existing?.amount ?? 0);
+  const [categoryId, setCategoryId] = useState(existing?.categoryId);
+  const [walletId, setWalletId] = useState(existing?.walletId ?? defaultWalletId(wallets) ?? '');
+  const [toWalletId, setToWalletId] = useState(existing?.toWalletId);
   const [date, setDate] = useState(existing?.transactionDate ?? today());
+  const [time, setTime] = useState<string | undefined>(existing ? existing.transactionTime : formatTime(new Date()));
   const [note, setNote] = useState(existing?.note ?? '');
-  const [datePickerVisible, setDatePickerVisible] = useState(false);
+  const [picker, setPicker] = useState<Picker>(null);
+  const [saving, setSaving] = useState(false);
 
-  const typeCategories = useMemo(() => [...categories.values()].filter((c) => c.type === type), [categories, type]);
-  const displayAmount = useMemo(() => {
-    const num = parseInt(rawAmount, 10);
-    return isNaN(num) ? '0' : num.toLocaleString('vi-VN');
-  }, [rawAmount]);
+  const typeCategories = useMemo(() => categories.filter((c) => c.type === type), [categories, type]);
+  // Keep the selected category visible even when it isn't among the first tiles.
+  const gridCategories = useMemo(() => {
+    const first = typeCategories.slice(0, GRID_SIZE);
+    const selected = typeCategories.find((c) => c.id === categoryId);
+    if (selected && !first.includes(selected)) first[GRID_SIZE - 1] = selected;
+    return first;
+  }, [typeCategories, categoryId]);
+
+  const walletName = (wid: string | undefined) => wallets.find((w) => w.id === wid)?.name;
+  const accent = type === 'income' ? colors.income : type === 'expense' ? colors.expense : colors.transfer;
 
   function changeType(next: TransactionType) {
     setType(next);
-    if (categories.get(categoryId)?.type !== next) {
-      setCategoryId('');
-    }
+    if (next !== 'transfer' && categoriesMap.get(categoryId ?? '')?.type !== next) setCategoryId(undefined);
   }
 
-  function pressNumpad(value: string) {
-    if (value === 'backspace') {
-      if (rawAmount.length > 1) {
-        setRawAmount(rawAmount.slice(0, -1));
-      } else {
-        setRawAmount('0');
-      }
-    } else if (value === 'C') {
-      setRawAmount('0');
-    } else if (value === 'done') {
-      save();
-    } else {
-      if (rawAmount === '0' && value !== '.') {
-        setRawAmount(value);
-      } else if (rawAmount.length < 12) {
-        setRawAmount(rawAmount + value);
-      }
-    }
-  }
-
-  function showDatePicker() {
-    setDatePickerVisible(true);
-  }
-
-  function hideDatePicker() {
-    setDatePickerVisible(false);
-  }
-
-  function handleDateChange(_event: unknown, selectedDate: Date | undefined) {
-    hideDatePicker();
-    if (selectedDate) {
-      const year = selectedDate.getFullYear();
-      const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
-      const day = String(selectedDate.getDate()).padStart(2, '0');
-      setDate(`${year}-${month}-${day}`);
-    }
+  function pressKey(key: string) {
+    if (key === 'C') setAmount(0);
+    else setAmount((a) => appendDigits(a, key));
   }
 
   async function save() {
-    const input = { type, amount: parseAmountInput(rawAmount) ?? 0, categoryId, transactionDate: date, note };
-    const found = validateTransactionInput(input, [...categories.values()]);
-    if (found.length) {
-      Alert.alert(t('common.error'), t(`form.error.${found[0]}`));
-      return;
-    }
-
+    if (saving) return;
+    const input = {
+      type,
+      amount,
+      walletId,
+      toWalletId: type === 'transfer' ? toWalletId : undefined,
+      categoryId: type === 'transfer' ? undefined : categoryId,
+      transactionDate: date,
+      transactionTime: time,
+      note,
+    };
+    setSaving(true);
     try {
       if (existing) await walletStore.getState().editTransaction(existing.id, input);
       else await walletStore.getState().addTransaction(input);
       useSelectedMonth.getState().setMonth(date.slice(0, 7));
       router.back();
     } catch (error) {
-      if (error instanceof ValidationError) Alert.alert(t('common.error'), t('storage.saveFailed'));
-      else Alert.alert(t('common.error'), t('storage.saveFailed'));
+      const message =
+        error instanceof ValidationError ? t(`form.error.${(error.errors as TransactionError[])[0]}`) : t('storage.saveFailed');
+      Alert.alert(t('common.error'), message);
+    } finally {
+      setSaving(false);
     }
   }
 
+  function confirmDelete() {
+    if (!existing) return;
+    Alert.alert(t('transactions.delete'), t('transactions.deleteConfirm'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      {
+        text: t('common.delete'),
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await walletStore.getState().deleteTransaction(existing.id);
+            router.back();
+          } catch {
+            Alert.alert(t('common.error'), t('storage.saveFailed'));
+          }
+        },
+      },
+    ]);
+  }
 
+  function onPickDate(event: DateTimePickerEvent, value?: Date) {
+    if (Platform.OS === 'android') setPicker(null);
+    if (event.type !== 'dismissed' && value) setDate(toLocalDate(value));
+  }
+
+  function onPickTime(event: DateTimePickerEvent, value?: Date) {
+    if (Platform.OS === 'android') setPicker(null);
+    if (event.type !== 'dismissed' && value) setTime(formatTime(value));
+  }
+
+  const dateLabel = relativeDate(date) === formatLocalDate(date, language) ? formatLocalDate(date, language) : `${relativeDate(date)}, ${formatLocalDate(date, language)}`;
 
   return (
-    <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <Stack.Screen options={{ headerShown: false }} />
-      <View style={styles.container}>
-        {/* Header */}
-        <View style={styles.header}>
-          <Pressable onPress={() => router.back()} style={styles.headerBtn}>
-            <AppText size={18} tone="muted">{t('common.cancel')}</AppText>
-          </Pressable>
-          <AppText weight="600" size={20}>{t(existing ? 'transactions.edit' : 'transactions.add')}</AppText>
-          <Pressable onPress={save} style={styles.headerBtn}>
-            <AppText size={18} tone="primary" weight="600">{t('common.save')}</AppText>
-          </Pressable>
+    <View style={[styles.flex, { backgroundColor: colors.background }]}>
+      <View style={[styles.header, { paddingTop: Platform.OS === 'ios' ? spacing.md : insets.top + spacing.sm }]}>
+        <Pressable onPress={() => router.back()} hitSlop={12} accessibilityRole="button">
+          <AppText size={17} tone="muted">
+            {t('common.cancel')}
+          </AppText>
+        </Pressable>
+        <AppText size={18} weight="600">
+          {t(existing ? 'transactions.edit' : 'transactions.add')}
+        </AppText>
+        <Pressable onPress={save} hitSlop={12} accessibilityRole="button" disabled={saving}>
+          <AppText size={17} tone="primary" weight="600">
+            {t('common.save')}
+          </AppText>
+        </Pressable>
+      </View>
+
+      <ScrollView style={styles.flex} contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
+        <SegmentedControl<TransactionType>
+          value={type}
+          onChange={changeType}
+          options={[
+            { value: 'expense', label: t('type.expense'), color: colors.expense },
+            { value: 'income', label: t('type.income'), color: colors.income },
+            { value: 'transfer', label: t('type.transfer'), color: colors.transfer },
+          ]}
+        />
+
+        <View style={[styles.amountCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <AppText tone="muted" size={12} weight="600" style={styles.caps}>
+            {t('form.amount')}
+          </AppText>
+          <View style={styles.amountRow}>
+            {type !== 'transfer' && (
+              <AppText size={32} weight="700" style={{ color: accent }}>
+                {type === 'expense' ? '−' : '+'}
+              </AppText>
+            )}
+            <AppText size={40} weight="700" tabular adjustsFontSizeToFit numberOfLines={1} style={styles.amountText}>
+              {money(amount)}
+            </AppText>
+          </View>
+          {language === 'vi' && amount > 0 && (
+            <AppText tone="muted" size={13} style={styles.words}>
+              {vietnameseAmountWords(amount)}
+            </AppText>
+          )}
         </View>
 
-        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-          {/* Segmented Control */}
-          <View style={styles.segmentedContainer}>
-            <View style={[styles.segmented, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-              <Pressable
-                style={[styles.segmentedBtn, type === 'expense' && { backgroundColor: colors.surfaceContainer, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 4, shadowOffset: { width: 0, height: 1 }, elevation: 2 }]}
-                onPress={() => changeType('expense')}
-              >
-                <View style={[styles.segmentedDot, { backgroundColor: type === 'expense' ? colors.expense : 'transparent' }]} />
-                <AppText size={14} weight={type === 'expense' ? '600' : '400'} tone={type === 'expense' ? 'expense' : 'muted'}>
-                  {t('type.expense')}
-                </AppText>
-              </Pressable>
-              <Pressable
-                style={[styles.segmentedBtn, type === 'income' && { backgroundColor: colors.surfaceContainer, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 4, shadowOffset: { width: 0, height: 1 }, elevation: 2 }]}
-                onPress={() => changeType('income')}
-              >
-                <View style={[styles.segmentedDot, { backgroundColor: type === 'income' ? colors.income : 'transparent' }]} />
-                <AppText size={14} weight={type === 'income' ? '600' : '400'} tone={type === 'income' ? 'income' : 'muted'}>
-                  {t('type.income')}
-                </AppText>
-              </Pressable>
-            </View>
-          </View>
-
-          {/* Amount Display */}
-          <View style={[styles.amountCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <AppText size={12} tone="muted" weight="600" style={styles.amountLabel}>
-              {t('form.amount').toUpperCase()}
+        {type !== 'transfer' && (
+          <View style={styles.section}>
+            <AppText tone="muted" size={13} weight="600" style={styles.caps}>
+              {t(type === 'income' ? 'form.incomeCategories' : 'form.expenseCategories')}
             </AppText>
-            <View style={styles.amountRow}>
-              <AppText size={32} weight="700" tone={type === 'expense' ? 'expense' : type === 'income' ? 'income' : 'default'}>
-                {type === 'expense' ? '−' : type === 'income' ? '+' : ''}
-              </AppText>
-              <AppText size={32} weight="700">
-                {displayAmount}
-              </AppText>
-              <AppText size={20} weight="600" tone="muted">₫</AppText>
-              <View style={[styles.cursor, { backgroundColor: colors.primary }]} />
-            </View>
-            <AppText size={13} tone="muted" style={styles.amountHint}>
-              {numberToWords(parseInt(rawAmount, 10) || 0, language)}
-            </AppText>
-          </View>
-
-          {/* Category Grid */}
-          <View style={styles.categorySection}>
-            <View style={styles.categoryHeader}>
-              <AppText size={13} tone="muted" weight="600">
-                {t('form.category').toUpperCase()}
-              </AppText>
-              <Pressable onPress={() => router.push('/(tabs)/settings' as any)}>
-                <AppText size={12} tone="primary" weight="600">
-                  {t('common.all')}
-                </AppText>
-              </Pressable>
-            </View>
-            <View style={[styles.categoryGrid, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-              {typeCategories.slice(0, 8).map((c) => {
-                const isSelected = c.id === categoryId;
-                return (
-                  <Pressable
-                    key={c.id}
-                    style={[
-                      styles.categoryItem,
-                      isSelected && { backgroundColor: c.color + '10', borderColor: c.color, borderWidth: 2 },
-                      !isSelected && { borderColor: 'transparent', borderWidth: 2 },
-                    ]}
-                    onPress={() => setCategoryId(c.id)}
-                  >
-                    <View style={[styles.categoryIcon, { backgroundColor: c.color + '10' }]}>
-                      <Ionicons name={c.icon as any} size={22} color={c.color} />
-                    </View>
-                    <AppText size={12} weight={isSelected ? '600' : '400'} tone={isSelected ? 'default' : 'muted'} numberOfLines={1}>
-                      {categoryName(c)}
-                    </AppText>
-                    {isSelected && (
-                      <View style={styles.checkBadge}>
-                        <Ionicons name="checkmark" size={12} color={colors.onPrimary} />
-                      </View>
-                    )}
-                  </Pressable>
-                );
-              })}
-              <Pressable style={[styles.categoryItem, { borderColor: 'transparent' }]}>
-                <View style={[styles.categoryIcon, { backgroundColor: colors.surfaceMuted }]}>
-                  <Ionicons name="ellipsis-horizontal" size={22} color={colors.textMuted} />
-                </View>
-                <AppText size={12} tone="muted" numberOfLines={1}>Khác</AppText>
-              </Pressable>
-            </View>
-          </View>
-
-          {/* Detail Cells */}
-          <View style={[styles.detailSection, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            {/* Date */}
-            <Pressable onPress={showDatePicker} style={[styles.detailCell, { borderBottomColor: colors.border }]}>
-              <View style={styles.detailLeft}>
-                <View style={[styles.detailIcon, { backgroundColor: colors.primary + '10' }]}>
-                  <Ionicons name="calendar-outline" size={18} color={colors.primary} />
-                </View>
-                <AppText size={15}>{t('form.date')}</AppText>
-              </View>
-              <View style={styles.detailRight}>
-                <AppText size={15} tone="muted">{formatLocalDate(date, language)}</AppText>
-                <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
-              </View>
-            </Pressable>
-
-            {/* Note */}
-            <View style={[styles.detailCell, { borderBottomColor: colors.border, flexDirection: 'column', alignItems: 'flex-start' }]}>
-              <View style={styles.detailLeft}>
-                <View style={[styles.detailIcon, { backgroundColor: colors.textMuted + '10' }]}>
-                  <Ionicons name="create-outline" size={18} color={colors.textMuted} />
-                </View>
-                <AppText size={15}>{t('form.note')}</AppText>
-              </View>
-              <TextInput
-                value={note}
-                onChangeText={setNote}
-                placeholder={t('form.notePlaceholder')}
-                placeholderTextColor={colors.textMuted}
-                  maxLength={MAX_NOTE_LENGTH}
-                multiline
-                style={[styles.noteInput, { color: colors.text }]}
+            <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+              <CategoryGrid
+                categories={gridCategories}
+                selectedId={categoryId}
+                onSelect={setCategoryId}
+                trailing={
+                  typeCategories.length > GRID_SIZE ? (
+                    <GridTile icon="ellipsis-horizontal" label={t('common.seeAll')} onPress={() => setPicker('category')} />
+                  ) : undefined
+                }
               />
             </View>
-
-            {/* Wallet */}
-            <Pressable style={[styles.detailCell]}>
-              <View style={styles.detailLeft}>
-                <View style={[styles.detailIcon, { backgroundColor: colors.secondary + '10' }]}>
-                  <Ionicons name="wallet-outline" size={18} color={colors.secondary} />
-                </View>
-                <AppText size={15}>{t('transaction.wallet.primary')}</AppText>
-              </View>
-              <View style={styles.detailRight}>
-                <AppText size={15} tone="muted">{t('transaction.wallet.primary')}</AppText>
-                <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
-              </View>
-            </Pressable>
           </View>
-        </ScrollView>
+        )}
 
-        {/* Numpad */}
-        <View style={[styles.numpadContainer, { backgroundColor: colors.surface, borderTopColor: colors.border }]}>
-          {/* Quick shortcuts */}
-          <View style={styles.quickShortcuts}>
-            <Pressable style={[styles.shortcutBtn, { backgroundColor: colors.surfaceMuted, borderColor: colors.border }]} onPress={() => pressNumpad('50000')}>
-              <AppText size={13} tone="muted">+50.000₫</AppText>
-            </Pressable>
-            <Pressable style={[styles.shortcutBtn, { backgroundColor: colors.surfaceMuted, borderColor: colors.border }]} onPress={() => pressNumpad('100000')}>
-              <AppText size={13} tone="muted">+100.000₫</AppText>
-            </Pressable>
-            <Pressable style={[styles.shortcutBtn, { backgroundColor: colors.surfaceMuted, borderColor: colors.border }]} onPress={() => pressNumpad('500000')}>
-              <AppText size={13} tone="muted">+500.000₫</AppText>
-            </Pressable>
-          </View>
-
-          {/* Numpad grid */}
-          <View style={styles.numpadGrid}>
-            {NUMPAD_BUTTONS.flat().map((btn, i) => {
-              const isBackspace = btn === 'backspace';
-              const isClear = btn === 'C';
-              const isDone = btn === 'done';
-              const row = Math.floor(i / 4);
-              const col = i % 4;
-              const isSpansTwoRows = row === 2 && col === 3;
-
-              if (isDone && isSpansTwoRows) return null;
-              if (btn === 'done' && row === 2) return null;
-
-              return (
-                <Pressable
-                  key={`${row}-${col}-${btn}`}
-                  style={[
-                    styles.numpadBtn,
-                    { backgroundColor: colors.surface, borderColor: colors.border },
-                    (isBackspace || isClear) && { backgroundColor: colors.surfaceMuted },
-                  ]}
-                  onPress={() => pressNumpad(btn)}
-                >
-                  {isBackspace ? (
-                    <Ionicons name="backspace-outline" size={22} color={colors.text} />
-                  ) : isClear ? (
-                    <AppText size={16} weight="600" tone="expense">C</AppText>
-                  ) : (
-                    <AppText size={20} weight="500">{btn}</AppText>
-                  )}
-                </Pressable>
-              );
-            })}
-            {/* Spanning done button */}
-            <Pressable
-              style={[styles.numpadDoneBtnSpan, { backgroundColor: colors.primary }]}
-              onPress={() => pressNumpad('done')}
-            >
-              <View style={styles.doneContent}>
-                <Ionicons name="checkmark-circle" size={26} color={colors.onPrimary} />
-                <AppText size={14} weight="600" tone="white">{t('common.save')}</AppText>
-              </View>
-            </Pressable>
+        <View style={[styles.card, styles.cells, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <DetailRow icon="calendar-outline" label={t('form.date')} value={dateLabel} onPress={() => setPicker('date')} />
+          <DetailRow
+            icon="time-outline"
+            label={t('form.time')}
+            value={time ?? t('form.timeNone')}
+            onPress={() => setPicker('time')}
+            divider
+          />
+          {type === 'transfer' ? (
+            <>
+              <DetailRow
+                icon="arrow-up-circle-outline"
+                label={t('form.fromWallet')}
+                value={walletName(walletId) ?? t('form.selectWallet')}
+                onPress={() => setPicker('wallet')}
+                divider
+              />
+              <DetailRow
+                icon="arrow-down-circle-outline"
+                label={t('form.toWallet')}
+                value={walletName(toWalletId) ?? t('form.selectWallet')}
+                onPress={() => setPicker('toWallet')}
+                divider
+              />
+            </>
+          ) : (
+            <DetailRow
+              icon="wallet-outline"
+              label={t('form.wallet')}
+              value={walletName(walletId) ?? t('form.selectWallet')}
+              onPress={() => setPicker('wallet')}
+              divider
+            />
+          )}
+          <View style={[styles.noteRow, { borderTopColor: colors.border }]}>
+            <View style={[styles.cellIcon, { backgroundColor: colors.surfaceMuted }]}>
+              <Ionicons name="create-outline" size={18} color={colors.textMuted} />
+            </View>
+            <TextInput
+              value={note}
+              onChangeText={setNote}
+              placeholder={t('form.notePlaceholder')}
+              placeholderTextColor={colors.textFaint}
+              maxLength={MAX_NOTE_LENGTH}
+              multiline
+              style={[styles.noteInput, { color: colors.text }]}
+              accessibilityLabel={t('form.note')}
+            />
           </View>
         </View>
 
-        {datePickerVisible && (
-          <DateTimePicker
-            value={new Date(date)}
-            mode="date"
-            display="spinner"
-            onChange={handleDateChange}
-            minimumDate={new Date('2000-01-01')}
-            maximumDate={new Date()}
-          />
-        )}
+        {existing && <Button variant="danger" icon="trash-outline" label={t('transactions.delete')} onPress={confirmDelete} />}
+      </ScrollView>
+
+      <View style={[styles.pad, { backgroundColor: colors.surface, borderTopColor: colors.border, paddingBottom: insets.bottom + spacing.sm }]}>
+        <View style={styles.quickRow}>
+          {QUICK_AMOUNTS.map((q) => (
+            <Pressable
+              key={q}
+              onPress={() => setAmount((a) => addAmount(a, q))}
+              accessibilityRole="button"
+              style={({ pressed }) => [styles.quick, { backgroundColor: pressed ? colors.border : colors.surfaceMuted }]}
+            >
+              <AppText size={13} weight="500" tone="muted" tabular>
+                +{money(q)}
+              </AppText>
+            </Pressable>
+          ))}
+        </View>
+        <View style={styles.padRow}>
+          <View style={styles.digits}>
+            {DIGIT_ROWS.map((row) => (
+              <View key={row.join()} style={styles.digitRow}>
+                {row.map((key) => (
+                  <Key key={key} label={key} onPress={() => pressKey(key)} danger={key === 'C'} />
+                ))}
+              </View>
+            ))}
+          </View>
+          <View style={styles.sideColumn}>
+            <Key icon="backspace-outline" label="⌫" onPress={() => setAmount(removeLastDigit)} />
+            <Pressable
+              onPress={save}
+              disabled={saving}
+              accessibilityRole="button"
+              accessibilityLabel={t('form.done')}
+              style={({ pressed }) => [styles.doneKey, { backgroundColor: colors.primary, opacity: pressed || saving ? 0.85 : 1 }]}
+            >
+              <Ionicons name="checkmark-circle-outline" size={28} color={colors.onPrimary} />
+              <AppText tone="onPrimary" size={17} weight="700">
+                {t('form.done')}
+              </AppText>
+            </Pressable>
+          </View>
+        </View>
       </View>
-    </KeyboardAvoidingView>
+
+      <CategorySheet
+        visible={picker === 'category'}
+        type={type === 'income' ? 'income' : 'expense'}
+        categories={categories}
+        selectedId={categoryId}
+        onSelect={setCategoryId}
+        onClose={() => setPicker(null)}
+      />
+      <WalletSheet
+        visible={picker === 'wallet'}
+        title={type === 'transfer' ? t('form.fromWallet') : t('form.wallet')}
+        selectedId={walletId}
+        balances={balances}
+        onSelect={setWalletId}
+        onClose={() => setPicker(null)}
+      />
+      <WalletSheet
+        visible={picker === 'toWallet'}
+        title={t('form.toWallet')}
+        selectedId={toWalletId}
+        excludeId={walletId}
+        balances={balances}
+        onSelect={setToWalletId}
+        onClose={() => setPicker(null)}
+      />
+
+      {Platform.OS === 'ios' ? (
+        <>
+          <Sheet visible={picker === 'date'} title={t('form.date')} onClose={() => setPicker(null)}>
+            <DateTimePicker value={toPickerDate(date)} mode="date" display="inline" onChange={onPickDate} accentColor={colors.primary} />
+            <Button label={t('common.done')} onPress={() => setPicker(null)} />
+          </Sheet>
+          <Sheet visible={picker === 'time'} title={t('form.time')} onClose={() => setPicker(null)}>
+            <DateTimePicker
+              value={toPickerDate(date, time ?? formatTime(new Date()))}
+              mode="time"
+              display="spinner"
+              onChange={onPickTime}
+              style={styles.spinner}
+            />
+            <View style={styles.sheetButtons}>
+              <View style={styles.flex}>
+                <Button
+                  variant="secondary"
+                  label={t('form.timeClear')}
+                  onPress={() => {
+                    setTime(undefined);
+                    setPicker(null);
+                  }}
+                />
+              </View>
+              <View style={styles.flex}>
+                <Button
+                  label={t('common.done')}
+                  onPress={() => {
+                    if (!time) setTime(formatTime(new Date()));
+                    setPicker(null);
+                  }}
+                />
+              </View>
+            </View>
+          </Sheet>
+        </>
+      ) : (
+        <>
+          {picker === 'date' && <DateTimePicker value={toPickerDate(date)} mode="date" onChange={onPickDate} />}
+          {picker === 'time' && (
+            <DateTimePicker value={toPickerDate(date, time ?? formatTime(new Date()))} mode="time" is24Hour onChange={onPickTime} />
+          )}
+        </>
+      )}
+    </View>
   );
 }
 
-// Simple number to words for Vietnamese
-function numberToWords(num: number, language: string): string {
-  if (language === 'en') {
-    return num.toLocaleString('en-US') + ' dong';
-  }
-  const units = ['', 'nghìn', 'triệu', 'tỷ'];
-  const hundreds = ['', 'một trăm', 'hai trăm', 'ba trăm', 'bốn trăm', 'năm trăm', 'sáu trăm', 'bảy trăm', 'tám trăm', 'chín trăm'];
-  const tens = ['', 'mười', 'hai mươi', 'ba mươi', 'bốn mươi', 'năm mươi', 'sáu mươi', 'bảy mươi', 'tám mươi', 'chín mươi'];
-  const ones = ['', 'một', 'hai', 'ba', 'bốn', 'năm', 'sáu', 'bảy', 'tám', 'chín'];
-
-  if (num === 0) return 'Không đồng';
-
-  let result = '';
-  let unitIndex = 0;
-
-  while (num > 0) {
-    const chunk = num % 1000;
-    if (chunk > 0) {
-      const h = Math.floor(chunk / 100);
-      const t = Math.floor((chunk % 100) / 10);
-      const o = chunk % 10;
-      let chunkStr = '';
-      if (h > 0) chunkStr += hundreds[h] + ' ';
-      if (t > 0) chunkStr += tens[t] + ' ';
-      if (o > 0) chunkStr += ones[o] + ' ';
-      result = chunkStr.trim() + (units[unitIndex] ? ' ' + units[unitIndex] : '') + (result ? ' ' + result : '');
-    }
-    num = Math.floor(num / 1000);
-    unitIndex++;
-  }
-
-  return result + ' đồng';
+function DetailRow({
+  icon,
+  label,
+  value,
+  onPress,
+  divider,
+}: {
+  icon: IconName;
+  label: string;
+  value: string;
+  onPress(): void;
+  divider?: boolean;
+}) {
+  const { colors } = useTheme();
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      style={({ pressed }) => [
+        styles.cell,
+        divider && { borderTopColor: colors.border, borderTopWidth: StyleSheet.hairlineWidth },
+        pressed && { backgroundColor: colors.surfaceTint },
+      ]}
+    >
+      <View style={[styles.cellIcon, { backgroundColor: colors.primarySoft }]}>
+        <Ionicons name={icon} size={18} color={colors.primary} />
+      </View>
+      <AppText size={16} style={styles.cellLabel}>
+        {label}
+      </AppText>
+      <AppText size={16} tone="muted" numberOfLines={1} style={styles.cellValue}>
+        {value}
+      </AppText>
+      <Ionicons name="chevron-forward" size={18} color={colors.textFaint} />
+    </Pressable>
+  );
 }
+
+function Key({ label, icon, onPress, danger }: { label: string; icon?: IconName; onPress(): void; danger?: boolean }) {
+  const { colors } = useTheme();
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      style={({ pressed }) => [
+        styles.key,
+        { backgroundColor: pressed ? colors.border : danger || icon ? colors.surfaceMuted : colors.background, borderColor: colors.border },
+      ]}
+    >
+      {icon ? (
+        <Ionicons name={icon} size={24} color={colors.text} />
+      ) : (
+        <AppText size={danger ? 18 : 22} weight={danger ? '600' : '500'} tone={danger ? 'expense' : 'default'}>
+          {label}
+        </AppText>
+      )}
+    </Pressable>
+  );
+}
+
+const KEY_HEIGHT = 52;
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  container: {
-    flex: 1,
-    backgroundColor: '#F8FAFC',
-  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    backgroundColor: '#F8FAFC',
-    paddingTop: Platform.OS === 'ios' ? 50 : spacing.lg,
+    paddingHorizontal: spacing.md,
+    paddingBottom: spacing.sm,
   },
-  headerBtn: {
-    padding: spacing.sm,
+  body: { paddingHorizontal: spacing.md, paddingBottom: spacing.lg, gap: spacing.md },
+  caps: { textTransform: 'uppercase', letterSpacing: 0.6 },
+  amountCard: { borderRadius: radius.lg, borderWidth: StyleSheet.hairlineWidth, padding: spacing.md, alignItems: 'center', gap: spacing.xs },
+  amountRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, maxWidth: '100%' },
+  amountText: { flexShrink: 1 },
+  words: { fontStyle: 'italic', textAlign: 'center' },
+  section: { gap: spacing.sm },
+  card: { borderRadius: radius.lg, borderWidth: StyleSheet.hairlineWidth, padding: spacing.sm },
+  cells: { padding: 0, overflow: 'hidden' },
+  cell: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingHorizontal: spacing.md, paddingVertical: 14 },
+  cellIcon: { width: 32, height: 32, borderRadius: radius.sm, alignItems: 'center', justifyContent: 'center' },
+  cellLabel: { flexShrink: 0 },
+  cellValue: { flex: 1, textAlign: 'right' },
+  noteRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 12,
+    borderTopWidth: StyleSheet.hairlineWidth,
   },
-  scrollView: {
+  noteInput: { flex: 1, fontSize: 16, minHeight: 32, paddingTop: 6 },
+  pad: { borderTopWidth: StyleSheet.hairlineWidth, paddingHorizontal: spacing.md, paddingTop: spacing.sm, gap: spacing.sm },
+  quickRow: { flexDirection: 'row', gap: spacing.sm },
+  quick: { flex: 1, alignItems: 'center', paddingVertical: 8, borderRadius: radius.sm },
+  padRow: { flexDirection: 'row', gap: spacing.sm },
+  digits: { flex: 3, gap: spacing.sm },
+  digitRow: { flexDirection: 'row', gap: spacing.sm },
+  sideColumn: { flex: 1, gap: spacing.sm },
+  key: {
     flex: 1,
-    paddingHorizontal: spacing.lg,
-  },
-  segmentedContainer: {
-    marginTop: spacing.sm,
-    marginBottom: spacing.md,
-  },
-  segmented: {
-    flexDirection: 'row',
-    borderRadius: radius.xl,
-    borderWidth: 1,
-    padding: 4,
-    gap: 4,
-  },
-  segmentedBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 10,
-    borderRadius: radius.lg,
-  },
-  segmentedDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  amountCard: {
-    borderRadius: radius.xl,
-    borderWidth: 1,
-    padding: spacing.lg,
-    alignItems: 'center',
-    marginBottom: spacing.md,
-  },
-  amountLabel: {
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: spacing.xs,
-  },
-  amountRow: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    gap: 4,
-    minHeight: 40,
-  },
-  cursor: {
-    width: 2,
-    height: 28,
-    borderRadius: 1,
-  },
-  amountHint: {
-    marginTop: spacing.xs,
-    fontStyle: 'italic',
-  },
-  categorySection: {
-    marginBottom: spacing.md,
-  },
-  categoryHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.sm,
-    paddingHorizontal: spacing.xs,
-  },
-  categoryGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    padding: spacing.md,
-    borderRadius: radius.xl,
-    borderWidth: 1,
-    gap: spacing.sm,
-  },
-  categoryItem: {
-    width: '23%',
-    alignItems: 'center',
-    paddingVertical: spacing.sm,
-    borderRadius: radius.xl,
-    position: 'relative',
-  },
-  categoryIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 4,
-  },
-  checkBadge: {
-    position: 'absolute',
-    top: -4,
-    right: -4,
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: '#006948',
+    height: KEY_HEIGHT,
+    borderRadius: radius.md,
+    borderWidth: StyleSheet.hairlineWidth,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  detailSection: {
-    borderRadius: radius.xl,
-    borderWidth: 1,
-    marginBottom: spacing.md,
-  },
-  detailCell: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: spacing.md,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  detailLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  detailRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-  },
-  detailIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: radius.lg,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  noteInput: {
-    width: '100%',
-    marginTop: spacing.sm,
-    fontSize: 15,
-    minHeight: 40,
-  },
-  numpadContainer: {
-    borderTopWidth: 1,
-    padding: spacing.md,
-    paddingBottom: spacing.lg + (Platform.OS === 'ios' ? 20 : 0),
-  },
-  quickShortcuts: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-    marginBottom: spacing.sm,
-  },
-  shortcutBtn: {
-    flex: 1,
-    paddingVertical: 8,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    alignItems: 'center',
-  },
-  numpadGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
-  },
-  numpadBtn: {
-    width: '23.5%',
-    aspectRatio: 1,
-    borderRadius: radius.xl,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  numpadDoneBtnSpan: {
-    width: '23.5%',
-    height: '100%',
-    position: 'absolute',
-    right: spacing.sm,
-    bottom: spacing.sm + 56,
-    borderRadius: radius.xl,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  doneContent: {
-    alignItems: 'center',
-    gap: 2,
-  },
+  doneKey: { flex: 1, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center', gap: 4 },
+  spinner: { alignSelf: 'center' },
+  sheetButtons: { flexDirection: 'row', gap: spacing.sm },
 });

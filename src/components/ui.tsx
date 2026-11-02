@@ -1,51 +1,91 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type { ComponentProps, ReactNode } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View, type StyleProp, type TextProps, type ViewStyle } from 'react-native';
+import {
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  Text,
+  TextInput,
+  View,
+  type StyleProp,
+  type TextInputProps,
+  type TextProps,
+  type ViewStyle,
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { radius, spacing, useTheme } from '@/theme';
+import { cardShadow, radius, spacing, tint, useTheme, type ThemeColors } from '@/theme';
 
 export type IconName = ComponentProps<typeof Ionicons>['name'];
 
-type Tone = 'default' | 'muted' | 'income' | 'expense' | 'warning' | 'danger' | 'primary' | 'white' | 'white80' | 'white70' | 'white90';
+export type Tone =
+  | 'default'
+  | 'muted'
+  | 'faint'
+  | 'primary'
+  | 'income'
+  | 'expense'
+  | 'transfer'
+  | 'warning'
+  | 'danger'
+  | 'onPrimary'
+  | 'onHero'
+  | 'onHeroMuted';
 
-const shadows = {
-  level0: {
-    shadowColor: '#000',
-    shadowOpacity: 0,
-    shadowRadius: 0,
-    shadowOffset: { width: 0, height: 0 },
-    elevation: 0,
-  },
-  level1: {
-    shadowColor: '#000',
-    shadowOpacity: 0.04,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: -2 },
-    elevation: 4,
-  },
-  level2: {
-    shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowRadius: 24,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 8,
-  },
-  level3: {
-    shadowColor: '#000',
-    shadowOpacity: 0.12,
-    shadowRadius: 32,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 12,
-  },
-};
+function toneColor(colors: ThemeColors, tone: Tone): string {
+  switch (tone) {
+    case 'default':
+      return colors.text;
+    case 'muted':
+      return colors.textMuted;
+    case 'faint':
+      return colors.textFaint;
+    default:
+      return colors[tone];
+  }
+}
 
-export function Screen({ children, scroll = true }: { children: ReactNode; scroll?: boolean }) {
+export function AppText({
+  tone = 'default',
+  size = 15,
+  weight,
+  tabular,
+  style,
+  ...props
+}: TextProps & { tone?: Tone; size?: number; weight?: '400' | '500' | '600' | '700'; tabular?: boolean }) {
   const { colors } = useTheme();
-  if (!scroll) return <View style={[styles.screen, { backgroundColor: colors.background }]}>{children}</View>;
+  return (
+    <Text
+      {...props}
+      style={[
+        { color: toneColor(colors, tone), fontSize: size, fontWeight: weight },
+        tabular && styles.tabular,
+        style,
+      ]}
+    />
+  );
+}
+
+/** Scrollable page body with the design's 16px gutters. Bottom padding clears the tab bar. */
+export function Screen({
+  children,
+  scroll = true,
+  contentStyle,
+}: {
+  children: ReactNode;
+  scroll?: boolean;
+  contentStyle?: StyleProp<ViewStyle>;
+}) {
+  const { colors } = useTheme();
+  if (!scroll) {
+    return <View style={[styles.flex, { backgroundColor: colors.background }, contentStyle]}>{children}</View>;
+  }
   return (
     <ScrollView
       style={{ backgroundColor: colors.background }}
-      contentContainerStyle={styles.screenContent}
+      contentContainerStyle={[styles.screenContent, contentStyle]}
       keyboardShouldPersistTaps="handled"
     >
       {children}
@@ -53,177 +93,92 @@ export function Screen({ children, scroll = true }: { children: ReactNode; scrol
   );
 }
 
-export function Card({ children, style }: { children: ReactNode; style?: StyleProp<ViewStyle> }) {
-  const { colors } = useTheme();
+/** Title block at the top of a tab: small uppercase eyebrow, large title, optional right element. */
+export function PageTitle({ eyebrow, title, right }: { eyebrow?: string; title: string; right?: ReactNode }) {
   return (
-    <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }, style]}>{children}</View>
+    <View style={styles.pageTitle}>
+      <View style={styles.flexShrink}>
+        {eyebrow && (
+          <AppText tone="primary" size={12} weight="600" style={styles.eyebrow}>
+            {eyebrow}
+          </AppText>
+        )}
+        <AppText size={28} weight="700" style={styles.tight}>
+          {title}
+        </AppText>
+      </View>
+      {right}
+    </View>
   );
 }
 
-export function ModernCard({
+export function Card({
   children,
-  elevated = false,
-  glassmorphic = false,
   style,
+  onPress,
 }: {
   children: ReactNode;
-  elevated?: boolean;
-  glassmorphic?: boolean;
   style?: StyleProp<ViewStyle>;
+  onPress?: () => void;
 }) {
   const { colors } = useTheme();
-
-  const getShadowLevel = () => {
-    if (elevated) return shadows.level3;
-    if (glassmorphic) return shadows.level1;
-    return shadows.level0;
-  };
-
+  const base = [styles.card, { backgroundColor: colors.surface, borderColor: colors.border }, cardShadow(colors)];
+  if (!onPress) return <View style={[base, style]}>{children}</View>;
   return (
-    <View
-      style={[styles.card, {
-        backgroundColor: glassmorphic ? 'rgba(255, 255, 255, 0.8)' : colors.surface,
-        borderColor: colors.border,
-        borderWidth: StyleSheet.hairlineWidth,
-        borderRadius: radius.lg,
-        ...getShadowLevel(),
-        ...(glassmorphic && {
-          shadowColor: '#000',
-          shadowOpacity: 0.06,
-          shadowRadius: 32,
-          shadowOffset: { width: 0, height: 8 },
-        }),
-      }, style]}
-    >
+    <Pressable onPress={onPress} accessibilityRole="button" style={({ pressed }) => [base, pressed && styles.pressed, style]}>
       {children}
-    </View>
-  );
-}
-
-export function ModernSegmented<T extends string>({
-  options,
-  value,
-  onChange,
-}: {
-  options: { value: T; label: string }[];
-  value: T;
-  onChange(value: T): void;
-}) {
-  const { colors } = useTheme();
-
-  return (
-    <View style={styles.modernSegmentedContainer}>
-      <View style={styles.modernSegmentedTrack}>
-        {options.map((option, index) => {
-          const selected = option.value === value;
-          return (
-            <Pressable
-              key={option.value}
-              onPress={() => onChange(option.value)}
-              style={[styles.modernSegmentButton, selected && [styles.modernSegmentSelected, index === 0 && styles.modernSegmentFirst, index === options.length - 1 && styles.modernSegmentLast], index === 0 && styles.modernSegmentFirst, index === options.length - 1 && styles.modernSegmentLast]}
-              accessibilityRole="button"
-              accessibilityState={{ selected }}
-            >
-              <Text style={[{ color: selected ? colors.text : colors.textMuted, fontSize: 13, fontWeight: selected ? '600' : '500' }]}>{option.label}</Text>
-              {selected && <View style={styles.modernSegmentIndicator} />}
-            </Pressable>
-          );
-        })}
-      </View>
-    </View>
-  );
-}
-
-export function ModernChip({
-  label,
-  selected,
-  onPress,
-  color,
-  icon,
-}: {
-  label: string;
-  selected: boolean;
-  onPress(): void;
-  color?: string;
-  icon?: string;
-}) {
-  const { colors } = useTheme();
-  const accent = color ?? colors.primary;
-
-  return (
-    <Pressable
-      onPress={onPress}
-      style={({ pressed }) => [
-        styles.modernChip,
-        selected && [styles.modernChipSelected, { backgroundColor: `${accent}15`, borderColor: accent }],
-        !selected && styles.modernChipUnselected,
-        pressed && { opacity: 0.7 },
-      ]}
-    >
-      <View style={styles.modernChipContent}>
-        {icon && (
-          <View style={[styles.modernChipIcon, { backgroundColor: `${accent}20` }]}>
-            <Ionicons name={icon as IconName} size={18} color={accent} />
-          </View>
-        )}
-        <Text style={[{ color: selected ? accent : colors.text, fontSize: 14, fontWeight: selected ? '600' : '500' }]}>{label}</Text>
-      </View>
     </Pressable>
   );
 }
 
-export function ModernProgressBar({
-  ratio,
-  color = '#006948',
-  status = 'normal',
+/** Large emphasized card (balance, budget overview). */
+export function HeroCard({ children, style }: { children: ReactNode; style?: StyleProp<ViewStyle> }) {
+  const { colors } = useTheme();
+  return <View style={[styles.hero, { backgroundColor: colors.hero }, cardShadow(colors, 2), style]}>{children}</View>;
+}
+
+export function SectionHeader({
+  title,
+  subtitle,
+  actionLabel,
+  onAction,
 }: {
-  ratio: number;
-  color?: string;
-  status?: 'normal' | 'warning' | 'danger';
+  title: string;
+  subtitle?: string;
+  actionLabel?: string;
+  onAction?: () => void;
 }) {
   const { colors } = useTheme();
-
-  const getProgressColor = () => {
-    switch (status) {
-      case 'warning':
-        return colors.warning;
-      case 'danger':
-        return colors.danger;
-      default:
-        return color;
-    }
-  };
-
-  const getProgressHeight = () => {
-    switch (status) {
-      case 'warning':
-        return 10;
-      case 'danger':
-        return 12;
-      default:
-        return 8;
-    }
-  };
-
   return (
-    <View style={styles.modernProgressContainer}>
-      <View style={[styles.modernProgressTrack, { backgroundColor: colors.surfaceMuted }]}>
-        <View
-          style={[styles.modernProgressFill, {
-            width: `${Math.min(Math.max(ratio, 0), 1) * 100}%`,
-            backgroundColor: getProgressColor(),
-            height: getProgressHeight(),
-            borderRadius: 4,
-            ...(status === 'danger' && styles.progressDangerPulse),
-          }]}
-        />
+    <View style={styles.sectionHeader}>
+      <View style={styles.flexShrink}>
+        <AppText size={20} weight="600">
+          {title}
+        </AppText>
+        {subtitle && (
+          <AppText tone="muted" size={13}>
+            {subtitle}
+          </AppText>
+        )}
       </View>
-      {status === 'warning' && (
-        <View style={styles.warningIndicator}>
-          <Ionicons name="warning" size={14} color={colors.warning} />
-        </View>
+      {actionLabel && onAction && (
+        <Pressable onPress={onAction} hitSlop={10} accessibilityRole="button" style={styles.row}>
+          <AppText tone="primary" size={13} weight="600">
+            {actionLabel}
+          </AppText>
+          <Ionicons name="chevron-forward" size={14} color={colors.primary} />
+        </Pressable>
       )}
     </View>
+  );
+}
+
+/** Uppercase caption above grouped lists. */
+export function GroupLabel({ children }: { children: ReactNode }) {
+  return (
+    <AppText tone="muted" size={12} weight="600" style={styles.groupLabel}>
+      {children}
+    </AppText>
   );
 }
 
@@ -233,487 +188,395 @@ export function Button({
   variant = 'primary',
   icon,
   disabled,
+  loading,
+  compact,
 }: {
   label: string;
   onPress(): void;
   variant?: 'primary' | 'secondary' | 'danger';
   icon?: IconName;
   disabled?: boolean;
+  loading?: boolean;
+  compact?: boolean;
 }) {
   const { colors } = useTheme();
-  const background = variant === 'primary' ? colors.primary : colors.surfaceMuted;
+  const background = variant === 'primary' ? colors.primary : variant === 'danger' ? colors.dangerSoft : colors.surfaceMuted;
   const foreground = variant === 'primary' ? colors.onPrimary : variant === 'danger' ? colors.danger : colors.text;
+  const inactive = disabled || loading;
   return (
     <Pressable
       onPress={onPress}
-      disabled={disabled}
+      disabled={inactive}
       accessibilityRole="button"
+      accessibilityState={{ disabled: inactive, busy: loading }}
       style={({ pressed }) => [
         styles.button,
-        {
-          backgroundColor: background,
-          opacity: disabled ? 0.5 : pressed ? 0.8 : 1,
-          borderRadius: radius.md,
-          borderWidth: variant === 'primary' ? 0 : 1,
-          borderColor: variant === 'primary' ? 'transparent' : colors.border,
-        },
+        compact && styles.buttonCompact,
+        { backgroundColor: background, opacity: inactive ? 0.55 : pressed ? 0.85 : 1 },
       ]}
     >
       {icon && <Ionicons name={icon} size={18} color={foreground} />}
-      <Text style={{ color: foreground, fontSize: 16, fontWeight: '600' }}>{label}</Text>
+      <Text style={[styles.buttonLabel, compact && styles.buttonLabelCompact, { color: foreground }]}>{label}</Text>
     </Pressable>
   );
 }
 
-export function ProgressBar({ ratio, color }: { ratio: number; color: string }) {
-  const { colors } = useTheme();
-  const width = `${Math.min(Math.max(ratio, 0), 1) * 100}%` as const;
+export function IconCircle({ icon, color, size = 40 }: { icon: string; color: string; size?: number }) {
   return (
-    <View style={[styles.track, { backgroundColor: colors.surfaceMuted }]}>
-      <View style={[styles.fill, { width, backgroundColor: color }]} />
-    </View>
-  );
-}
-
-export function Fab({ onPress, label }: { onPress(): void; label: string }) {
-  const { colors } = useTheme();
-  return (
-    <Pressable
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      style={({ pressed }) => [styles.fab, { backgroundColor: colors.primary, opacity: pressed ? 0.85 : 1 }]}
-    >
-      <Ionicons name="add" size={30} color={colors.onPrimary} />
-    </Pressable>
-  );
-}
-
-export function SectionTitle({ children }: { children: ReactNode }) {
-  const { colors } = useTheme();
-  return (
-    <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }, styles.sectionTitleWrapper]}>
-      <Text style={[{ color: colors.textMuted, fontSize: 13, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 }]}>{children}</Text>
-    </View>
-  );
-}
-
-export function CategoryIcon({ icon, color, size = 36 }: { icon: string; color: string; size?: number }) {
-  return (
-    <View style={[styles.icon, { width: size, height: size, borderRadius: size / 2, backgroundColor: `${color}22` }]}>
+    <View style={[styles.center, { width: size, height: size, borderRadius: size / 2, backgroundColor: tint(color) }]}>
       <Ionicons name={icon as IconName} size={size * 0.5} color={color} />
     </View>
   );
 }
 
-type SkeletonProps = {
-  width?: number | string;
-  height?: number;
-  borderRadius?: number;
-  style?: any;
-};
+/** Minimum 8px track with rounded caps, per the design system. */
+export function ProgressBar({ ratio, color, height = 8 }: { ratio: number; color: string; height?: number }) {
+  const { colors } = useTheme();
+  const width = `${Math.min(Math.max(ratio, 0), 1) * 100}%` as const;
+  return (
+    <View style={[styles.track, { height, borderRadius: height / 2, backgroundColor: colors.surfaceMuted }]}>
+      <View style={[styles.fill, { width, backgroundColor: color, borderRadius: height / 2 }]} />
+    </View>
+  );
+}
 
-export function Skeleton({ width = 100, height = 12, borderRadius = 4, style }: SkeletonProps) {
+export function SegmentedControl<T extends string>({
+  options,
+  value,
+  onChange,
+}: {
+  options: { value: T; label: string; color?: string }[];
+  value: T;
+  onChange(value: T): void;
+}) {
   const { colors } = useTheme();
   return (
-    <View
-      style={[
-        { width, height, borderRadius, backgroundColor: colors.surfaceMuted },
-        style,
+    <View style={[styles.segmented, { backgroundColor: colors.surfaceMuted, borderColor: colors.border }]} accessibilityRole="tablist">
+      {options.map((option) => {
+        const selected = option.value === value;
+        return (
+          <Pressable
+            key={option.value}
+            onPress={() => onChange(option.value)}
+            accessibilityRole="tab"
+            accessibilityState={{ selected }}
+            style={[styles.segment, selected && [{ backgroundColor: colors.surface }, cardShadow(colors)]]}
+          >
+            {selected && option.color && <View style={[styles.dot, { backgroundColor: option.color }]} />}
+            <Text
+              numberOfLines={1}
+              style={{
+                color: selected ? (option.color ?? colors.primary) : colors.textMuted,
+                fontSize: 14,
+                fontWeight: selected ? '600' : '500',
+              }}
+            >
+              {option.label}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
+export function Chip({
+  label,
+  selected,
+  onPress,
+  color,
+}: {
+  label: string;
+  selected: boolean;
+  onPress(): void;
+  color?: string;
+}) {
+  const { colors } = useTheme();
+  const accent = color ?? colors.primary;
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityState={{ selected }}
+      style={({ pressed }) => [
+        styles.chip,
+        {
+          borderColor: selected ? accent : colors.border,
+          backgroundColor: selected ? tint(accent, 0.12) : colors.surface,
+        },
+        pressed && styles.pressed,
       ]}
+    >
+      <Text style={{ color: selected ? accent : colors.text, fontSize: 14, fontWeight: selected ? '600' : '500' }}>{label}</Text>
+    </Pressable>
+  );
+}
+
+/** Small rounded label, e.g. budget status. */
+export function Badge({ label, color, background }: { label: string; color: string; background: string }) {
+  return (
+    <View style={[styles.badge, { backgroundColor: background }]}>
+      <Text style={[styles.badgeText, { color }]} numberOfLines={2}>
+        {label}
+      </Text>
+    </View>
+  );
+}
+
+/** Grouped list in a card, iOS settings style. Children are ListRows. */
+export function ListGroup({ children, style }: { children: ReactNode; style?: StyleProp<ViewStyle> }) {
+  const { colors } = useTheme();
+  const items = (Array.isArray(children) ? children : [children]).flat().filter(Boolean);
+  return (
+    <View style={[styles.listGroup, { backgroundColor: colors.surface, borderColor: colors.border }, cardShadow(colors), style]}>
+      {items.map((child, i) => (
+        <View key={i}>
+          {i > 0 && <View style={[styles.divider, { backgroundColor: colors.border }]} />}
+          {child}
+        </View>
+      ))}
+    </View>
+  );
+}
+
+export function ListRow({
+  icon,
+  iconColor,
+  title,
+  subtitle,
+  value,
+  accessory,
+  destructive,
+  chevron,
+  onPress,
+}: {
+  icon?: IconName;
+  iconColor?: string;
+  title: string;
+  subtitle?: string;
+  value?: string;
+  accessory?: ReactNode;
+  destructive?: boolean;
+  chevron?: boolean;
+  onPress?: () => void;
+}) {
+  const { colors } = useTheme();
+  const accent = destructive ? colors.danger : (iconColor ?? colors.primary);
+  const content = (
+    <>
+      {icon && (
+        <View style={[styles.listIcon, { backgroundColor: tint(accent, 0.12) }]}>
+          <Ionicons name={icon} size={18} color={accent} />
+        </View>
+      )}
+      <View style={styles.flex}>
+        <AppText weight="600" size={16} tone={destructive ? 'danger' : 'default'}>
+          {title}
+        </AppText>
+        {subtitle && (
+          <AppText size={13} tone="muted" style={styles.listSubtitle}>
+            {subtitle}
+          </AppText>
+        )}
+      </View>
+      {value && (
+        <AppText tone="muted" size={15} numberOfLines={1} style={styles.listValue}>
+          {value}
+        </AppText>
+      )}
+      {accessory}
+      {chevron && <Ionicons name="chevron-forward" size={18} color={destructive ? colors.danger : colors.textFaint} />}
+    </>
+  );
+  if (!onPress) return <View style={styles.listRow}>{content}</View>;
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      style={({ pressed }) => [styles.listRow, pressed && { backgroundColor: colors.surfaceTint }]}
+    >
+      {content}
+    </Pressable>
+  );
+}
+
+export function Toggle({ value, onValueChange, disabled }: { value: boolean; onValueChange(v: boolean): void; disabled?: boolean }) {
+  const { colors } = useTheme();
+  return (
+    <Switch
+      value={value}
+      onValueChange={onValueChange}
+      disabled={disabled}
+      trackColor={{ true: colors.primary, false: colors.surfaceMuted }}
+      ios_backgroundColor={colors.surfaceMuted}
     />
   );
 }
 
-export function EmptyState({
+export function TextField({
+  label,
+  error,
   icon,
-  title,
-  subtitle,
-  actionLabel,
-  onPress,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  subtitle?: string;
-  actionLabel?: string;
-  onPress?: () => void;
-}) {
+  right,
+  ...props
+}: TextInputProps & { label?: string; error?: string; icon?: IconName; right?: ReactNode }) {
   const { colors } = useTheme();
   return (
-    <View style={[{ alignItems: 'center', justifyContent: 'center', padding: spacing.xl, gap: spacing.md }]}>
-      <View style={[styles.emptyIcon, { backgroundColor: colors.surfaceMuted }]}>{icon}</View>
-      <Text style={[{ fontWeight: '600', fontSize: 18, textAlign: 'center' }]}>{title}</Text>
-      {subtitle && <Text style={[{ color: colors.textMuted, fontSize: 14, textAlign: 'center' }]}>{subtitle}</Text>}
-      {actionLabel && onPress && (
-        <Button label={actionLabel} variant="secondary" onPress={onPress} />
+    <View style={styles.field}>
+      {label && (
+        <AppText weight="600" size={14}>
+          {label}
+        </AppText>
+      )}
+      <View
+        style={[
+          styles.inputBox,
+          { backgroundColor: colors.surfaceMuted, borderColor: error ? colors.danger : colors.border },
+        ]}
+      >
+        {icon && <Ionicons name={icon} size={20} color={colors.textMuted} />}
+        <TextInput
+          placeholderTextColor={colors.textFaint}
+          {...props}
+          style={[styles.input, { color: colors.text }, props.style]}
+        />
+        {right}
+      </View>
+      {error && (
+        <AppText tone="danger" size={13}>
+          {error}
+        </AppText>
       )}
     </View>
   );
 }
 
-export function AppText({
-  tone = 'default',
-  size,
-  weight,
-  style,
-  ...props
-}: TextProps & { tone?: Tone; size?: number; weight?: '400' | '500' | '600' | '700' }) {
-  const { colors } = useTheme();
-  const color = {
-    default: colors.text,
-    muted: colors.textMuted,
-    income: colors.income,
-    expense: colors.expense,
-    warning: colors.warning,
-    danger: colors.danger,
-    primary: colors.primary,
-    white: '#ffffff',
-    white80: 'rgba(255,255,255,0.8)',
-    white70: 'rgba(255,255,255,0.7)',
-    white90: 'rgba(255,255,255,0.9)',
-  }[tone];
-
-  return <Text {...props} style={[{ color, fontSize: size, fontWeight: weight }, style]} />;
-}
-
-export function IOSwitch({ value, onValueChange }: { value: boolean; onValueChange(v: boolean): void }) {
+export function EmptyState({ icon, message }: { icon: IconName; message: string }) {
   const { colors } = useTheme();
   return (
-    <Pressable onPress={() => onValueChange(!value)} accessibilityRole="switch" accessibilityState={{ checked: value }}>
-      <View
-        style={[
-          styles.iosSwitchTrack,
-          value && { backgroundColor: colors.primary },
-        ]}
-      >
-        <View
-          style={[
-            styles.iosSwitchThumb,
-            { transform: [{ translateX: value ? 20 : 0 }] },
-          ]}
-        />
+    <View style={styles.empty}>
+      <View style={[styles.emptyIcon, { backgroundColor: colors.surfaceMuted }]}>
+        <Ionicons name={icon} size={28} color={colors.textMuted} />
       </View>
-    </Pressable>
+      <AppText tone="muted" style={styles.centerText}>
+        {message}
+      </AppText>
+    </View>
   );
 }
 
-export function SettingsGroup({ children }: { children: ReactNode }) {
-  return <View style={styles.settingsGroup}>{children}</View>;
-}
-
-export function SettingsRow({
-  icon,
-  iconBg,
+/** Bottom sheet over a dimmed backdrop. Tapping the backdrop closes it. */
+export function Sheet({
+  visible,
   title,
-  subtitle,
-  accessory,
-  destructive,
-  onPress,
+  onClose,
+  children,
 }: {
-  icon: IconName;
-  iconBg: string;
+  visible: boolean;
   title: string;
-  subtitle?: string;
-  accessory?: ReactNode;
-  destructive?: boolean;
-  onPress?: () => void;
+  onClose(): void;
+  children: ReactNode;
 }) {
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
   return (
-    <Pressable
-      onPress={onPress}
-      style={({ pressed }) => [
-        styles.settingsRow,
-        onPress && { backgroundColor: pressed ? colors.surfaceContainerLow : 'transparent' },
-      ]}
-    >
-      <View style={[styles.settingsIconContainer, { backgroundColor: `${iconBg}22` }]}>
-        <Ionicons name={icon} size={18} color={iconBg} />
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <Pressable style={[styles.flex, { backgroundColor: colors.scrim }]} onPress={onClose} accessibilityLabel={title} />
+      <View
+        style={[
+          styles.sheet,
+          { backgroundColor: colors.background, paddingBottom: Math.max(insets.bottom, spacing.md) },
+        ]}
+      >
+        <View style={[styles.grabber, { backgroundColor: colors.border }]} />
+        <View style={styles.sheetHeader}>
+          <AppText size={18} weight="600">
+            {title}
+          </AppText>
+          <Pressable onPress={onClose} hitSlop={12} accessibilityRole="button">
+            <Ionicons name="close" size={24} color={colors.textMuted} />
+          </Pressable>
+        </View>
+        <ScrollView style={styles.sheetBody} contentContainerStyle={styles.sheetContent} keyboardShouldPersistTaps="handled">
+          {children}
+        </ScrollView>
       </View>
-      <View style={{ flex: 1, minWidth: 0 }}>
-        <Text
-          style={[
-            styles.settingsTitle,
-            destructive && { color: colors.danger },
-          ]}
-          numberOfLines={1}
-        >
-          {title}
-        </Text>
-        {subtitle && (
-          <Text
-            style={[
-              styles.settingsSubtitle,
-              destructive && { color: colors.danger },
-            ]}
-            numberOfLines={1}
-          >
-            {subtitle}
-          </Text>
-        )}
-      </View>
-      {accessory && <View style={styles.settingsRightAccessory}>{accessory}</View>}
-    </Pressable>
-  );
-}
-
-export function SectionLabel({ children }: { children: ReactNode }) {
-  const { colors } = useTheme();
-  return (
-    <Text style={[styles.settingsSectionLabel, { color: colors.tertiary }]}>{children}</Text>
+    </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1 },
-  screenContent: { padding: spacing.lg, gap: spacing.xl, paddingBottom: 96 },
-  card: { borderRadius: radius.lg, borderWidth: StyleSheet.hairlineWidth, padding: spacing.lg, gap: spacing.md },
-  sectionTitleWrapper: { padding: spacing.md, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#e2e8f0' },
-  sectionTitle: { textTransform: 'uppercase', letterSpacing: 0.5 },
-  icon: { alignItems: 'center', justifyContent: 'center' },
-  modernSegmentedContainer: {
-    backgroundColor: '#f1f5f9',
-    borderRadius: radius.md,
-    padding: 3,
-  },
-  modernSegmentedTrack: {
-    flexDirection: 'row',
-  },
-  modernSegmentButton: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: spacing.sm,
-    borderRadius: radius.md,
-    position: 'relative',
-  },
-  modernSegmentSelected: {
-    backgroundColor: '#ffffff',
-  },
-  modernSegmentFirst: {
-    borderTopRightRadius: 0,
-    borderBottomRightRadius: 0,
-  },
-  modernSegmentLast: {
-    borderTopLeftRadius: 0,
-    borderBottomLeftRadius: 0,
-  },
-  modernSegmentText: {
-    fontSize: 13,
-    fontWeight: '500',
-  },
-  modernSegmentIndicator: {
-    position: 'absolute',
-    bottom: 0,
-    left: '50%',
-    transform: [{ translateX: -8 }],
-    width: 16,
-    height: 3,
-    backgroundColor: '#006948',
-    borderRadius: 2,
-  },
-  modernChip: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: 8,
-    borderRadius: radius.pill,
-    backgroundColor: 'transparent',
-    borderWidth: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  modernChipSelected: {
-    backgroundColor: 'transparent',
-  },
-  modernChipUnselected: {
-    backgroundColor: 'transparent',
-  },
-  modernChipContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  modernChipIcon: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  modernChipText: {
-    fontSize: 14,
-    fontWeight: '500',
-  },
+  flex: { flex: 1 },
+  flexShrink: { flexShrink: 1 },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 2 },
+  center: { alignItems: 'center', justifyContent: 'center' },
+  centerText: { textAlign: 'center' },
+  pressed: { opacity: 0.7 },
+  tabular: { fontVariant: ['tabular-nums'] },
+  tight: { letterSpacing: -0.3 },
+  screenContent: { paddingHorizontal: spacing.md, paddingTop: spacing.md, paddingBottom: 120, gap: spacing.lg },
+  pageTitle: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', gap: spacing.md },
+  eyebrow: { letterSpacing: 0.8, marginBottom: 2 },
+  card: { borderRadius: radius.lg, borderWidth: StyleSheet.hairlineWidth, padding: spacing.md, gap: spacing.md },
+  hero: { borderRadius: radius.xl, padding: spacing.lg, gap: spacing.md },
+  sectionHeader: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: spacing.md },
+  groupLabel: { letterSpacing: 0.8, marginBottom: -spacing.sm, paddingHorizontal: spacing.xs },
   button: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing.sm,
-    paddingVertical: 14,
-    borderRadius: radius.md,
+    minHeight: 50,
+    paddingHorizontal: spacing.lg,
+    borderRadius: radius.pill,
   },
-  track: {
-    height: 8,
-    borderRadius: 4,
-    overflow: 'hidden',
-    backgroundColor: 'transparent',
-  },
-  fill: { height: '100%', borderRadius: 4 },
-  fab: {
-    position: 'absolute',
-    right: spacing.xl,
-    bottom: spacing.xl,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+  buttonCompact: { minHeight: 40, paddingHorizontal: spacing.md },
+  buttonLabel: { fontSize: 17, fontWeight: '600' },
+  buttonLabelCompact: { fontSize: 15 },
+  track: { overflow: 'hidden' },
+  fill: { height: '100%' },
+  segmented: { flexDirection: 'row', borderRadius: radius.md, borderWidth: StyleSheet.hairlineWidth, padding: 3, gap: 3 },
+  segment: {
+    flex: 1,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 4,
+    gap: 6,
+    paddingVertical: 9,
+    borderRadius: radius.sm,
   },
-  emptyIcon: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing.md,
-  },
-  emptyTitle: { textAlign: 'center' },
-  emptySubtitle: { textAlign: 'center', marginTop: spacing.sm },
-
-  modernProgressContainer: {
+  dot: { width: 8, height: 8, borderRadius: 4 },
+  chip: { paddingHorizontal: spacing.md, paddingVertical: 8, borderRadius: radius.pill, borderWidth: 1 },
+  badge: { borderRadius: radius.pill, paddingHorizontal: 10, paddingVertical: 4, maxWidth: 180 },
+  badgeText: { fontSize: 12, fontWeight: '600' },
+  listGroup: { borderRadius: radius.lg, borderWidth: StyleSheet.hairlineWidth, overflow: 'hidden' },
+  divider: { height: StyleSheet.hairlineWidth, marginLeft: 64 },
+  listRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingVertical: 14, paddingHorizontal: spacing.md, minHeight: 56 },
+  listIcon: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
+  listSubtitle: { marginTop: 2 },
+  listValue: { maxWidth: '45%' },
+  field: { gap: spacing.sm },
+  inputBox: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-  },
-  modernProgressTrack: {
-    flex: 1,
-    height: 8,
-    borderRadius: 4,
-    overflow: 'hidden',
-    backgroundColor: 'transparent',
-  },
-  modernProgressFill: {
-    height: '100%',
-    borderRadius: 4,
-  },
-  progressDangerPulse: {
-    shadowOpacity: 0.5,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-  },
-  warningIndicator: {
-    width: 24,
-    height: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  // Settings screen components
-  iosSwitchTrack: {
-    width: 51,
-    height: 31,
-    borderRadius: 16,
-    backgroundColor: '#e2e8f0',
-    justifyContent: 'center',
-    padding: 2,
-  },
-  iosSwitchThumb: {
-    width: 27,
-    height: 27,
-    borderRadius: 14,
-    backgroundColor: '#ffffff',
-    shadowColor: '#000',
-    shadowOpacity: 0.15,
-    shadowRadius: 3,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 3,
-  },
-  iosSwitchTrackActive: {
-    backgroundColor: '#006948',
-  },
-  settingsGroup: {
-    borderRadius: radius.lg,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: '#e2e8f0',
-    overflow: 'hidden',
-    backgroundColor: '#ffffff',
-    marginTop: 4,
-  },
-  settingsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    gap: 14,
-  },
-  settingsRowDivider: {
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: '#e2e8f0',
-    marginLeft: 54,
-  },
-  settingsIconContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
-  },
-  settingsTitle: {
-    fontSize: 17,
-    fontWeight: '600',
-    color: '#0b1c30',
-    lineHeight: 22,
-  },
-  settingsSubtitle: {
-    fontSize: 13,
-    fontWeight: '400',
-    color: '#3d4a42',
-    lineHeight: 18,
-    marginTop: 2,
-  },
-  settingsSectionLabel: {
-    fontSize: 11,
-    fontWeight: '500',
-    color: '#545c72',
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
-    paddingHorizontal: 4,
-    marginBottom: 4,
-    marginTop: 12,
-  },
-  settingsRightAccessory: {
-    marginLeft: 'auto',
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  settingsChevron: {
-    fontSize: 18,
-    color: '#bccac0',
-  },
-  heroCard: {
-    borderRadius: radius.lg,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: '#e2e8f0',
-    backgroundColor: '#ffffff',
-    padding: 16,
-    marginTop: 8,
-    shadowColor: '#0f172a',
-    shadowOpacity: 0.04,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: -2 },
-    elevation: 4,
-  },
-  philoBox: {
     borderRadius: radius.md,
-    backgroundColor: '#f1f5f9',
-    padding: 12,
-    marginBottom: 4,
+    borderWidth: 1,
+    paddingHorizontal: spacing.md,
+    minHeight: 52,
   },
+  input: { flex: 1, fontSize: 16, paddingVertical: 12 },
+  empty: { alignItems: 'center', gap: spacing.md, paddingVertical: spacing.xl, paddingHorizontal: spacing.lg },
+  emptyIcon: { width: 64, height: 64, borderRadius: 32, alignItems: 'center', justifyContent: 'center' },
+  sheet: { borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl, maxHeight: '85%' },
+  grabber: { width: 40, height: 5, borderRadius: 3, alignSelf: 'center', marginTop: spacing.sm },
+  sheetHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+  },
+  sheetBody: { flexGrow: 0 },
+  sheetContent: { paddingHorizontal: spacing.md, paddingBottom: spacing.md, gap: spacing.md },
 });

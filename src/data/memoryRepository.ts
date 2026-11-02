@@ -1,4 +1,3 @@
-import { createInitialData } from '@/domain/walletData';
 import type { WalletData } from '@/domain/types';
 
 import type { WalletRepository } from './WalletRepository';
@@ -7,13 +6,15 @@ import type { WalletRepository } from './WalletRepository';
 export class MemoryRepository implements WalletRepository {
   saved: WalletData | null;
   failNextSave = false;
+  failLoad: Error | null = null;
 
   constructor(initial: WalletData | null = null) {
     this.saved = initial;
   }
 
-  async load(): Promise<WalletData> {
-    return structuredClone(this.saved ?? createInitialData());
+  async load(): Promise<WalletData | null> {
+    if (this.failLoad) throw this.failLoad;
+    return this.saved ? structuredClone(this.saved) : null;
   }
 
   async save(data: WalletData): Promise<void> {

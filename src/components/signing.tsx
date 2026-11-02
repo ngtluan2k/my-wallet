@@ -36,7 +36,7 @@ export function SigningExpiryBanner() {
     return (
       <Pressable
         onPress={() => setExpanded(true)}
-        style={[styles.collapsed, { backgroundColor: isUrgent ? colors.danger + '15' : colors.surfaceMuted }]}
+        style={[styles.collapsed, { backgroundColor: isUrgent ? colors.dangerSoft : colors.surfaceMuted }]}
         accessibilityRole="button"
         accessibilityLabel={t('signing.daysLeftShort', params)}
       >

@@ -12,12 +12,21 @@
 
 > Lưu ý thương hiệu: “My Wallet” là cụm từ phổ biến. Trước khi phát hành, cần kiểm tra tên ứng dụng trên App Store, tên miền và khả năng đăng ký nhãn hiệu.
 
+> **Cập nhật 11/2026 — quyết định đã chốt** (thay cho các ý tương ứng bên dưới; spec màn hình ở `mockup UI/SCREENS.md`):
+>
+> - **Bắt buộc đăng nhập** bằng email + mật khẩu (Supabase Auth). Không làm Apple/Google trong đợt này.
+> - **Lưu trên máy trước, đồng bộ sau:** file JSON trên máy theo từng tài khoản là nguồn dữ liệu gốc; mọi thay đổi được đưa vào hàng đợi và đồng bộ lên Supabase. App vẫn dùng được khi mất mạng sau lần đăng nhập đầu.
+> - **Nhiều ví và số dư:** mỗi ví có số dư ban đầu; số dư = số dư ban đầu + thu − chi ± chuyển khoản. Có giao dịch **chuyển khoản** giữa các ví (không tính vào thu/chi) và giờ giao dịch (không bắt buộc).
+> - **Chỉ VND.** Không đổi tiền tệ.
+> - **Báo cáo tuần**; không làm quét hoá đơn.
+> - **Khoá ứng dụng** bằng PIN 4 số, mở bằng Face ID/Touch ID; mặc định tắt.
+
 ## 2. Nguyên tắc sản phẩm
 
 1. **Ưu tiên iOS:** Hoàn thiện một ứng dụng có thể sử dụng thực tế trên iPhone.
-2. **Không cần backend/DB server:** Không yêu cầu tài khoản, đăng nhập hoặc máy chủ trong phiên bản đầu.
+2. ~~**Không cần backend/DB server:** Không yêu cầu tài khoản, đăng nhập hoặc máy chủ trong phiên bản đầu.~~ Đã thay bằng: bắt buộc tài khoản; Supabase dùng để đồng bộ và sao lưu theo tài khoản (xem cập nhật ở trên).
 3. **Lưu trữ cục bộ:** Dữ liệu phải được lưu trên thiết bị để không mất khi đóng ứng dụng.
-4. **Offline-first:** Các chức năng chính hoạt động không cần Internet.
+4. **Offline-first:** Các chức năng chính hoạt động không cần Internet (sau lần đăng nhập đầu tiên).
 5. **Multiplatform-ready:** Tách biệt nghiệp vụ, mô hình dữ liệu, giao diện và tầng lưu trữ để thuận tiện mở rộng Android/Web.
 6. **Privacy-first:** Dữ liệu tài chính được lưu cục bộ; cung cấp cơ chế sao lưu và khôi phục.
 
@@ -143,8 +152,11 @@ Local JSON Storage (MVP)
 
 ### 6.5. Chưa triển khai trong MVP
 
-- Đăng nhập và quản lý tài khoản.
-- Đồng bộ cloud.
+- ~~Đăng nhập và quản lý tài khoản.~~ Đã đưa vào MVP (đăng nhập email bắt buộc).
+- ~~Đồng bộ cloud.~~ Đã đưa vào MVP (đồng bộ Supabase theo tài khoản).
+- Đăng nhập Apple/Google, đổi email/mật khẩu trong app, xoá tài khoản.
+- Đa tiền tệ.
+- Quét hoá đơn.
 - Liên kết ngân hàng.
 - Phân tích chi tiêu bằng AI.
 - Hệ thống quản trị.
@@ -194,6 +206,11 @@ Các trường dữ liệu đề xuất:
 - [ ] Giao diện hỗ trợ tiếng Việt và tiếng Anh.
 - [ ] Không có lỗi nghiêm trọng trên các thiết bị iPhone mục tiêu.
 - [ ] Các luồng nghiệp vụ quan trọng có kiểm thử tự động.
+- [ ] Đăng ký, đăng nhập, quên mật khẩu và đăng xuất hoạt động; dữ liệu mỗi tài khoản tách biệt trên máy.
+- [ ] Thay đổi khi mất mạng được đồng bộ khi có mạng lại; đăng nhập trên máy khác tải về đủ dữ liệu.
+- [ ] Số dư từng ví và tổng số dư đúng khi có chuyển khoản; chuyển khoản không làm thay đổi tổng thu/chi.
+- [ ] Dữ liệu và file sao lưu từ phiên bản trước (v1, chưa có ví) được nâng cấp tự động, không mất giao dịch.
+- [ ] Khoá ứng dụng bằng PIN/Face ID hoạt động khi bật, không làm phiền khi tắt.
 
 ## 9. Lộ trình sau MVP
 
@@ -222,8 +239,8 @@ Các trường dữ liệu đề xuất:
 1. **Lưu trữ:** JSON cục bộ, dữ liệu tạm trong bộ nhớ hay database cục bộ không có backend.
 2. **Ngôn ngữ mặc định:** Tiếng Việt, tiếng Anh hay tự động theo ngôn ngữ iPhone.
 3. **Phong cách giao diện:** Tối giản, nhiều biểu đồ hay phong cách fintech cao cấp.
-4. **Số dư:** Chỉ theo dõi chênh lệch thu chi hay hỗ trợ số dư đầu kỳ và nhiều ví.
-5. **Tiền tệ:** Chỉ VND trong MVP hay hỗ trợ nhiều loại tiền tệ.
+4. **Số dư:** ~~Chỉ theo dõi chênh lệch thu chi hay hỗ trợ số dư đầu kỳ và nhiều ví.~~ Đã chốt: nhiều ví, có số dư đầu kỳ.
+5. **Tiền tệ:** ~~Chỉ VND trong MVP hay hỗ trợ nhiều loại tiền tệ.~~ Đã chốt: chỉ VND.
 
 ## 11. Bước tiếp theo
 

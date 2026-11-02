@@ -1,119 +1,106 @@
+import type { AuthError, User } from '@supabase/supabase-js';
 import { create } from 'zustand';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+
 import { supabase } from '@/data/supabaseClient';
 
-const REMEMBER_EMAIL_KEY = 'remember_email';
+/** Error codes the auth screens translate. */
+export type AuthErrorCode =
+  | 'invalid_credentials'
+  | 'email_not_confirmed'
+  | 'email_taken'
+  | 'weak_password'
+  | 'rate_limited'
+  | 'network'
+  | 'unknown';
 
-interface AuthState {
-  user: any | null;
-  loading: boolean;
-  rememberEmail: string | null;
-  signUp(email: string, password: string): Promise<{ error: any }>;
-  signIn(email: string, password: string): Promise<{ error: any }>;
-  signOut(): Promise<void>;
-  load(): Promise<void>;
-  setRememberEmail(email: string): Promise<void>;
-  clearRememberEmail(): Promise<void>;
-  loadRememberEmail(): Promise<void>;
+export function authErrorCode(error: AuthError | Error | null | undefined): AuthErrorCode | null {
+  if (!error) return null;
+  const code = 'code' in error ? (error.code as string | undefined) : undefined;
+  const message = error.message?.toLowerCase() ?? '';
+  if (code === 'invalid_credentials' || message.includes('invalid login credentials')) return 'invalid_credentials';
+  if (code === 'email_not_confirmed' || message.includes('email not confirmed')) return 'email_not_confirmed';
+  if (code === 'user_already_exists' || code === 'email_exists' || message.includes('already registered')) return 'email_taken';
+  if (code === 'weak_password' || message.includes('password should be')) return 'weak_password';
+  if (code === 'over_request_rate_limit' || code === 'over_email_send_rate_limit' || message.includes('rate limit')) {
+    return 'rate_limited';
+  }
+  if (message.includes('network') || message.includes('fetch')) return 'network';
+  return 'unknown';
 }
 
+interface AuthState {
+  /** Undefined until the stored session has been read. */
+  user: User | null | undefined;
+  load(): Promise<void>;
+  signIn(email: string, password: string): Promise<AuthErrorCode | null>;
+  /** Returns 'confirm' when the account needs email confirmation before signing in. */
+  signUp(email: string, password: string, fullName: string): Promise<AuthErrorCode | 'confirm' | null>;
+  resetPassword(email: string): Promise<AuthErrorCode | null>;
+  /** Ends the session. Wallet data stays on the device, keyed by user, for the next sign-in. */
+  signOut(): Promise<void>;
+}
+
+let subscribed = false;
+
 export const useAuth = create<AuthState>()((set) => ({
-  user: null,
-  loading: false,
-  rememberEmail: null,
+  user: undefined,
+
   async load() {
-    console.log('[Auth] Loading session...');
-    try {
-      const { data, error } = await supabase.auth.getSession();
-      if (error) {
-        console.error('[Auth] Get session error:', error);
-        set({ user: null, loading: false });
-        return;
-      }
-      const user = data.session?.user ?? null;
-      console.log('[Auth] Current user:', user?.email ?? 'null');
-      console.log('[Auth] Session data:', data.session ? 'has session' : 'no session');
-      set({ user, loading: false });
-      
+    if (!subscribed) {
+      subscribed = true;
       supabase.auth.onAuthStateChange((_event, session) => {
-        const newUser = session?.user ?? null;
-        console.log('[Auth] Auth state changed, user:', newUser?.email ?? 'null');
-        set({ user: newUser });
+        const next = session?.user ?? null;
+        // Token refreshes emit the same user; keep the reference stable so listeners don't reload.
+        if (next?.id !== useAuth.getState().user?.id) set({ user: next });
       });
-    } catch (error) {
-      console.error('[Auth] Load error:', error);
-      set({ user: null, loading: false });
+    }
+    try {
+      const { data } = await supabase.auth.getSession();
+      set({ user: data.session?.user ?? null });
+    } catch {
+      set({ user: null });
     }
   },
-  async signUp(email, password) {
-    console.log('[Auth] Signing up with email:', email);
-    const { data, error } = await supabase.auth.signUp({ email, password });
-    if (error) {
-      console.error('[Auth] Sign up error:', error);
-    } else {
-      console.log('[Auth] Sign up success:', data);
-    }
-    return { error };
-  },
+
   async signIn(email, password) {
-    console.log('[Auth] Signing in with email:', email);
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) {
-      console.error('[Auth] Sign in error:', error);
-    } else {
-      console.log('[Auth] Sign in success:', data);
-    }
-    return { error };
-  },
-  async signOut() {
-    console.log('[Auth] Signing out...');
     try {
-      // Clear Supabase session
-      await supabase.auth.signOut();
-      // Clear any stored sessions from AsyncStorage
-      const keys = await AsyncStorage.getAllKeys();
-      const sessionKeys = keys.filter(k => k.includes('sb-ngfpfbzzwoptpoteaond-auth') || k.includes('supabase'));
-      if (sessionKeys.length > 0) {
-        await AsyncStorage.multiRemove(sessionKeys);
-        console.log('[Auth] Cleared session keys:', sessionKeys);
-      }
-      // Clear remember email
-      try {
-        await AsyncStorage.removeItem(REMEMBER_EMAIL_KEY);
-      } catch {
-        // Ignore storage errors
-      }
-      // Reset state
-      set({ user: null, loading: false, rememberEmail: null });
-      console.log('[Auth] Sign out complete');
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      return authErrorCode(error);
     } catch (error) {
-      console.error('[Auth] Sign out error:', error);
-      // Still reset state even if cleanup fails
-      set({ user: null, loading: false, rememberEmail: null });
+      return authErrorCode(error as Error);
     }
   },
-  async setRememberEmail(email) {
+
+  async signUp(email, password, fullName) {
     try {
-      await AsyncStorage.setItem(REMEMBER_EMAIL_KEY, email);
-      set({ rememberEmail: email });
-    } catch {
-      // Ignore storage errors
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: { data: { full_name: fullName } },
+      });
+      if (error) return authErrorCode(error);
+      // With email confirmation on, no session is returned until the link is opened.
+      return data.session ? null : 'confirm';
+    } catch (error) {
+      return authErrorCode(error as Error);
     }
   },
-  async clearRememberEmail() {
+
+  async resetPassword(email) {
     try {
-      await AsyncStorage.removeItem(REMEMBER_EMAIL_KEY);
-      set({ rememberEmail: null });
-    } catch {
-      // Ignore storage errors
+      const { error } = await supabase.auth.resetPasswordForEmail(email);
+      return authErrorCode(error);
+    } catch (error) {
+      return authErrorCode(error as Error);
     }
   },
-  async loadRememberEmail() {
+
+  async signOut() {
     try {
-      const email = await AsyncStorage.getItem(REMEMBER_EMAIL_KEY);
-      set({ rememberEmail: email });
-    } catch {
-      set({ rememberEmail: null });
+      // Local scope: only this device signs out, and it works offline.
+      await supabase.auth.signOut({ scope: 'local' });
+    } finally {
+      set({ user: null });
     }
   },
 }));

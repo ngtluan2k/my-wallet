@@ -1,396 +1,225 @@
-import { useRouter } from 'expo-router';
-import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import * as Application from 'expo-application';
+import { router } from 'expo-router';
+import { useState } from 'react';
+import { Alert, Pressable, StyleSheet, View } from 'react-native';
 
-import { AppText, IOSwitch, SectionLabel, SettingsGroup, SettingsRow } from '@/components/ui';
+import { TabPage } from '@/components/AppHeader';
+import { SigningExpiryInfo } from '@/components/signing';
+import { AppText, Card, GroupLabel, ListGroup, ListRow, PageTitle, Screen, Sheet, Toggle } from '@/components/ui';
 import { useBackupActions } from '@/components/useBackupActions';
+import type { LanguagePreference, ThemePreference } from '@/data/settingsStorage';
+import { useT, type TranslationKey } from '@/i18n';
+import { useAppLock } from '@/state/appLock';
+import { useAuth } from '@/state/auth';
+import { flushBeforeSignOut } from '@/state/session';
 import { useSettings } from '@/state/settings';
-import { useT } from '@/i18n';
-import { spacing, useTheme } from '@/theme';
+import { walletStore } from '@/state/wallet';
+import { radius, spacing, useTheme } from '@/theme';
 
-const CURRENCY_OPTIONS = ['VND', 'USD', 'EUR', 'JPY', 'KRW', 'THB', 'SGD', 'MYR'] as const;
-const CURRENCY_SYMBOLS: Record<string, string> = {
-  VND: '₫', USD: '$', EUR: '€', JPY: '¥', KRW: '₩', THB: '฿', SGD: 'S$', MYR: 'RM',
-};
+const LANGUAGES: { value: LanguagePreference; label: TranslationKey }[] = [
+  { value: 'system', label: 'settings.system' },
+  { value: 'vi', label: 'settings.langVietnamese' },
+  { value: 'en', label: 'settings.langEnglish' },
+];
+const THEMES: { value: ThemePreference; label: TranslationKey }[] = [
+  { value: 'system', label: 'settings.system' },
+  { value: 'light', label: 'settings.light' },
+  { value: 'dark', label: 'settings.dark' },
+];
 
 export default function SettingsScreen() {
-  const router = useRouter();
   const { t } = useT();
   const { colors } = useTheme();
-  const {
-    theme,
-    language: langPref,
-    currency,
-    faceIdEnabled,
-    pinEnabled,
-    update,
-  } = useSettings();
+  const language = useSettings((s) => s.language);
+  const theme = useSettings((s) => s.theme);
+  const update = useSettings((s) => s.update);
+  const email = useAuth((s) => s.user?.email);
+  const { pinSet, biometricEnabled, biometricAvailable } = useAppLock();
   const { exportData, restoreData } = useBackupActions();
+  const [picker, setPicker] = useState<'language' | 'theme' | null>(null);
 
-  async function handleDeleteAll() {
-    Alert.alert(
-      t('settings.resetData'),
-      t('settings.resetDataDesc'),
-      [
-        { text: t('common.cancel'), style: 'cancel' },
-        {
-          text: t('common.delete'),
-          style: 'destructive',
-          onPress: async () => {
-            const { walletStore } = await import('@/state/wallet');
-            await walletStore.getState().replaceAll({
-              version: 1,
-              transactions: [],
-              categories: [],
-              budgets: [],
-              wallets: [],
-            });
-            router.replace('/');
-          },
-        },
-      ],
-    );
+  async function signOut() {
+    const pending = await flushBeforeSignOut();
+    Alert.alert(t('settings.signOut'), pending > 0 ? t('settings.signOutPending', { count: pending }) : t('settings.signOutConfirm'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('settings.signOut'), style: 'destructive', onPress: () => void useAuth.getState().signOut() },
+    ]);
   }
 
+  function resetData() {
+    Alert.alert(t('settings.resetData'), t('settings.resetConfirm'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      {
+        text: t('common.delete'),
+        style: 'destructive',
+        onPress: () => walletStore.getState().resetData().catch(() => Alert.alert(t('common.error'), t('storage.saveFailed'))),
+      },
+    ]);
+  }
+
+  function pinPressed() {
+    if (!pinSet) {
+      router.push('/pin');
+      return;
+    }
+    Alert.alert(t('settings.pin'), undefined, [
+      { text: t('settings.pinChange'), onPress: () => router.push('/pin') },
+      {
+        text: t('settings.pinRemove'),
+        style: 'destructive',
+        onPress: () => void useAppLock.getState().removePin(),
+      },
+      { text: t('common.cancel'), style: 'cancel' },
+    ]);
+  }
+
+  const version = Application.nativeApplicationVersion;
+  const faceIdSubtitle = !biometricAvailable
+    ? t('settings.faceIdUnavailable')
+    : !pinSet
+      ? t('settings.faceIdNeedsPin')
+      : undefined;
+
   return (
-    <ScrollView
-      style={[styles.screen, { backgroundColor: colors.background }]}
-      contentContainerStyle={styles.content}
-      keyboardShouldPersistTaps="handled"
-    >
-      {/* Hero Card */}
-      <View style={[styles.heroCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-        <View style={styles.heroHeader}>
-          <View style={[styles.heroIcon, { backgroundColor: `${colors.primary}15` }]}>
-            <AppText tone="primary" size={24}>🛡️</AppText>
-          </View>
-          <View style={{ flex: 1 }}>
-            <View style={styles.heroTitleRow}>
-              <AppText weight="700" size={17}>{t('app.name')}</AppText>
-              <AppText tone="muted" size={11} style={styles.versionBadge}>
-                {t('settings.version')}
-              </AppText>
-            </View>
-            <AppText tone="muted" size={13}>{t('settings.offlineFirst')}</AppText>
-          </View>
-        </View>
-        <View style={[styles.heroDivider, { borderColor: colors.border }]} />
-        <View style={styles.heroFooter}>
-          <View style={styles.heroStatusRow}>
-            <View style={[styles.pulseDot, { backgroundColor: colors.primary }]} />
-            <AppText tone="primary" size={14} weight="600">{t('settings.dataLocal')}</AppText>
-          </View>
-          <AppText tone="muted" size={12}>{t('settings.secure')}</AppText>
-        </View>
-      </View>
+    <TabPage>
+      <Screen>
+        <PageTitle eyebrow={t('settings.eyebrow')} title={t('settings.title')} />
 
-      {/* Section 1: Data Management */}
-      <SectionLabel>{t('settings.section.dataManagement')}</SectionLabel>
-      <SettingsGroup>
-        {/* Export backup */}
-        <View style={styles.exportGroup}>
-          <View style={styles.exportContent}>
-            <View style={[styles.iconCircle, { backgroundColor: `${colors.primary}15` }]}>
-              <AppText tone="primary" size={18}>⬇️</AppText>
+        <Card>
+          <View style={styles.appCard}>
+            <View style={[styles.appIcon, { backgroundColor: colors.primarySoft }]}>
+              <Ionicons name="shield-checkmark" size={26} color={colors.primary} />
             </View>
-            <View style={{ flex: 1, gap: 2 }}>
-              <AppText weight="600" size={17}>{t('settings.backupJson')}</AppText>
+            <View style={styles.flex}>
+              <AppText size={18} weight="700">
+                {t('app.name')}
+              </AppText>
               <AppText tone="muted" size={13}>
-                {t('settings.backupJsonDesc')}
+                {t('settings.appTagline')}
               </AppText>
             </View>
           </View>
-          <Pressable
-            onPress={exportData}
-            style={({ pressed }) => [
-              styles.exportButton,
-              { backgroundColor: colors.primary, opacity: pressed ? 0.8 : 1 },
-            ]}
-          >
-            <AppText tone="white" size={14} weight="600">
-              {t('settings.export')}
+        </Card>
+
+        <GroupLabel>{t('settings.section.account')}</GroupLabel>
+        <ListGroup>
+          <ListRow icon="person-circle-outline" title={t('settings.signedInAs')} subtitle={email} />
+          <ListRow icon="log-out-outline" title={t('settings.signOut')} destructive onPress={signOut} />
+        </ListGroup>
+
+        <GroupLabel>{t('settings.section.data')}</GroupLabel>
+        <ListGroup>
+          <ListRow icon="download-outline" title={t('settings.export')} subtitle={t('settings.exportDesc')} chevron onPress={exportData} />
+          <ListRow icon="cloud-upload-outline" title={t('settings.import')} subtitle={t('settings.importDesc')} chevron onPress={restoreData} />
+          <ListRow icon="trash-outline" title={t('settings.resetData')} subtitle={t('settings.resetDataDesc')} destructive chevron onPress={resetData} />
+        </ListGroup>
+
+        <GroupLabel>{t('settings.section.security')}</GroupLabel>
+        <ListGroup>
+          <ListRow
+            icon="keypad-outline"
+            title={t('settings.pin')}
+            subtitle={pinSet ? t('settings.pinOn') : t('settings.pinOff')}
+            value={pinSet ? t('settings.pinChange') : t('settings.pinSetup')}
+            chevron
+            onPress={pinPressed}
+          />
+          <ListRow
+            icon="scan-outline"
+            title={t('settings.faceId')}
+            subtitle={faceIdSubtitle}
+            accessory={
+              <Toggle
+                value={biometricEnabled}
+                disabled={!pinSet || !biometricAvailable}
+                onValueChange={(v) => void useAppLock.getState().setBiometricEnabled(v)}
+              />
+            }
+          />
+        </ListGroup>
+
+        <GroupLabel>{t('settings.section.customization')}</GroupLabel>
+        <ListGroup>
+          <ListRow icon="wallet-outline" title={t('settings.wallets')} chevron onPress={() => router.push('/wallets')} />
+          <ListRow icon="cash-outline" title={t('settings.currency')} value={t('settings.currencyValue')} />
+          <ListRow
+            icon="language-outline"
+            title={t('settings.language')}
+            value={t(LANGUAGES.find((l) => l.value === language)!.label)}
+            chevron
+            onPress={() => setPicker('language')}
+          />
+          <ListRow
+            icon="contrast-outline"
+            title={t('settings.theme')}
+            value={t(THEMES.find((o) => o.value === theme)!.label)}
+            chevron
+            onPress={() => setPicker('theme')}
+          />
+        </ListGroup>
+
+        <GroupLabel>{t('settings.section.about')}</GroupLabel>
+        <Card>
+          <View style={styles.philosophy}>
+            <Ionicons name="leaf-outline" size={16} color={colors.primary} />
+            <AppText tone="primary" weight="600" size={13}>
+              {t('settings.philosophy')}
             </AppText>
-          </Pressable>
-        </View>
-
-        {/* Divider */}
-        <View style={[styles.groupDivider, { borderColor: colors.border }]} />
-
-        {/* Import backup */}
-        <SettingsRow
-          icon="cloud-upload-outline"
-          iconBg={colors.primary}
-          title={t('settings.restoreJson')}
-          subtitle={t('settings.restoreJsonDesc')}
-          onPress={restoreData}
-        />
-
-        {/* Divider */}
-        <View style={[styles.groupDivider, { borderColor: colors.border }]} />
-
-        {/* Delete all data */}
-        <SettingsRow
-          icon="trash-outline"
-          iconBg={colors.danger}
-          title={t('settings.resetData')}
-          subtitle={t('settings.resetDataDesc')}
-          destructive
-          onPress={handleDeleteAll}
-        />
-      </SettingsGroup>
-
-      {/* Section 2: Security */}
-      <SectionLabel>{t('settings.section.security')}</SectionLabel>
-      <SettingsGroup>
-        <SettingsRow
-          icon="finger-print-outline"
-          iconBg={colors.primary}
-          title={t('settings.faceId')}
-          accessory={
-            <IOSwitch
-              value={faceIdEnabled}
-              onValueChange={(v) => update({ faceIdEnabled: v })}
-            />
-          }
-        />
-
-        <View style={[styles.groupDivider, { borderColor: colors.border }]} />
-
-        <SettingsRow
-          icon="key-outline"
-          iconBg={colors.tertiary}
-          title={t('settings.pin')}
-          subtitle={pinEnabled ? t('settings.pinSet') : undefined}
-          accessory={
-            <Pressable onPress={() => {}} style={styles.changePinText}>
-              <AppText tone="muted" size={14}>{t('settings.pinChange')}</AppText>
-              <AppText tone="muted" size={16}>›</AppText>
-            </Pressable>
-          }
-        />
-      </SettingsGroup>
-
-      {/* Section 3: Customization */}
-      <SectionLabel>{t('settings.section.customization')}</SectionLabel>
-      <SettingsGroup>
-        <SettingsRow
-          icon="cash-outline"
-          iconBg={colors.primary}
-          title={t('settings.currency')}
-          accessory={
-            <View style={styles.accessoryRow}>
-              <AppText tone="muted" size={14}>
-                {currency} ({CURRENCY_SYMBOLS[currency]})
-              </AppText>
-              <AppText tone="muted" size={16}>›</AppText>
-            </View>
-          }
-          onPress={() => {
-            const nextIdx = (CURRENCY_OPTIONS.indexOf(currency) + 1) % CURRENCY_OPTIONS.length;
-            update({ currency: CURRENCY_OPTIONS[nextIdx] });
-          }}
-        />
-
-        <View style={[styles.groupDivider, { borderColor: colors.border }]} />
-
-        <SettingsRow
-          icon="language-outline"
-          iconBg={colors.primary}
-          title={t('settings.language')}
-          accessory={
-            <View style={styles.accessoryRow}>
-              <AppText tone="muted" size={14}>
-                {langPref === 'vi' ? 'Tiếng Việt (VN)' : langPref === 'en' ? 'English (US)' : 'Hệ thống'}
-              </AppText>
-              <AppText tone="muted" size={16}>›</AppText>
-            </View>
-          }
-          onPress={() => {
-            const next = langPref === 'vi' ? 'en' : langPref === 'en' ? 'system' : 'vi';
-            update({ language: next });
-          }}
-        />
-
-        <View style={[styles.groupDivider, { borderColor: colors.border }]} />
-
-        <SettingsRow
-          icon="contrast-outline"
-          iconBg={colors.primary}
-          title={t('settings.theme')}
-          accessory={
-            <View style={styles.accessoryRow}>
-              <AppText tone="muted" size={14}>
-                {theme === 'system'
-                  ? t('settings.system')
-                  : theme === 'light'
-                    ? t('settings.light')
-                    : t('settings.dark')}
-              </AppText>
-              <AppText tone="muted" size={16}>›</AppText>
-            </View>
-          }
-          onPress={() => {
-            const next = theme === 'system' ? 'light' : theme === 'light' ? 'dark' : 'system';
-            update({ theme: next });
-          }}
-        />
-      </SettingsGroup>
-
-      {/* Section 4: About */}
-      <SectionLabel>{t('settings.section.about')}</SectionLabel>
-      <SettingsGroup>
-        {/* Philosophy box */}
-        <View style={[styles.philosophyBox, { backgroundColor: `${colors.surface}cc` }]}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: 4 }}>
-            <AppText tone="primary" size={16}>🌿</AppText>
-            <AppText tone="primary" weight="600" size={13}>{t('settings.philosophy')}</AppText>
           </View>
-          <AppText tone="muted" size={14} style={{ fontStyle: 'italic' }}>
-            {'"'}{t('app.slogan')}{'"'}
+          <AppText tone="muted" style={styles.italic}>
+            “{t('app.slogan')}”
           </AppText>
+          <SigningExpiryInfo />
+        </Card>
+
+        <View style={styles.footer}>
+          <AppText tone="muted" size={13}>
+            {t('settings.footer')}
+          </AppText>
+          {version && (
+            <AppText tone="faint" size={12}>
+              {t('settings.version', { version })}
+            </AppText>
+          )}
         </View>
+      </Screen>
 
-        <View style={[styles.groupDivider, { borderColor: colors.border }]} />
-
-        <SettingsRow
-          icon="information-circle-outline"
-          iconBg={colors.tertiary}
-          title={t('settings.aboutApp')}
-          onPress={() => {}}
-        />
-
-        <View style={[styles.groupDivider, { borderColor: colors.border }]} />
-
-        <SettingsRow
-          icon="star-outline"
-          iconBg={colors.warning}
-          title={t('settings.rateApp')}
-          accessory={<AppText tone="muted" size={16}>↗</AppText>}
-          onPress={() => {}}
-        />
-      </SettingsGroup>
-
-      {/* Footer */}
-      <View style={styles.footer}>
-        <AppText tone="muted" size={13}>
-          {t('app.name')} © 2025 • Tôn trọng 100% quyền riêng tư
-        </AppText>
-        <AppText tone="muted" size={11} style={{ marginTop: 4, opacity: 0.7 }}>
-          Bản phát hành ổn định cho iOS
-        </AppText>
-      </View>
-    </ScrollView>
+      <Sheet visible={picker !== null} title={picker === 'theme' ? t('settings.theme') : t('settings.language')} onClose={() => setPicker(null)}>
+        <ListGroup>
+          {(picker === 'theme' ? THEMES : LANGUAGES).map((option) => {
+            const selected = picker === 'theme' ? option.value === theme : option.value === language;
+            return (
+              <Pressable
+                key={option.value}
+                accessibilityRole="button"
+                accessibilityState={{ selected }}
+                onPress={() => {
+                  if (picker === 'theme') update({ theme: option.value as ThemePreference });
+                  else update({ language: option.value as LanguagePreference });
+                  setPicker(null);
+                }}
+                style={styles.option}
+              >
+                <AppText size={16} style={styles.flex}>
+                  {t(option.label)}
+                </AppText>
+                {selected && <Ionicons name="checkmark" size={22} color={colors.primary} />}
+              </Pressable>
+            );
+          })}
+        </ListGroup>
+      </Sheet>
+    </TabPage>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1 },
-  content: {
-    paddingHorizontal: spacing.lg,
-    paddingTop: 20,
-    paddingBottom: 48,
-    gap: spacing.xs,
-  },
-  heroCard: {
-    borderRadius: 12,
-    borderWidth: StyleSheet.hairlineWidth,
-    padding: 16,
-    marginBottom: 4,
-    shadowColor: '#0f172a',
-    shadowOpacity: 0.04,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: -2 },
-    elevation: 4,
-  },
-  heroHeader: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 12,
-  },
-  heroIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  heroTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  versionBadge: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-    backgroundColor: '#f1f5f9',
-  },
-  heroDivider: {
-    height: StyleSheet.hairlineWidth,
-    marginTop: 12,
-    marginBottom: 12,
-  },
-  heroFooter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  heroStatusRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  pulseDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  exportGroup: {
-    padding: 16,
-    gap: 12,
-  },
-  exportContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  iconCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  exportButton: {
-    alignSelf: 'flex-end',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 999,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  groupDivider: {
-    height: StyleSheet.hairlineWidth,
-    marginLeft: 54,
-  },
-  accessoryRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  changePinText: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  philosophyBox: {
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 4,
-  },
-  footer: {
-    alignItems: 'center',
-    paddingTop: 20,
-    paddingBottom: 16,
-  },
+  flex: { flex: 1, minWidth: 0 },
+  appCard: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  appIcon: { width: 52, height: 52, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center' },
+  philosophy: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  italic: { fontStyle: 'italic' },
+  footer: { alignItems: 'center', gap: 4, paddingVertical: spacing.md },
+  option: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.md, paddingVertical: 16 },
 });

@@ -1,12 +1,16 @@
 import { File, Paths } from 'expo-file-system';
 
-import { createInitialData, parseWalletJson } from '@/domain/walletData';
+import { parseWalletJson } from '@/domain/walletData';
 import type { WalletData } from '@/domain/types';
 
 import { StorageError, type WalletRepository } from './WalletRepository';
 
-const FILE_NAME = 'wallet.json';
-const TEMP_NAME = 'wallet.json.tmp';
+/** File used before accounts existed. Offered for import on first sign-in, never written again. */
+export const LEGACY_FILE_NAME = 'wallet.json';
+
+export function userFileName(userId: string): string {
+  return `wallet-${userId.replace(/[^A-Za-z0-9-]/g, '')}.json`;
+}
 
 /**
  * Stores everything in one JSON file in the app's document directory.
@@ -16,11 +20,17 @@ const TEMP_NAME = 'wallet.json.tmp';
  * and load() recovers from it.
  */
 export class JsonFileRepository implements WalletRepository {
-  async load(): Promise<WalletData> {
-    const main = new File(Paths.document, FILE_NAME);
-    const temp = new File(Paths.document, TEMP_NAME);
+  constructor(private readonly fileName: string) {}
+
+  private get tempName() {
+    return `${this.fileName}.tmp`;
+  }
+
+  async load(): Promise<WalletData | null> {
+    const main = new File(Paths.document, this.fileName);
+    const temp = new File(Paths.document, this.tempName);
     const source = main.exists ? main : temp.exists ? temp : null;
-    if (!source) return createInitialData();
+    if (!source) return null;
 
     let text: string;
     try {
@@ -32,19 +42,38 @@ export class JsonFileRepository implements WalletRepository {
     if (!result.ok) {
       throw new StorageError(result.error === 'unsupported_version' ? 'unsupported_version' : 'corrupt');
     }
-    if (source === temp) temp.rename(FILE_NAME);
+    if (source === temp) temp.rename(this.fileName);
     return result.data;
   }
 
   async save(data: WalletData): Promise<void> {
     try {
-      const temp = new File(Paths.document, TEMP_NAME);
+      const temp = new File(Paths.document, this.tempName);
       await temp.write(JSON.stringify(data));
-      const main = new File(Paths.document, FILE_NAME);
+      const main = new File(Paths.document, this.fileName);
       if (main.exists) main.delete();
-      temp.rename(FILE_NAME);
+      temp.rename(this.fileName);
     } catch (cause) {
       throw new StorageError('write_failed', { cause });
     }
+  }
+}
+
+/** Reads the pre-account data file, if any. Returns null when missing or unreadable. */
+export async function readLegacyData(): Promise<WalletData | null> {
+  try {
+    return await new JsonFileRepository(LEGACY_FILE_NAME).load();
+  } catch {
+    return null;
+  }
+}
+
+/** Marks the legacy file as handled so it isn't offered again. The data stays on disk as a backup. */
+export function retireLegacyData(): void {
+  try {
+    const legacy = new File(Paths.document, LEGACY_FILE_NAME);
+    if (legacy.exists) legacy.rename(`${LEGACY_FILE_NAME}.imported`);
+  } catch {
+    // Offering it again next time is harmless.
   }
 }

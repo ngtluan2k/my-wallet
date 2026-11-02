@@ -4,15 +4,28 @@ export type LocalDate = string;
 /** Calendar month, `YYYY-MM`. */
 export type MonthKey = string;
 
-export type TransactionType = 'income' | 'expense';
+/** Local wall-clock time, `HH:mm`. */
+export type LocalTime = string;
+
+/** Kinds that carry a category and count toward income/expense totals. */
+export type CategoryType = 'income' | 'expense';
+
+/** A transfer moves money between two of the user's wallets and is not income or expense. */
+export type TransactionType = CategoryType | 'transfer';
 
 export interface Transaction {
   id: string;
   type: TransactionType;
-  /** Positive integer in the currency's smallest unit (VND has no subunit, so đồng). */
+  /** Positive integer of đồng (VND only). */
   amount: number;
-  categoryId: string;
+  /** Source wallet for every type; for a transfer, the wallet money leaves. */
+  walletId: string;
+  /** Destination wallet, set only for transfers. */
+  toWalletId?: string;
+  /** Set for income and expense, absent for transfers. */
+  categoryId?: string;
   transactionDate: LocalDate;
+  transactionTime?: LocalTime;
   note?: string;
   /** ISO 8601 timestamps. */
   createdAt: string;
@@ -21,7 +34,7 @@ export interface Transaction {
 
 export interface Category {
   id: string;
-  type: TransactionType;
+  type: CategoryType;
   /** Set for built-in categories; the display name comes from translations. */
   builtInKey?: string;
   /** Display name for user-created categories. */
@@ -37,12 +50,23 @@ export interface Budget {
   limit: number;
 }
 
+export type WalletKind = 'cash' | 'bank' | 'ewallet';
+
 export interface Wallet {
   id: string;
   name: string;
+  kind: WalletKind;
+  /** Ionicons glyph name. */
+  icon: string;
+  color: string;
+  /** Đồng held when the wallet was added to the app. Integer, may be 0. */
   openingBalance: number;
-  currency: string;
+  /** Exactly one wallet is the default; new transactions start on it. */
   isDefault: boolean;
+  /** Archived wallets keep their history but are hidden from pickers and the total balance. */
+  archived?: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface WalletData {

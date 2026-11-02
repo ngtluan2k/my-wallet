@@ -31,6 +31,32 @@ export function addDays(value: LocalDate, days: number): LocalDate {
   return toLocalDate(date);
 }
 
+export function daysInMonth(month: MonthKey): number {
+  const [y, m] = month.split('-').map(Number);
+  return new Date(y, m, 0).getDate();
+}
+
+/** 0 = Sunday … 6 = Saturday. */
+export function weekdayOf(value: LocalDate): number {
+  return parseLocalDate(value).getDay();
+}
+
+/** Monday of the week containing `value` (weeks run Monday–Sunday, as in Vietnam). */
+export function startOfWeek(value: LocalDate): LocalDate {
+  const offset = (weekdayOf(value) + 6) % 7;
+  return addDays(value, -offset);
+}
+
+/** Builds a local Date for a picker from a stored date (and optional time), never via UTC parsing. */
+export function toPickerDate(value: LocalDate, time?: string): Date {
+  const date = parseLocalDate(value);
+  if (time) {
+    const [h, m] = time.split(':').map(Number);
+    date.setHours(h, m, 0, 0);
+  }
+  return date;
+}
+
 export function monthOf(value: LocalDate): MonthKey {
   return value.slice(0, 7);
 }

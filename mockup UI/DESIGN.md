@@ -136,17 +136,27 @@ The aesthetic blends **Modern iOS Craftsmanship** with **Soft Minimalist Depth**
 - **Organic Trust**: Emerald and jade tones evoke sustainable balance, natural prosperity, and stability, steering away from speculative or aggressive neon fintech tropes.
 - **Tactile Softness**: Layered frosted glass, subtle hairline boundaries, and smooth squircle cards build an authentic iOS-native tactile surface.
 
+> **Screen content is specified in `SCREENS.md`.** This file covers visual style only. The app's
+> implemented tokens live in `src/theme/index.ts`; where this file and the code disagree, the code wins.
+
 ## Colors
 
 The palette balances positive financial feedback with high-contrast functional alerts:
 
-- **Primary (`#059669`) & Secondary (`#10B981`)**: Anchor the system with rich emerald and jade hues, representing income, positive net flow, and completed savings targets.
+- **Primary (`#006948`)**: Anchors the system with a rich emerald, used for primary actions and selection. (Earlier drafts of this text said `#059669`; the token above, `#006948`, is the chosen value.) Income uses a related green (`#047857`).
 - **Tertiary (`#0F172A`)**: Deep slate blue providing grounded structure for high-emphasis numerals, primary headings, and navigation labels.
 - **Neutral (`#64748B`)**: Balanced cool slate used for timestamps, category captions, secondary transaction metadata, and inactive states.
 - **Functional Semantics**:
   - `expense-red` (`#EF4444`): Crisp coral red allocated for outflows, debit transactions, and critical budget limits.
   - `budget-warning` (`#F59E0B`): Amber gold dedicated to cautionary indicators when a monthly category consumes 80% to 99% of its allocated funds.
   - `border-hairline` (`#E2E8F0`): Ultra-subtle border defining surface boundaries cleanly across high-density displays.
+
+### Dark mode
+
+Every token has a dark counterpart (see `dark` in `src/theme/index.ts`): canvas `#0B1117`, cards `#151D26`,
+muted fills `#1E2833`, hairline `#2A3642`, text `#EAF1FF` / `#9AA8BC`, primary `#68DBA9` on `#002114`,
+hero card `#0E4F3B`, income `#4ADE80`, expense `#F87171`, warning `#FBBF24`.
+Screens never use color literals, so both modes stay in step.
 
 ## Typography
 
@@ -190,7 +200,7 @@ The design uses Apple-style continuous curves (squircles) with a standardized ro
 ## Components
 
 ### Buttons
-- **Primary Action**: Full-width or prominent pill button with emerald fill (`#059669`), white text (`label-lg`), and haptic click feedback. Height locked to 50px for touch precision.
+- **Primary Action**: Full-width or prominent pill button with emerald fill (`#006948`), white text (`label-lg`). Height 50px for touch precision.
 - **Secondary / Ghost**: Muted surface (`#F1F5F9`) with primary slate label (`#0F172A`).
 - **Destructive**: Soft red tint background (`rgba(239, 68, 68, 0.1)`) with `expense-red` label (`#EF4444`).
 
@@ -200,12 +210,12 @@ The design uses Apple-style continuous curves (squircles) with a standardized ro
 
 ### Input Fields & Quick Keypad
 - **Custom Amount Input**: Extra-large numerical display (`currency-display`, 32px-40px) centered with automatic punctuation formatting (`1.000.000 ₫`).
-- **Numeric Keypad Grid**: 3x4 iOS-style tactile keypad with generous hitboxes (64px key height), gentle active-state background shifts, and haptic feedback on touch down.
+- **Numeric Keypad Grid**: 3x4 keypad (1–9, C, 0, 000) plus a right column with backspace and a tall Done key. No decimal key: VND has no minor unit. Quick-amount chips add to the current amount.
 
 ### Progress & Budget Bars
 - Minimum track height of 8px with fully rounded caps.
 - Background track set to `#F1F5F9`. The indicator fill transitions dynamically:
-  - `< 80%`: `primary_color_hex` (`#059669`)
+  - `< 80%`: primary (`#006948`)
   - `80% - 99%`: `budget-warning` (`#F59E0B`)
   - `>= 100%`: `expense-red` (`#EF4444`) with an alert pulse animation.
 

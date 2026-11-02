@@ -31,7 +31,14 @@
       "expo-localization",
       "expo-sharing",
       "expo-font",
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      "expo-secure-store",
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Ví Mình dùng Face ID để mở khoá ứng dụng."
+        }
+      ]
     ],
     "scheme": "mywallet",
     "experiments": {

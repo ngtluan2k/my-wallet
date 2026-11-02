@@ -1,17 +1,36 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Tabs } from 'expo-router';
-import type { ColorValue } from 'react-native';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { router, Tabs } from 'expo-router';
+import { Pressable, StyleSheet, View, type ColorValue } from 'react-native';
 
-import type { IconName } from '@/components/ui';
-import { AppText } from '@/components/ui';
+import { AppText, type IconName } from '@/components/ui';
 import { useT } from '@/i18n';
-import { spacing, useTheme } from '@/theme';
+import { cardShadow, useTheme } from '@/theme';
 
-function icon(name: IconName) {
-  return function TabIcon({ color, size }: { color: ColorValue | null; size: number }) {
-    return <Ionicons name={name} color={typeof color === 'number' ? undefined : (color ?? undefined)} size={size} />;
+function icon(name: IconName, activeName: IconName) {
+  return function TabIcon({ color, focused }: { color: ColorValue | null; focused: boolean }) {
+    return <Ionicons name={focused ? activeName : name} size={24} color={typeof color === 'string' ? color : undefined} />;
   };
+}
+
+/** Center "+" opens the add-transaction modal instead of switching tabs. */
+function AddButton() {
+  const { t } = useT();
+  const { colors } = useTheme();
+  return (
+    <Pressable
+      onPress={() => router.push('/transaction')}
+      accessibilityRole="button"
+      accessibilityLabel={t('transactions.add')}
+      style={styles.addSlot}
+    >
+      <View style={[styles.addButton, { backgroundColor: colors.primary }, cardShadow(colors, 2)]}>
+        <Ionicons name="add" size={30} color={colors.onPrimary} />
+      </View>
+      <AppText size={11} weight="500" tone="muted">
+        {t('tab.add')}
+      </AppText>
+    </Pressable>
+  );
 }
 
 export default function TabsLayout() {
@@ -21,100 +40,28 @@ export default function TabsLayout() {
   return (
     <Tabs
       screenOptions={{
-        headerStyle: {
-          backgroundColor: `${colors.surface}cc`,
-          borderBottomWidth: StyleSheet.hairlineWidth,
-          borderBottomColor: colors.border,
-        },
-        headerTintColor: colors.text,
-        headerTitleStyle: { display: 'none' },
-        tabBarStyle: {
-          backgroundColor: `${colors.surface}ee`,
-          borderTopColor: colors.border,
-          borderTopWidth: StyleSheet.hairlineWidth,
-          height: 72,
-          paddingBottom: 8,
-          paddingTop: 8,
-        },
+        headerShown: false,
+        tabBarStyle: { backgroundColor: colors.surface, borderTopColor: colors.border },
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.textMuted,
+        tabBarLabelStyle: styles.label,
         sceneStyle: { backgroundColor: colors.background },
-        header: ({ navigation }) => (
-          <View style={[styles.header, { backgroundColor: `${colors.surface}cc`, borderBottomColor: colors.border }]}>
-            <View style={styles.headerLeft}>
-              <View style={[styles.headerAvatar, { backgroundColor: `${colors.primary}20` }]}>
-                <Ionicons name="person-circle-outline" size={22} color={colors.primary} />
-              </View>
-              <AppText weight="700" size={17} tone="primary" style={styles.headerBrand}>
-                {t('app.name')}
-              </AppText>
-            </View>
-            <Pressable hitSlop={12} style={styles.headerBell}>
-              <Ionicons name="notifications-outline" size={22} color={colors.primary} />
-            </Pressable>
-          </View>
-        ),
       }}
     >
-      <Tabs.Screen name="index" options={{ title: t('tab.dashboard'), tabBarIcon: icon('pie-chart-outline') }} />
-      <Tabs.Screen name="transactions" options={{ title: t('tab.transactions'), tabBarIcon: icon('list-outline') }} />
-      <Tabs.Screen name="budget" options={{ title: t('tab.budget'), tabBarIcon: icon('wallet-outline') }} />
-      <Tabs.Screen name="settings" options={{ title: t('tab.settings'), tabBarIcon: icon('settings-outline') }} />
-      {/* Center add button */}
+      <Tabs.Screen name="index" options={{ title: t('tab.dashboard'), tabBarIcon: icon('grid-outline', 'grid') }} />
       <Tabs.Screen
-        name="transaction"
-        options={{
-          title: t('transactions.add'),
-          tabBarIcon: () => (
-            <View style={[styles.centerBtn, { backgroundColor: colors.primary }]}>
-              <Ionicons name="add" size={26} color={colors.onPrimary} />
-            </View>
-          ),
-          tabBarButton: () => null,
-        }}
+        name="transactions"
+        options={{ title: t('tab.transactions'), tabBarIcon: icon('receipt-outline', 'receipt') }}
       />
+      <Tabs.Screen name="add" options={{ title: t('tab.add'), tabBarButton: () => <AddButton /> }} />
+      <Tabs.Screen name="budget" options={{ title: t('tab.budget'), tabBarIcon: icon('wallet-outline', 'wallet') }} />
+      <Tabs.Screen name="settings" options={{ title: t('tab.settings'), tabBarIcon: icon('settings-outline', 'settings') }} />
     </Tabs>
   );
 }
 
 const styles = StyleSheet.create({
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing.lg,
-    height: 56,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  headerAvatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerBrand: {
-    letterSpacing: -0.3,
-  },
-  headerBell: {
-    padding: spacing.xs,
-  },
-  centerBtn: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: -20,
-    shadowColor: '#000',
-    shadowOpacity: 0.18,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 6,
-  },
+  label: { fontSize: 11, fontWeight: '500' },
+  addSlot: { flex: 1, alignItems: 'center', justifyContent: 'flex-end', gap: 2, paddingBottom: 2 },
+  addButton: { width: 52, height: 52, borderRadius: 26, alignItems: 'center', justifyContent: 'center', marginTop: -22 },
 });

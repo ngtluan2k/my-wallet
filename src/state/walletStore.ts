@@ -1,6 +1,7 @@
-import { createStore, type StoreApi } from 'zustand/vanilla';
+import { createStore } from 'zustand/vanilla';
 
 import { removeBudget, setBudget } from '@/domain/budgets';
+import { applyRemoteChanges, diffWalletData, type RemoteChange, type SyncOp } from '@/domain/sync';
 import {
   createTransaction,
   updateTransaction,
@@ -9,11 +10,20 @@ import {
   type TransactionInput,
 } from '@/domain/transactions';
 import type { WalletData } from '@/domain/types';
+import { createInitialData, parseWalletData } from '@/domain/walletData';
+import {
+  addWallet,
+  archiveWallet,
+  deleteWallet,
+  editWallet,
+  validateWalletInput,
+  type WalletError,
+  type WalletInput,
+} from '@/domain/wallets';
 import type { WalletRepository } from '@/data/WalletRepository';
-import { syncService } from '@/services/syncService';
 
-export class ValidationError extends Error {
-  constructor(readonly errors: TransactionError[]) {
+export class ValidationError<E extends string = TransactionError> extends Error {
+  constructor(readonly errors: E[]) {
     super(errors.join(','));
     this.name = 'ValidationError';
   }
@@ -23,56 +33,120 @@ export interface WalletState {
   status: 'idle' | 'loading' | 'ready' | 'error';
   data: WalletData | null;
   loadError: unknown;
+  /** Switches to a repository (one per signed-in user) and loads it. */
+  open(repository: WalletRepository): Promise<void>;
+  /** Re-reads the current repository, e.g. after a failed load. */
   load(): Promise<void>;
-  addTransaction(input: TransactionInput): Promise<void>;
+  /** Forgets the open repository and its data, e.g. on sign-out. */
+  close(): void;
+  addTransaction(input: TransactionInput): Promise<string>;
   editTransaction(id: string, input: TransactionInput): Promise<void>;
   deleteTransaction(id: string): Promise<void>;
   setBudget(categoryId: string, limit: number): Promise<void>;
   removeBudget(categoryId: string): Promise<void>;
+  addWallet(input: WalletInput): Promise<string>;
+  editWallet(id: string, input: WalletInput): Promise<void>;
+  archiveWallet(id: string): Promise<void>;
+  deleteWallet(id: string): Promise<void>;
   /** Replaces all data, e.g. when restoring a backup. `data` must already be validated. */
   replaceAll(data: WalletData): Promise<void>;
+  /** Clears every transaction, budget and wallet, keeping one fresh default wallet. */
+  resetData(): Promise<void>;
+  /** Applies changes pulled from the server. Not reported to `onCommitted`, since they came from there. */
+  applyRemote(changes: RemoteChange[], pending: Set<string>): Promise<void>;
 }
 
 export interface WalletStoreDeps {
-  repository: WalletRepository;
   now?: () => Date;
   newId?: () => string;
+  /** Name for the wallet created with fresh data, in the user's language. */
+  defaultWalletName?: () => string;
+  /**
+   * Called after a local change is saved, with the record-level operations it made. Used to queue
+   * changes for sync. Failures here never undo the saved change.
+   */
+  onCommitted?: (ops: SyncOp[]) => Promise<void> | void;
 }
 
 const defaultId = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 
-export function createWalletStore({ repository, now = () => new Date(), newId = defaultId }: WalletStoreDeps) {
+export function createWalletStore({
+  now = () => new Date(),
+  newId = defaultId,
+  defaultWalletName = () => 'Ví chính',
+  onCommitted,
+}: WalletStoreDeps = {}) {
   // Mutations run one at a time so each computes from the latest saved state.
   let queue: Promise<unknown> = Promise.resolve();
+  let repository: WalletRepository | null = null;
+  // Bumped on open/close so a slow load for a previous user can't publish its result.
+  let generation = 0;
 
   return createStore<WalletState>()((set, get) => {
-    /** Applies `change` to current data, persists it, and only then publishes it. */
-    function enqueue(task: () => Promise<void>): Promise<void> {
+    function enqueue<T>(task: () => Promise<T>): Promise<T> {
       const run = queue.then(task);
       queue = run.catch(() => undefined);
       return run;
     }
 
-    function mutate(change: (data: WalletData) => WalletData): Promise<void> {
+    function requireRepository(): WalletRepository {
+      if (!repository) throw new Error('not_open');
+      return repository;
+    }
+
+    async function report(ops: SyncOp[]) {
+      if (!ops.length || !onCommitted) return;
+      try {
+        await onCommitted(ops);
+      } catch {
+        // The change is saved locally; a later full sync re-pushes anything missing on the server.
+      }
+    }
+
+    /** Computes the next state, saves it, and only then publishes it. A failed save changes nothing. */
+    function mutate(change: (data: WalletData) => WalletData, { sync = true } = {}): Promise<void> {
       return enqueue(async () => {
         const current = get().data;
         if (!current) throw new Error('not_loaded');
         const next = change(current);
-        try {
-          await repository.save(next);
-          set({ data: next });
-        } catch (error) {
-          // Even if Supabase fails, local save may have succeeded in repository.
-          // Update UI optimistically and enqueue for background sync.
-          set({ data: next });
-          throw error;
-        }
+        if (next === current) return;
+        await requireRepository().save(next);
+        set({ data: next });
+        if (sync) await report(diffWalletData(current, next));
       });
     }
 
-    function validate(data: WalletData, input: TransactionInput) {
-      const errors = validateTransactionInput(input, data.categories);
+    function checkTransaction(data: WalletData, input: TransactionInput, existingId?: string) {
+      const existing = existingId ? data.transactions.find((t) => t.id === existingId) : undefined;
+      const errors = validateTransactionInput(input, data.categories, data.wallets, existing);
       if (errors.length) throw new ValidationError(errors);
+    }
+
+    function checkWallet(data: WalletData, input: WalletInput, editingId?: string) {
+      const errors = validateWalletInput(input, data.wallets, editingId);
+      if (errors.length) throw new ValidationError<WalletError>(errors);
+    }
+
+    async function load() {
+      const repo = requireRepository();
+      const gen = generation;
+      set({ status: 'loading', loadError: null });
+      try {
+        const stored = await repo.load();
+        if (gen !== generation) return;
+        if (stored) {
+          set({ status: 'ready', data: stored });
+          return;
+        }
+        // First run for this user on this device. Not reported for sync: the first full sync pushes
+        // only what the server lacks, so fresh defaults never overwrite the user's existing data.
+        const fresh = createInitialData(defaultWalletName(), now());
+        await repo.save(fresh);
+        if (gen !== generation) return;
+        set({ status: 'ready', data: fresh });
+      } catch (error) {
+        if (gen === generation) set({ status: 'error', data: null, loadError: error });
+      }
     }
 
     return {
@@ -80,149 +154,108 @@ export function createWalletStore({ repository, now = () => new Date(), newId = 
       data: null,
       loadError: null,
 
-      async load() {
-        set({ status: 'loading', loadError: null });
-        try {
-          set({ status: 'ready', data: await repository.load() });
-          // Trigger background sync of any pending operations
-          syncService.syncPendingOperations().catch(() => undefined);
-        } catch (error) {
-          set({ status: 'error', loadError: error });
-        }
+      async open(repo) {
+        generation++;
+        repository = repo;
+        set({ status: 'idle', data: null, loadError: null });
+        await enqueue(load);
       },
 
-      addTransaction: async (input) => {
-        const current = get().data;
-        if (!current) throw new Error('not_loaded');
+      load: () => enqueue(load),
+
+      close() {
+        generation++;
+        repository = null;
+        set({ status: 'idle', data: null, loadError: null });
+      },
+
+      async addTransaction(input) {
         const id = newId();
-        const timestamp = now().toISOString();
-        const transaction = createTransaction(input, id, now());
-
-        try {
-          await mutate((data) => {
-            validate(data, input);
-            return {
-              ...data,
-              transactions: [...data.transactions, transaction],
-            };
-          });
-        } catch (error) {
-          // Optimistically update already done in mutate; enqueue for sync
-          await syncService.enqueueTransaction(id, 'INSERT', {
-            ...input,
-            createdAt: timestamp,
-            updatedAt: timestamp,
-          });
-          throw error;
-        }
+        await mutate((data) => {
+          checkTransaction(data, input);
+          return { ...data, transactions: [...data.transactions, createTransaction(input, id, now())] };
+        });
+        return id;
       },
 
-      editTransaction: async (id, input) => {
-        const current = get().data;
-        if (!current) throw new Error('not_loaded');
-        const existing = current.transactions.find((t) => t.id === id);
-        if (!existing) throw new Error('not_found');
-        const timestamp = now().toISOString();
+      editTransaction: (id, input) =>
+        mutate((data) => {
+          if (!data.transactions.some((t) => t.id === id)) throw new Error('not_found');
+          checkTransaction(data, input, id);
+          return {
+            ...data,
+            transactions: data.transactions.map((t) => (t.id === id ? updateTransaction(t, input, now()) : t)),
+          };
+        }),
 
-        try {
-          await mutate((data) => {
-            validate(data, input);
-            return {
-              ...data,
-              transactions: data.transactions.map((t) =>
-                t.id === id ? updateTransaction(t, input, now()) : t,
-              ),
-            };
-          });
-        } catch (error) {
-          await syncService.enqueueTransaction(id, 'UPDATE', {
-            type: input.type,
-            amount: input.amount,
-            categoryId: input.categoryId,
-            transactionDate: input.transactionDate,
-            note: input.note,
-            createdAt: existing.createdAt,
-            updatedAt: timestamp,
-          });
-          throw error;
-        }
+      deleteTransaction: (id) =>
+        mutate((data) => {
+          if (!data.transactions.some((t) => t.id === id)) throw new Error('not_found');
+          return { ...data, transactions: data.transactions.filter((t) => t.id !== id) };
+        }),
+
+      setBudget: (categoryId, limit) =>
+        mutate((data) => {
+          if (data.categories.find((c) => c.id === categoryId)?.type !== 'expense') throw new Error('category_invalid');
+          return { ...data, budgets: setBudget(data.budgets, categoryId, limit) };
+        }),
+
+      removeBudget: (categoryId) =>
+        mutate((data) => {
+          if (!data.budgets.some((b) => b.categoryId === categoryId)) return data;
+          return { ...data, budgets: removeBudget(data.budgets, categoryId) };
+        }),
+
+      async addWallet(input) {
+        const id = newId();
+        await mutate((data) => {
+          checkWallet(data, input);
+          return { ...data, wallets: addWallet(data.wallets, input, id, now()) };
+        });
+        return id;
       },
 
-      deleteTransaction: async (id) => {
-        const current = get().data;
-        if (!current) throw new Error('not_loaded');
-        const existing = current.transactions.find((t) => t.id === id);
-        if (!existing) throw new Error('not_found');
+      editWallet: (id, input) =>
+        mutate((data) => {
+          if (!data.wallets.some((w) => w.id === id)) throw new Error('not_found');
+          checkWallet(data, input, id);
+          return { ...data, wallets: editWallet(data.wallets, id, input, now()) };
+        }),
 
-        try {
-          await mutate((data) => ({ ...data, transactions: data.transactions.filter((t) => t.id !== id) }));
-        } catch (error) {
-          await syncService.enqueueTransaction(id, 'DELETE', {
-            type: existing.type,
-            amount: existing.amount,
-            categoryId: existing.categoryId,
-            transactionDate: existing.transactionDate,
-            note: existing.note,
-            createdAt: existing.createdAt,
-            updatedAt: existing.updatedAt,
-          });
-          throw error;
-        }
-      },
+      archiveWallet: (id) => mutate((data) => ({ ...data, wallets: archiveWallet(data.wallets, id, now()) })),
 
-      setBudget: async (categoryId, limit) => {
-        const current = get().data;
-        if (!current) throw new Error('not_loaded');
-        if (current.categories.find((c) => c.id === categoryId)?.type !== 'expense') throw new Error('category_invalid');
-        const monthKey = new Date().toISOString().slice(0, 7);
-
-        try {
-          await mutate((data) => ({ ...data, budgets: setBudget(data.budgets, categoryId, limit) }));
-        } catch (error) {
-          await syncService.enqueueBudget(categoryId, 'INSERT', {
-            categoryId,
-            monthKey,
-            limit,
-          });
-          throw error;
-        }
-      },
-
-      removeBudget: async (categoryId) => {
-        const current = get().data;
-        if (!current) throw new Error('not_loaded');
-        const existing = current.budgets.find((b) => b.categoryId === categoryId);
-        if (!existing) throw new Error('not_found');
-
-        try {
-          await mutate((data) => ({ ...data, budgets: removeBudget(data.budgets, categoryId) }));
-        } catch (error) {
-          await syncService.enqueueBudget(categoryId, 'DELETE', {
-            categoryId: existing.categoryId,
-            limit: existing.limit,
-            monthKey: new Date().toISOString().slice(0, 7),
-          });
-          throw error;
-        }
-      },
+      deleteWallet: (id) =>
+        mutate((data) => ({ ...data, wallets: deleteWallet(data.wallets, data.transactions, id, now()) })),
 
       // Works even when loading failed: restoring a backup is how users recover from a corrupt file.
-      replaceAll: async (replacement) => {
-        await enqueue(async () => {
-          await repository.save(replacement);
+      replaceAll: (replacement) =>
+        enqueue(async () => {
+          const previous = get().data;
+          await requireRepository().save(replacement);
           set({ status: 'ready', data: replacement, loadError: null });
-        });
-      },
+          await report(diffWalletData(previous, replacement));
+        }),
 
-      triggerSync: async () => {
-        try {
-          await syncService.syncPendingOperations();
-        } catch {
-          // Silently fail for UI; background sync continues on its own
-        }
-      },
+      resetData: () =>
+        enqueue(async () => {
+          const previous = get().data;
+          const fresh = createInitialData(defaultWalletName(), now());
+          await requireRepository().save(fresh);
+          set({ status: 'ready', data: fresh, loadError: null });
+          await report(diffWalletData(previous, fresh));
+        }),
+
+      applyRemote: (changes, pending) =>
+        mutate(
+          (data) => {
+            const merged = applyRemoteChanges(data, changes, pending);
+            if (merged === data) return data;
+            const parsed = parseWalletData(merged);
+            if (!parsed.ok) throw new Error('remote_invalid');
+            return parsed.data;
+          },
+          { sync: false },
+        ),
     };
   });
 }
-
-export type WalletStore = StoreApi<WalletState>;

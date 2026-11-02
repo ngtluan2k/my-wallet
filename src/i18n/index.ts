@@ -1,7 +1,10 @@
-import { useLocales } from 'expo-localization';
-import { useCallback } from 'react';
+import { getLocales, useLocales } from 'expo-localization';
+import { useCallback, useMemo } from 'react';
 
-import type { Category } from '@/domain/types';
+import { today, weekdayOf } from '@/domain/dates';
+import { formatMoney, formatSignedMoney } from '@/domain/money';
+import { relativeDay } from '@/domain/transactions';
+import type { Category, LocalDate, MonthKey } from '@/domain/types';
 import { useSettings } from '@/state/settings';
 
 import { en } from './en';
@@ -30,6 +33,13 @@ export function translate(language: Language, key: TranslationKey, params?: Reco
   return params ? value.replace(/\{(\w+)\}/g, (match, name) => String(params[name] ?? match)) : value;
 }
 
+/** Same resolution as useLanguage, for code outside React (e.g. naming the first wallet). */
+export function currentLanguage(): Language {
+  const preference = useSettings.getState().language;
+  if (preference !== 'system') return preference;
+  return getLocales()[0]?.languageCode === 'vi' ? 'vi' : 'en';
+}
+
 /** Vietnamese devices get Vietnamese; everything else falls back to English. */
 export function useLanguage(): Language {
   const preference = useSettings((s) => s.language);
@@ -55,5 +65,28 @@ export function useT() {
     },
     [language],
   );
-  return { t, language, categoryName };
+  const fmt = useMemo(() => formatters(language), [language]);
+  return { t, language, categoryName, ...fmt };
+}
+
+/** Language-aware formatting for money and calendar dates. */
+function formatters(language: Language) {
+  const tr = (key: TranslationKey, params?: Record<string, string | number>) => translate(language, key, params);
+  return {
+    money: (amount: number) => formatMoney(amount, language),
+    signedMoney: (amount: number) => formatSignedMoney(amount, language),
+    /** "24 Tháng 10" / "10/24". */
+    dayMonth: (date: LocalDate) => tr('date.dayMonth', { day: Number(date.slice(8, 10)), month: Number(date.slice(5, 7)) }),
+    /** "Tháng 10/2026". */
+    month: (month: MonthKey) => tr('date.month', { month: Number(month.slice(5, 7)), year: month.slice(0, 4) }),
+    weekday: (date: LocalDate) => tr(`weekday.${weekdayOf(date)}` as TranslationKey),
+    weekdayShort: (date: LocalDate) => tr(`weekdayShort.${weekdayOf(date)}` as TranslationKey),
+    /** "Hôm nay", "Hôm qua", or the day and month. */
+    relativeDate: (date: LocalDate, todayDate: LocalDate = today()) => {
+      const rel = relativeDay(date, todayDate);
+      if (rel === 'today') return tr('date.today');
+      if (rel === 'yesterday') return tr('date.yesterday');
+      return tr('date.dayMonth', { day: Number(date.slice(8, 10)), month: Number(date.slice(5, 7)) });
+    },
+  };
 }
