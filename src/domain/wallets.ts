@@ -148,3 +148,9 @@ export function defaultWalletId(wallets: Wallet[]): string | undefined {
 export function activeWallets(wallets: Wallet[]): Wallet[] {
   return wallets.filter((w) => !w.archived);
 }
+
+/** Brings an archived wallet back into pickers and the total balance. */
+export function unarchiveWallet(wallets: Wallet[], id: string, now: Date): Wallet[] {
+  const timestamp = now.toISOString();
+  return wallets.map((w) => (w.id === id && w.archived ? { ...w, archived: false, updatedAt: timestamp } : w));
+}

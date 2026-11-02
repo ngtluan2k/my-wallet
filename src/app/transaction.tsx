@@ -284,7 +284,10 @@ export default function TransactionScreen() {
             ))}
           </View>
           <View style={styles.sideColumn}>
-            <Key icon="backspace-outline" label="⌫" onPress={() => setAmount(removeLastDigit)} />
+            {/* Fixed one-row height: Key flexes, and the column would otherwise split it 50/50 with Done. */}
+            <View style={styles.backspace}>
+              <Key icon="backspace-outline" label="⌫" onPress={() => setAmount(removeLastDigit)} />
+            </View>
             <Pressable
               onPress={save}
               disabled={saving}
@@ -485,6 +488,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  backspace: { height: KEY_HEIGHT, flexDirection: 'row' },
   doneKey: { flex: 1, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center', gap: 4 },
   spinner: { alignSelf: 'center' },
   sheetButtons: { flexDirection: 'row', gap: spacing.sm },

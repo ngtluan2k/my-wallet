@@ -7,6 +7,7 @@ import {
   deleteWallet,
   editWallet,
   totalBalance,
+  unarchiveWallet,
   validateWalletInput,
   walletBalance,
   type WalletInput,
@@ -77,5 +78,16 @@ describe('wallets', () => {
     // Transfers move money between wallets without changing the total.
     expect(totalBalance([cash, bank], txs)).toBe(6_000_000 + 300_000 - 100_000 - 50_000);
     expect(totalBalance([cash, { ...bank, archived: true }], txs)).toBe(1_000_000);
+  });
+});
+
+describe('unarchiveWallet', () => {
+  it('restores an archived wallet without changing the default', () => {
+    const wallets = addWallet([cash], input, 'bank', now);
+    const archived = archiveWallet(wallets, 'bank', now);
+    const restored = unarchiveWallet(archived, 'bank', now);
+    expect(restored.find((w) => w.id === 'bank')).toMatchObject({ archived: false, isDefault: false });
+    expect(defaultWalletId(restored)).toBe(cash.id);
+    expect(unarchiveWallet(wallets, cash.id, now)).toEqual(wallets);
   });
 });

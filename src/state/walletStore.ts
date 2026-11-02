@@ -1,6 +1,14 @@
 import { createStore } from 'zustand/vanilla';
 
 import { removeBudget, setBudget } from '@/domain/budgets';
+import {
+  addCategory,
+  deleteCategory,
+  editCategory,
+  validateCategoryInput,
+  type CategoryError,
+  type CategoryInput,
+} from '@/domain/categories';
 import { applyRemoteChanges, diffWalletData, type RemoteChange, type SyncOp } from '@/domain/sync';
 import {
   createTransaction,
@@ -15,6 +23,7 @@ import {
   addWallet,
   archiveWallet,
   deleteWallet,
+  unarchiveWallet,
   editWallet,
   validateWalletInput,
   type WalletError,
@@ -48,6 +57,12 @@ export interface WalletState {
   editWallet(id: string, input: WalletInput): Promise<void>;
   archiveWallet(id: string): Promise<void>;
   deleteWallet(id: string): Promise<void>;
+  unarchiveWallet(id: string): Promise<void>;
+  /** `takenNames`: translated names of the other categories of the same type, for duplicate checks. */
+  addCategory(input: CategoryInput, takenNames: string[]): Promise<string>;
+  editCategory(id: string, input: Omit<CategoryInput, 'type'>, takenNames: string[]): Promise<void>;
+  /** Unused user categories only; also removes the category's budget. */
+  deleteCategory(id: string): Promise<void>;
   /** Replaces all data, e.g. when restoring a backup. `data` must already be validated. */
   replaceAll(data: WalletData): Promise<void>;
   /** Clears every transaction, budget and wallet, keeping one fresh default wallet. */
@@ -226,6 +241,33 @@ export function createWalletStore({
 
       deleteWallet: (id) =>
         mutate((data) => ({ ...data, wallets: deleteWallet(data.wallets, data.transactions, id, now()) })),
+
+      unarchiveWallet: (id) =>
+        mutate((data) => {
+          if (!data.wallets.some((w) => w.id === id)) throw new Error('not_found');
+          return { ...data, wallets: unarchiveWallet(data.wallets, id, now()) };
+        }),
+
+      async addCategory(input, takenNames) {
+        const id = newId();
+        await mutate((data) => {
+          const errors = validateCategoryInput(input, takenNames);
+          if (errors.length) throw new ValidationError<CategoryError>(errors);
+          return { ...data, categories: addCategory(data.categories, input, id) };
+        });
+        return id;
+      },
+
+      editCategory: (id, input, takenNames) =>
+        mutate((data) => {
+          const target = data.categories.find((c) => c.id === id);
+          if (!target) throw new Error('not_found');
+          const errors = validateCategoryInput({ ...input, type: target.type }, takenNames);
+          if (errors.length) throw new ValidationError<CategoryError>(errors);
+          return { ...data, categories: editCategory(data.categories, id, input) };
+        }),
+
+      deleteCategory: (id) => mutate((data) => ({ ...data, ...deleteCategory(data, id) })),
 
       // Works even when loading failed: restoring a backup is how users recover from a corrupt file.
       replaceAll: (replacement) =>
