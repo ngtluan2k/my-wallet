@@ -10,7 +10,7 @@ import { SigningExpiryInfo } from '@/components/signing';
 import { AppText, Badge, Button, Card, GroupLabel, ListGroup, ListRow, PageTitle, Screen, Sheet, Toggle } from '@/components/ui';
 import { useBackupActions } from '@/components/useBackupActions';
 import { formatTime, toPickerDate, today } from '@/domain/dates';
-import { ensureNotificationPermission } from '@/services/reminders';
+import { ensureNotificationPermission, sendTestReminder } from '@/services/reminders';
 import { useSignOut } from '@/components/useSignOut';
 import type { LanguagePreference, ThemePreference } from '@/data/settingsStorage';
 import { useT, type TranslationKey } from '@/i18n';
@@ -59,6 +59,15 @@ export default function SettingsScreen() {
       { text: t('common.cancel'), style: 'cancel' },
       { text: t('settings.openSystemSettings'), onPress: () => void Linking.openSettings() },
     ]);
+  }
+
+  async function testReminder() {
+    try {
+      await sendTestReminder({ title: t('reminder.title'), body: t('reminder.body') });
+      Alert.alert(t('settings.reminderTest'), t('settings.reminderTestSent'));
+    } catch {
+      Alert.alert(t('common.error'), t('settings.reminderDenied'));
+    }
   }
 
   function onPickReminderTime(event: DateTimePickerEvent, value?: Date) {
@@ -195,6 +204,9 @@ export default function SettingsScreen() {
               chevron
               onPress={() => setTimePickerOpen(true)}
             />
+          )}
+          {reminderEnabled && (
+            <ListRow icon="paper-plane-outline" title={t('settings.reminderTest')} chevron onPress={() => void testReminder()} />
           )}
         </ListGroup>
 

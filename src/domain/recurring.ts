@@ -115,3 +115,8 @@ export function ruleUsesWallet(rules: RecurringRule[], walletId: string): boolea
 export function ruleUsesCategory(rules: RecurringRule[], categoryId: string): boolean {
   return rules.some((r) => r.categoryId === categoryId);
 }
+
+/** True for transactions created automatically by a recurring rule. */
+export function isRecurringOccurrence(transactionId: string): boolean {
+  return transactionId.includes('@');
+}

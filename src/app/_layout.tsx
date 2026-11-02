@@ -8,6 +8,7 @@ import { LockScreen } from '@/components/LockScreen';
 import { NewPasswordScreen } from '@/components/NewPasswordScreen';
 import { AppText, Button } from '@/components/ui';
 import { useBackupActions } from '@/components/useBackupActions';
+import { useNotificationObserver } from '@/components/useNotificationObserver';
 import { useReminderSchedule } from '@/components/useReminderSchedule';
 import { StorageError } from '@/data/WalletRepository';
 import { useT } from '@/i18n';
@@ -39,6 +40,7 @@ export default function RootLayout() {
 
   const { colors } = theme;
   const signedIn = !!user;
+  useNotificationObserver(signedIn && walletStatus === 'ready');
   const booting = !settingsLoaded || !lockLoaded || user === undefined;
 
   let overlay = null;

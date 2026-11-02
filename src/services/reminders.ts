@@ -2,10 +2,23 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Notifications from 'expo-notifications';
 
 /**
- * Daily "log your spending" reminder as a local notification. No server or push entitlement is
+ * Daily "log your spending" reminder as local notifications. No server or push entitlement is
  * involved (the config plugin sets enableRemoteNotifications: false).
+ *
+ * Instead of one repeating notification, each day in the window gets its own notification, so the
+ * reminder for today can be dropped once the user has logged something.
  */
-const ID_KEY = 'reminder-notification-id';
+const IDS_KEY = 'reminder-notification-ids';
+/** Single repeating reminder from the first version; cancelled when rescheduling. */
+const LEGACY_ID_KEY = 'reminder-notification-id';
+
+/** Route opened when the user taps a reminder. Only this path is accepted from notification data. */
+export const REMINDER_URL = '/transaction';
+
+export interface ReminderContent {
+  title: string;
+  body: string;
+}
 
 let configured = false;
 
@@ -35,21 +48,33 @@ export async function ensureNotificationPermission(): Promise<boolean> {
   return allowed(await Notifications.requestPermissionsAsync({ ios: { allowAlert: true, allowSound: true, allowBadge: false } }));
 }
 
-/**
- * Replaces the scheduled reminder: cancels the previous one, then schedules `time` (`HH:mm`) daily,
- * or nothing when `time` is null.
- */
-export async function scheduleDailyReminder(time: string | null, content: { title: string; body: string }): Promise<void> {
-  const previous = await AsyncStorage.getItem(ID_KEY);
-  if (previous) {
-    await Notifications.cancelScheduledNotificationAsync(previous).catch(() => undefined);
-    await AsyncStorage.removeItem(ID_KEY);
+async function cancelScheduled(): Promise<void> {
+  const raw = await AsyncStorage.getItem(IDS_KEY);
+  const legacy = await AsyncStorage.getItem(LEGACY_ID_KEY);
+  const ids: string[] = [...(raw ? (JSON.parse(raw) as string[]) : []), ...(legacy ? [legacy] : [])];
+  await Promise.all(ids.map((id) => Notifications.cancelScheduledNotificationAsync(id).catch(() => undefined)));
+  await AsyncStorage.multiRemove([IDS_KEY, LEGACY_ID_KEY]);
+}
+
+/** Replaces all scheduled reminders with one notification at each of `times` (empty turns them off). */
+export async function scheduleReminders(times: Date[], content: ReminderContent): Promise<void> {
+  await cancelScheduled();
+  const ids: string[] = [];
+  for (const date of times) {
+    ids.push(
+      await Notifications.scheduleNotificationAsync({
+        content: { ...content, data: { url: REMINDER_URL } },
+        trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date },
+      }),
+    );
   }
-  if (!time) return;
-  const [hour, minute] = time.split(':').map(Number);
-  const id = await Notifications.scheduleNotificationAsync({
-    content,
-    trigger: { type: Notifications.SchedulableTriggerInputTypes.DAILY, hour, minute },
+  if (ids.length) await AsyncStorage.setItem(IDS_KEY, JSON.stringify(ids));
+}
+
+/** Sends a reminder a few seconds from now so the user can see what it looks like. */
+export async function sendTestReminder(content: ReminderContent, seconds = 5): Promise<void> {
+  await Notifications.scheduleNotificationAsync({
+    content: { ...content, data: { url: REMINDER_URL } },
+    trigger: { type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL, seconds },
   });
-  await AsyncStorage.setItem(ID_KEY, id);
 }
