@@ -70,6 +70,7 @@ export default function RootLayout() {
           <Stack.Screen name="transaction" options={{ presentation: 'modal', headerShown: false }} />
           <Stack.Screen name="report" options={{ title: t('report.title') }} />
           <Stack.Screen name="wallets" options={{ title: t('wallets.title') }} />
+          <Stack.Screen name="profile" options={{ title: t('profile.title') }} />
           <Stack.Screen name="wallet-edit" options={{ presentation: 'modal', headerShown: false }} />
           <Stack.Screen name="pin" options={{ presentation: 'modal', headerShown: false }} />
         </Stack.Protected>

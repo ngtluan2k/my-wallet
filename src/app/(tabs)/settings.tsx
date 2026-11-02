@@ -8,11 +8,11 @@ import { TabPage } from '@/components/AppHeader';
 import { SigningExpiryInfo } from '@/components/signing';
 import { AppText, Card, GroupLabel, ListGroup, ListRow, PageTitle, Screen, Sheet, Toggle } from '@/components/ui';
 import { useBackupActions } from '@/components/useBackupActions';
+import { useSignOut } from '@/components/useSignOut';
 import type { LanguagePreference, ThemePreference } from '@/data/settingsStorage';
 import { useT, type TranslationKey } from '@/i18n';
 import { useAppLock } from '@/state/appLock';
-import { useAuth } from '@/state/auth';
-import { flushBeforeSignOut } from '@/state/session';
+import { displayName, useAuth } from '@/state/auth';
 import { useSettings } from '@/state/settings';
 import { walletStore } from '@/state/wallet';
 import { radius, spacing, useTheme } from '@/theme';
@@ -34,18 +34,11 @@ export default function SettingsScreen() {
   const language = useSettings((s) => s.language);
   const theme = useSettings((s) => s.theme);
   const update = useSettings((s) => s.update);
-  const email = useAuth((s) => s.user?.email);
+  const user = useAuth((s) => s.user);
+  const signOut = useSignOut();
   const { pinSet, biometricEnabled, biometricAvailable } = useAppLock();
   const { exportData, restoreData } = useBackupActions();
   const [picker, setPicker] = useState<'language' | 'theme' | null>(null);
-
-  async function signOut() {
-    const pending = await flushBeforeSignOut();
-    Alert.alert(t('settings.signOut'), pending > 0 ? t('settings.signOutPending', { count: pending }) : t('settings.signOutConfirm'), [
-      { text: t('common.cancel'), style: 'cancel' },
-      { text: t('settings.signOut'), style: 'destructive', onPress: () => void useAuth.getState().signOut() },
-    ]);
-  }
 
   function resetData() {
     Alert.alert(t('settings.resetData'), t('settings.resetConfirm'), [
@@ -104,7 +97,13 @@ export default function SettingsScreen() {
 
         <GroupLabel>{t('settings.section.account')}</GroupLabel>
         <ListGroup>
-          <ListRow icon="person-circle-outline" title={t('settings.signedInAs')} subtitle={email} />
+          <ListRow
+            icon="person-circle-outline"
+            title={displayName(user) ?? t('settings.profile')}
+            subtitle={user?.email}
+            chevron
+            onPress={() => router.push('/profile')}
+          />
           <ListRow icon="log-out-outline" title={t('settings.signOut')} destructive onPress={signOut} />
         </ListGroup>
 

@@ -7,7 +7,8 @@ export type AuthFieldError =
   | 'password_too_short'
   | 'confirm_mismatch'
   | 'full_name_required'
-  | 'terms_required';
+  | 'terms_required'
+  | 'same_password';
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -49,4 +50,40 @@ export function signUpErrors(input: {
 
 export function hasErrors(errors: Record<string, AuthFieldError | undefined>): boolean {
   return Object.values(errors).some(Boolean);
+}
+
+export const MAX_DISPLAY_NAME_LENGTH = 60;
+
+export type ProfileFieldError = 'full_name_required' | 'full_name_too_long';
+
+export function displayNameError(name: string): ProfileFieldError | undefined {
+  const value = name.trim();
+  if (!value) return 'full_name_required';
+  if (value.length > MAX_DISPLAY_NAME_LENGTH) return 'full_name_too_long';
+  return undefined;
+}
+
+/** Changing the password asks for the current one first, then the new one twice. */
+export function passwordChangeErrors(input: { current: string; password: string; confirm: string }) {
+  return {
+    current: input.current ? undefined : ('password_required' as const),
+    password: !input.password
+      ? ('password_required' as const)
+      : input.password.length < MIN_PASSWORD_LENGTH
+        ? ('password_too_short' as const)
+        : input.password === input.current
+          ? ('same_password' as const)
+          : undefined,
+    confirm: input.confirm !== input.password ? ('confirm_mismatch' as const) : undefined,
+  };
+}
+
+/** Initials for the profile avatar: first letters of the first and last words. */
+export function initials(name: string | null | undefined, fallback: string): string {
+  const words = (name ?? '').trim().split(/\s+/).filter(Boolean);
+  const source = words.length > 0 ? [words[0], words.length > 1 ? words[words.length - 1] : ''] : [fallback];
+  return source
+    .map((w) => Array.from(w)[0] ?? '')
+    .join('')
+    .toLocaleUpperCase();
 }

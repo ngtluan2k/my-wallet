@@ -1,4 +1,13 @@
-import { emailError, hasErrors, normalizeEmail, signInErrors, signUpErrors } from '../authForm';
+import {
+  displayNameError,
+  emailError,
+  hasErrors,
+  initials,
+  normalizeEmail,
+  passwordChangeErrors,
+  signInErrors,
+  signUpErrors,
+} from '../authForm';
 
 describe('auth form validation', () => {
   it('normalizes and checks emails', () => {
@@ -23,5 +32,27 @@ describe('auth form validation', () => {
       confirm: 'confirm_mismatch',
       terms: 'terms_required',
     });
+  });
+
+  it('checks the display name', () => {
+    expect(displayNameError('  ')).toBe('full_name_required');
+    expect(displayNameError('x'.repeat(61))).toBe('full_name_too_long');
+    expect(displayNameError(' Nguyễn Văn Nam ')).toBeUndefined();
+  });
+
+  it('checks a password change', () => {
+    expect(passwordChangeErrors({ current: '', password: 'short', confirm: 'x' })).toEqual({
+      current: 'password_required',
+      password: 'password_too_short',
+      confirm: 'confirm_mismatch',
+    });
+    expect(passwordChangeErrors({ current: '12345678', password: '12345678', confirm: '12345678' }).password).toBe('same_password');
+    expect(hasErrors(passwordChangeErrors({ current: 'old-pass1', password: 'new-pass1', confirm: 'new-pass1' }))).toBe(false);
+  });
+
+  it('builds avatar initials', () => {
+    expect(initials('Nguyễn Văn Nam', 'a@b.co')).toBe('NN');
+    expect(initials('  ánh ', 'a@b.co')).toBe('Á');
+    expect(initials(null, 'minh@example.com')).toBe('M');
   });
 });

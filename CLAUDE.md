@@ -27,8 +27,8 @@ TypeScript 6 doesn't auto-include `@types/*`, so global types are listed in `tsc
 
 Layers, with dependencies pointing down only:
 
-- `src/app/`: Expo Router routes only. `_layout.tsx` boots settings, app lock, auth and the session, and guards routes with `Stack.Protected` (`(auth)/` when signed out; everything else when signed in). It overlays a spinner while data loads, the lock screen, or a recovery screen if the data file can't be read. `(tabs)/` holds Overview, Ledger, a placeholder `add` tab (its button opens the modal), Budget and Settings. Modals/pages: `transaction.tsx` (add/edit, `?id=`), `report.tsx`, `wallets.tsx`, `wallet-edit.tsx` (`?id=`), `pin.tsx`.
-- `src/components/`: shared UI (`ui.tsx` primitives, `wallet.tsx` domain-aware pieces, `AppHeader`, `AuthLayout`, `PinPad`, `LockScreen`) and `useBackupActions`.
+- `src/app/`: Expo Router routes only. `_layout.tsx` boots settings, app lock, auth and the session, and guards routes with `Stack.Protected` (`(auth)/` when signed out; everything else when signed in). It overlays a spinner while data loads, the lock screen, or a recovery screen if the data file can't be read. `(tabs)/` holds Overview, Ledger, a placeholder `add` tab (its button opens the modal), Budget and Settings. Modals/pages: `transaction.tsx` (add/edit, `?id=`), `report.tsx`, `wallets.tsx`, `wallet-edit.tsx` (`?id=`), `pin.tsx`, `profile.tsx` (display name in Supabase `user_metadata.full_name`, password change after re-checking the current password).
+- `src/components/`: shared UI (`ui.tsx` primitives, `wallet.tsx` domain-aware pieces, `AppHeader`, `AuthLayout`, `PinPad`, `LockScreen`), `useBackupActions` and `useSignOut`.
 - `src/state/`: Zustand stores. `walletStore.ts` is a factory; `open(repository)` switches users. `wallet.ts` builds the app instance and hooks. `session.ts` ties the signed-in user to their repository, outbox and sync engine. `auth.ts`, `appLock.ts`, `settings.ts`, `ui.ts` (selected month). Selectors must return stable references (Zustand v5 loops otherwise), so use `useTransactions()`/`useBudgets()`/`useWallets()` rather than `s.data?.x ?? []`.
 - `src/services/syncEngine.ts`: push/pull logic over a `RemoteApi`, `Outbox` and cursor; no Supabase import, so it's tested with fakes.
 - `src/domain/`: pure TypeScript business rules (money, dates, transactions, wallets, budgets, reports, number words, sync diff/merge, auth form validation, data schema/validation/migrations). No React or Expo imports, so it's tested directly with Jest.
@@ -59,4 +59,4 @@ Rules that span files:
 
 ## Not built yet
 
-Apple/Google sign-in, account management (change email/password, delete account), custom category management UI, unarchiving wallets, multi-currency, and UI/component tests (`@testing-library/react-native` is installed but unused).
+Apple/Google sign-in, changing email, deleting the account (needs an Edge Function), custom category management UI, unarchiving wallets, multi-currency, and UI/component tests (`@testing-library/react-native` is installed but unused).

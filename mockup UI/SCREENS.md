@@ -10,7 +10,7 @@ Quyết định sản phẩm (11/2026):
 - Có nhiều ví, số dư ban đầu, chuyển khoản giữa các ví, giờ giao dịch (không bắt buộc).
 - Chỉ dùng VND. Không đổi tiền tệ.
 - Khoá ứng dụng bằng mã PIN 4 số, có thể mở bằng Face ID / Touch ID. Mặc định tắt.
-- Không có: quét hoá đơn, thông báo (chuông), avatar/lời chào theo tên.
+- Không có: quét hoá đơn, thông báo (chuông), ảnh avatar, lời chào theo tên.
 
 Quy tắc chung:
 
@@ -91,7 +91,7 @@ cột chi theo từng ngày (hôm nay tô màu chính) · so sánh với tuần 
 ## Cài đặt (`(tabs)/settings.tsx`)
 
 - Thẻ ứng dụng: "Lưu trên máy · Đồng bộ với tài khoản".
-- **Tài khoản**: email đang đăng nhập · Đăng xuất (đẩy thay đổi chưa đồng bộ trước; nếu còn thì cảnh báo).
+- **Tài khoản**: dòng hồ sơ (tên hiển thị + email, mở màn Hồ sơ) · Đăng xuất (đẩy thay đổi chưa đồng bộ trước; nếu còn thì cảnh báo).
 - **Dữ liệu & sao lưu**: Xuất file JSON · Khôi phục từ file (kiểm tra đầy đủ rồi xác nhận) · Xóa toàn bộ dữ liệu.
 - **Bảo mật**: Mã PIN khoá ứng dụng (Bật / Đổi mã / Tắt) · Mở khoá bằng Face ID / Touch ID (cần bật PIN trước).
 - **Tùy biến**: Quản lý ví · Đơn vị tiền tệ **VND (₫)** (chỉ hiển thị) · Ngôn ngữ (Hệ thống / Tiếng Việt / English) · Giao diện (Hệ thống / Sáng / Tối).
@@ -99,6 +99,14 @@ cột chi theo từng ngày (hôm nay tô màu chính) · so sánh với tuần 
 
 Khác ảnh mockup: không có "Đánh giá trên App Store" (chưa có link), không có trang "Về ứng dụng" riêng,
 "Dữ liệu lưu 100% trên máy / An toàn tuyệt đối" đổi thành mô tả đúng (lưu trên máy + đồng bộ tài khoản).
+
+## Hồ sơ (`profile.tsx`)
+
+- Thẻ đầu: vòng tròn chữ cái đầu của tên (không có ảnh avatar), tên hiển thị, email.
+- **Thông tin cá nhân**: Tên hiển thị (bắt buộc, ≤ 60 ký tự, lưu vào tài khoản Supabase) · Email (chỉ xem).
+- **Đổi mật khẩu**: Mật khẩu hiện tại · Mật khẩu mới (≥ 8 ký tự, khác mật khẩu cũ) · Nhập lại. Kiểm tra mật khẩu hiện tại trước khi đổi.
+- Nút Đăng xuất. Lưu tên và đổi mật khẩu cần mạng; lỗi hiện ngay trong form.
+- Chưa có: đổi email, xoá tài khoản.
 
 ## Đăng nhập / Đăng ký / Quên mật khẩu (`(auth)/`)
 
