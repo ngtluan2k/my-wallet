@@ -146,4 +146,30 @@ describe('walletStore', () => {
     expect(store.getState().data).toBeNull();
     await expect(store.getState().addTransaction(input)).rejects.toThrow('not_loaded');
   });
+
+  it('manages user categories and syncs them like other records', async () => {
+    const { store, repository, committed } = await setup();
+    const id = await store.getState().addCategory({ name: 'Cà phê', type: 'expense', icon: 'cafe', color: '#F97316' }, ['Ăn uống']);
+    expect(repository.saved?.categories.find((c) => c.id === id)).toMatchObject({ name: 'Cà phê' });
+
+    await expect(
+      store.getState().addCategory({ name: 'ăn uống', type: 'expense', icon: 'cafe', color: '#F97316' }, ['Ăn uống']),
+    ).rejects.toBeInstanceOf(ValidationError);
+
+    await store.getState().setBudget(id, 500_000);
+    await store.getState().deleteCategory(id);
+    expect(repository.saved?.categories.some((c) => c.id === id)).toBe(false);
+    expect(repository.saved?.budgets).toEqual([]);
+    expect(committed.at(-1)?.map((op) => `${op.kind}:${op.table}:${op.id}`).sort()).toEqual(
+      [`delete:budgets:${id}`, `delete:categories:${id}`].sort(),
+    );
+  });
+
+  it('restores an archived wallet', async () => {
+    const { store } = await setup();
+    const id = await store.getState().addWallet({ name: 'Bank', kind: 'bank', color: '#0EA5E9', openingBalance: 0, isDefault: false });
+    await store.getState().archiveWallet(id);
+    await store.getState().unarchiveWallet(id);
+    expect(store.getState().data?.wallets.find((w) => w.id === id)?.archived).toBe(false);
+  });
 });

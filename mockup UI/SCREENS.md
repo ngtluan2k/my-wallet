@@ -33,8 +33,9 @@ Mỗi tab có thanh trên cùng gồm logo + "Ví Mình" ở trái và **trạng
 2. Thẻ "Tìm thấy dữ liệu cũ" nếu máy còn file từ trước khi có tài khoản: Bỏ qua / Nhập dữ liệu.
 3. Tiêu đề: tháng hiện tại + "Tổng quan tài chính".
 4. Thẻ lớn: **Tổng số dư các ví** (số dư ban đầu + thu − chi của mọi ví đang dùng), kèm Thu / Chi tháng này.
+   Chip trạng thái ngân sách tháng (An toàn / Sắp chạm mức / Vượt ngân sách) khi đã đặt hạn mức; nhấn mở Ngân sách.
 5. Thao tác nhanh (4): Thêm thu/chi · Ngân sách · Báo cáo tuần · Ví của tôi.
-6. Cảnh báo ngân sách: danh mục có % dùng cao nhất khi ≥ 80% (vàng) hoặc vượt (đỏ). Nhấn để mở Ngân sách.
+6. Cảnh báo ngân sách: danh mục có % dùng cao nhất khi ≥ 80% (vàng) hoặc vượt (đỏ), nhãn % ở góc. Nhấn để mở Ngân sách.
 7. Phân tích chi tiêu tháng: thanh xếp chồng top 4 danh mục + "Khác", tổng chi, ô % từng danh mục; liên kết Báo cáo tuần.
 8. Giao dịch gần đây (5), "Xem tất cả" mở Sổ giao dịch.
 
@@ -62,6 +63,7 @@ Tên ví lấy từ dữ liệu, không cố định (Momo/Techcombank trong ả
 - Bàn phím số: 1–9, **C**, 0, **000**; cột phải: ⌫ và nút **Xong** cao 3 hàng. **Không có phím "."** (VND không có phần lẻ).
 - Nút nhanh **+50.000 / +100.000 / +500.000** **cộng thêm** vào số đang nhập, không nối chuỗi.
 - Lỗi hiển thị cụ thể (thiếu danh mục, hai ví trùng nhau…). Khi sửa có nút **Xóa giao dịch**.
+- Chuyển khoản khi chỉ có một ví: hiện gợi ý kèm nút **Thêm ví**; bộ chọn ví trống cũng có nút này.
 
 ## Ngân sách (`(tabs)/budget.tsx`)
 
@@ -86,16 +88,17 @@ cột chi theo từng ngày (hôm nay tô màu chính) · so sánh với tuần 
 - Thẻ Tổng số dư; danh sách ví đang dùng (icon, tên, nhãn Mặc định, loại, số dư hiện tại); nhóm "Đã lưu trữ".
 - Form ví: Tên · Loại (Tiền mặt / Ngân hàng / Ví điện tử) · Màu · Số dư ban đầu · Dùng làm ví mặc định.
 - Ví chưa có giao dịch: **Xóa**. Ví đã có giao dịch: **Lưu trữ** (giữ lịch sử, ẩn khỏi bộ chọn và khỏi tổng số dư).
+  Ví đã lưu trữ có nút **Khôi phục ví**.
   Luôn giữ ít nhất một ví và đúng một ví mặc định.
 
 ## Cài đặt (`(tabs)/settings.tsx`)
 
 - Thẻ ứng dụng: "Lưu trên máy · Đồng bộ với tài khoản".
 - **Tài khoản**: dòng hồ sơ (tên hiển thị + email, mở màn Hồ sơ) · Đăng xuất (đẩy thay đổi chưa đồng bộ trước; nếu còn thì cảnh báo).
-- **Dữ liệu & sao lưu**: Xuất file JSON · Khôi phục từ file (kiểm tra đầy đủ rồi xác nhận) · Xóa toàn bộ dữ liệu.
+- **Dữ liệu & sao lưu**: Xuất file JSON (nút "Xuất file" trên dòng) · Khôi phục từ file (kiểm tra đầy đủ rồi xác nhận) · Xóa toàn bộ dữ liệu.
 - **Bảo mật**: Mã PIN khoá ứng dụng (Bật / Đổi mã / Tắt) · Mở khoá bằng Face ID / Touch ID (cần bật PIN trước).
-- **Tùy biến**: Quản lý ví · Đơn vị tiền tệ **VND (₫)** (chỉ hiển thị) · Ngôn ngữ (Hệ thống / Tiếng Việt / English) · Giao diện (Hệ thống / Sáng / Tối).
-- **Giới thiệu**: triết lý thiết kế, thông tin chữ ký ứng dụng, phiên bản.
+- **Tùy biến**: Quản lý ví · Quản lý danh mục · Đơn vị tiền tệ **VND (₫)** (chỉ hiển thị) · Ngôn ngữ (Hệ thống / Tiếng Việt / English) · Giao diện (Hệ thống / Sáng / Tối).
+- **Giới thiệu**: triết lý thiết kế, thông tin chữ ký ứng dụng, Điều khoản dịch vụ, Chính sách quyền riêng tư, phiên bản.
 
 Khác ảnh mockup: không có "Đánh giá trên App Store" (chưa có link), không có trang "Về ứng dụng" riêng,
 "Dữ liệu lưu 100% trên máy / An toàn tuyệt đối" đổi thành mô tả đúng (lưu trên máy + đồng bộ tài khoản).
@@ -106,14 +109,26 @@ Khác ảnh mockup: không có "Đánh giá trên App Store" (chưa có link), k
 - **Thông tin cá nhân**: Tên hiển thị (bắt buộc, ≤ 60 ký tự, lưu vào tài khoản Supabase) · Email (chỉ xem).
 - **Đổi mật khẩu**: Mật khẩu hiện tại · Mật khẩu mới (≥ 8 ký tự, khác mật khẩu cũ) · Nhập lại. Kiểm tra mật khẩu hiện tại trước khi đổi.
 - Nút Đăng xuất. Lưu tên và đổi mật khẩu cần mạng; lỗi hiện ngay trong form.
-- Chưa có: đổi email, xoá tài khoản.
+- **Xoá tài khoản**: nhập lại mật khẩu → Edge Function `delete-account` xoá user (dữ liệu xoá theo cascade) → đăng xuất, xoá file dữ liệu và PIN trên máy.
+- Chưa có: đổi email.
+
+## Danh mục (`categories.tsx`, `category-edit.tsx`)
+
+- Phân đoạn Chi / Thu; danh sách danh mục kèm số giao dịch. Danh mục có sẵn gắn nhãn "Có sẵn", chỉ xem.
+- Thêm/sửa danh mục của bạn: Tên (≤ 30 ký tự, không trùng tên trong cùng loại) · Loại (chỉ khi tạo mới) · Biểu tượng · Màu.
+- Xoá được khi chưa có giao dịch nào dùng (hạn mức của danh mục cũng bị xoá).
+
+## Điều khoản / Chính sách (`legal.tsx?doc=terms|privacy`)
+
+Xem được cả khi chưa đăng nhập (mở từ màn Đăng ký) và từ Cài đặt → Giới thiệu.
 
 ## Đăng nhập / Đăng ký / Quên mật khẩu (`(auth)/`)
 
 - **Đăng nhập**: Email · Mật khẩu (hiện/ẩn) · Quên mật khẩu? · Đăng nhập · "Chưa có tài khoản? Đăng ký ngay".
-- **Đăng ký**: Họ tên · Email · Mật khẩu (≥ 8 ký tự) · Xác nhận mật khẩu · đồng ý điều khoản.
+- **Đăng ký**: Họ tên · Email · Mật khẩu (≥ 8 ký tự, thanh độ mạnh 3 mức) · Xác nhận mật khẩu (dấu ✓ "Khớp") · đồng ý điều khoản (link mở Điều khoản / Chính sách).
   Nếu Supabase bật xác nhận email: hiện thông báo "Đã gửi email xác nhận…".
-- **Quên mật khẩu**: Email → gửi liên kết đặt lại.
+- **Quên mật khẩu**: Email → gửi liên kết đặt lại. Link mở app (`mywallet://auth-callback?flow=recovery`), app đăng nhập bằng link rồi hiện màn **Đặt mật khẩu mới**. Link hết hạn: báo lỗi ở màn Đăng nhập.
+- Link xác nhận email lúc đăng ký cũng mở app và đăng nhập luôn.
 - Dòng cuối: "Dữ liệu lưu trên máy và đồng bộ an toàn với tài khoản của bạn".
 
 Khác ảnh mockup: không có Apple ID / Google, không có "Ghi nhớ đăng nhập" (phiên luôn được giữ),

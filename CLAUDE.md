@@ -27,7 +27,7 @@ TypeScript 6 doesn't auto-include `@types/*`, so global types are listed in `tsc
 
 Layers, with dependencies pointing down only:
 
-- `src/app/`: Expo Router routes only. `_layout.tsx` boots settings, app lock, auth and the session, and guards routes with `Stack.Protected` (`(auth)/` when signed out; everything else when signed in). It overlays a spinner while data loads, the lock screen, or a recovery screen if the data file can't be read. `(tabs)/` holds Overview, Ledger, a placeholder `add` tab (its button opens the modal), Budget and Settings. Modals/pages: `transaction.tsx` (add/edit, `?id=`), `report.tsx`, `wallets.tsx`, `wallet-edit.tsx` (`?id=`), `pin.tsx`, `profile.tsx` (display name in Supabase `user_metadata.full_name`, password change after re-checking the current password).
+- `src/app/`: Expo Router routes only. `_layout.tsx` boots settings, app lock, auth and the session, and guards routes with `Stack.Protected` (`(auth)/` when signed out; everything else when signed in). It overlays a spinner while data loads, the lock screen, or a recovery screen if the data file can't be read. `(tabs)/` holds Overview, Ledger, a placeholder `add` tab (its button opens the modal), Budget and Settings. Modals/pages: `transaction.tsx` (add/edit, `?id=`), `report.tsx`, `wallets.tsx`, `wallet-edit.tsx` (`?id=`), `pin.tsx`, `profile.tsx` (display name in Supabase `user_metadata.full_name`, password change and account deletion after re-checking the password), `categories.tsx` + `category-edit.tsx` (`?id=` / `?type=`). Outside the guards (reachable signed in or out): `auth-callback.tsx` (email-link landing) and `legal.tsx` (`?doc=terms|privacy`).
 - `src/components/`: shared UI (`ui.tsx` primitives, `wallet.tsx` domain-aware pieces, `AppHeader`, `AuthLayout`, `PinPad`, `LockScreen`), `useBackupActions` and `useSignOut`.
 - `src/state/`: Zustand stores. `walletStore.ts` is a factory; `open(repository)` switches users. `wallet.ts` builds the app instance and hooks. `session.ts` ties the signed-in user to their repository, outbox and sync engine. `auth.ts`, `appLock.ts`, `settings.ts`, `ui.ts` (selected month). Selectors must return stable references (Zustand v5 loops otherwise), so use `useTransactions()`/`useBudgets()`/`useWallets()` rather than `s.data?.x ?? []`.
 - `src/services/syncEngine.ts`: push/pull logic over a `RemoteApi`, `Outbox` and cursor; no Supabase import, so it's tested with fakes.
@@ -43,6 +43,10 @@ Rules that span files:
 - `WalletData.version` plus `MIGRATIONS` in `domain/walletData.ts` handle schema upgrades. Bump `CURRENT_VERSION` and add a migration whenever the persisted shape changes (v2 added wallets). `parseWalletData` validates everything (amounts, dates, times, wallet/category references and types, transfers, one default wallet, duplicate ids) before data is accepted, from disk, from a backup or from the server.
 - Backups are the wallet data plus `app: 'my-wallet'` and `exportedAt`. Import validates the file fully, then asks for confirmation, then replaces the data (which also syncs).
 
+Email links: `signUp`/`resetPasswordForEmail` pass `authRedirectUrl()` (`mywallet://auth-callback?flow=confirm|recovery`, or the `exp://…/--/auth-callback` form in Expo Go). `state/auth.ts` listens to `expo-linking`, parses the URL with `domain/authLink.ts` (query + fragment; the router drops fragments), sets the session, and for `recovery` sets `recovering`, which makes the root layout show `NewPasswordScreen`. Supabase → Authentication → URL Configuration must list `mywallet://**` (and `exp://**` for Expo Go) under Redirect URLs.
+
+Account deletion: `session.deleteAccount(password)` re-checks the password, calls the `delete-account` Edge Function (`supabase/functions/`, Deno, excluded from tsc/eslint; deploy with `npx supabase functions deploy delete-account`), which deletes the auth user so every table's `on delete cascade` removes the data; then it signs out and deletes the user's files, sync cursor and PIN.
+
 ## Business rules
 
 - Money is a positive integer of đồng (VND only, `MAX_AMOUNT` cap). Never use floats. Opening balances may be 0.
@@ -50,7 +54,7 @@ Rules that span files:
 - Wallet balance = opening balance + income − expense − transfers out + transfers in. Total balance sums active (non-archived) wallets. Exactly one active wallet is the default. Wallets with transactions can only be archived, not deleted; the last active wallet can't be removed.
 - `transactionDate` is a `YYYY-MM-DD` calendar string and `transactionTime` an optional `HH:mm`, both device local time. Months group by string prefix, so timezone changes never move transactions. Weeks run Monday–Sunday.
 - Budgets are a monthly limit per expense category, applied to every month. Status is `warning` at ≥ 80% and `over` when spending is above the limit (exactly 100% shows as "limit reached").
-- Built-in categories live in `domain/categories.ts` with a `builtInKey` translated via `category.<key>`. User categories would use `name`.
+- Built-in categories live in `domain/categories.ts` with a `builtInKey` translated via `category.<key>` and are read-only. User categories have a `name`, a type fixed at creation, and can be deleted only while unused (their budget goes with them). Name uniqueness is checked per type against translated names passed in by the UI.
 
 ## i18n and theming
 
@@ -59,4 +63,4 @@ Rules that span files:
 
 ## Not built yet
 
-Apple/Google sign-in, changing email, deleting the account (needs an Edge Function), custom category management UI, unarchiving wallets, multi-currency, and UI/component tests (`@testing-library/react-native` is installed but unused).
+Apple/Google sign-in, changing email, editing or hiding built-in categories, archiving used categories, multi-currency, and UI/component tests (`@testing-library/react-native` is installed but unused).
