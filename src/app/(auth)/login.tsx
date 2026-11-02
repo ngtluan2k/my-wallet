@@ -16,11 +16,13 @@ export default function LoginScreen() {
   const [errors, setErrors] = useState<{ email?: AuthFieldError; password?: AuthFieldError }>({});
   const [failure, setFailure] = useState<AuthErrorCode | null>(null);
   const [busy, setBusy] = useState(false);
+  const linkError = useAuth((s) => s.linkError);
 
   async function submit() {
     const found = signInErrors(email, password);
     setErrors(found);
     setFailure(null);
+    useAuth.getState().clearLinkError();
     if (hasErrors(found)) return;
     setBusy(true);
     const error = await useAuth.getState().signIn(normalizeEmail(email), password);
@@ -46,6 +48,7 @@ export default function LoginScreen() {
         </View>
       }
     >
+      {linkError && !failure && <FormNotice tone="danger" message={t(`auth.error.${linkError}`)} />}
       {failure && <FormNotice tone="danger" message={t(`auth.error.${failure}`)} />}
       <TextField
         label={t('login.email')}

@@ -87,3 +87,14 @@ export function initials(name: string | null | undefined, fallback: string): str
     .join('')
     .toLocaleUpperCase();
 }
+
+/** 0 empty · 1 weak · 2 fair · 3 strong. Guidance only; the hard rule is MIN_PASSWORD_LENGTH. */
+export type PasswordStrength = 0 | 1 | 2 | 3;
+
+export function passwordStrength(password: string): PasswordStrength {
+  if (!password) return 0;
+  if (password.length < MIN_PASSWORD_LENGTH) return 1;
+  const classes = [/[a-z]/, /[A-Z]/, /\d/, /[^A-Za-z0-9]/].filter((re) => re.test(password)).length;
+  if (classes === 4 || (classes === 3 && password.length >= 10)) return 3;
+  return classes >= 2 ? 2 : 1;
+}

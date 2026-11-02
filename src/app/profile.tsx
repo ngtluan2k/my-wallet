@@ -3,7 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { FormNotice, PasswordField } from '@/components/AuthLayout';
-import { AppText, Button, Card, GroupLabel, Screen, TextField } from '@/components/ui';
+import { AppText, Button, Card, GroupLabel, Screen, Sheet, TextField } from '@/components/ui';
 import { useSignOut } from '@/components/useSignOut';
 import {
   displayNameError,
@@ -16,6 +16,7 @@ import {
 } from '@/domain/authForm';
 import { useT } from '@/i18n';
 import { displayName, useAuth, type AuthErrorCode } from '@/state/auth';
+import { deleteAccount } from '@/state/session';
 import { spacing, useTheme } from '@/theme';
 
 type Notice = { tone: 'danger' | 'primary'; message: string } | null;
@@ -41,6 +42,11 @@ export default function ProfileScreen() {
   const [passwordErrors, setPasswordErrors] = useState<Partial<Record<'current' | 'password' | 'confirm', AuthFieldError>>>({});
   const [passwordNotice, setPasswordNotice] = useState<Notice>(null);
   const [savingPassword, setSavingPassword] = useState(false);
+
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deletePassword, setDeletePassword] = useState('');
+  const [deleteNotice, setDeleteNotice] = useState<Notice>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const failure = (code: AuthErrorCode): Notice => ({ tone: 'danger', message: t(`auth.error.${code}`) });
 
@@ -71,6 +77,21 @@ export default function ProfileScreen() {
     setPassword('');
     setConfirm('');
     setPasswordNotice({ tone: 'primary', message: t('profile.passwordChanged') });
+  }
+
+  async function confirmDelete() {
+    if (!deletePassword) {
+      setDeleteNotice({ tone: 'danger', message: t('auth.error.password_required') });
+      return;
+    }
+    setDeleting(true);
+    setDeleteNotice(null);
+    const code = await deleteAccount(deletePassword);
+    // On success the user is signed out and the root layout shows the sign-in screen.
+    if (code) {
+      setDeleting(false);
+      setDeleteNotice(failure(code));
+    }
   }
 
   const fieldError = (code: AuthFieldError | ProfileFieldError | undefined) => (code ? t(`auth.error.${code}`) : undefined);
@@ -160,6 +181,36 @@ export default function ProfileScreen() {
       </Card>
 
       <Button variant="danger" icon="log-out-outline" label={t('settings.signOut')} onPress={signOut} />
+
+      <GroupLabel>{t('profile.section.danger')}</GroupLabel>
+      <Card style={styles.form}>
+        <AppText tone="muted" size={14}>
+          {t('profile.deleteDesc')}
+        </AppText>
+        <Button
+          variant="danger"
+          icon="trash-outline"
+          label={t('profile.delete')}
+          onPress={() => {
+            setDeletePassword('');
+            setDeleteNotice(null);
+            setDeleteOpen(true);
+          }}
+        />
+      </Card>
+
+      <Sheet visible={deleteOpen} title={t('profile.delete')} onClose={() => !deleting && setDeleteOpen(false)}>
+        <AppText>{t('profile.deleteWarning')}</AppText>
+        <PasswordField
+          label={t('profile.currentPassword')}
+          value={deletePassword}
+          onChangeText={setDeletePassword}
+          textContentType="password"
+          autoComplete="current-password"
+        />
+        {deleteNotice && <FormNotice tone={deleteNotice.tone} message={deleteNotice.message} />}
+        <Button variant="danger" icon="trash-outline" label={t('profile.deleteConfirm')} onPress={confirmDelete} loading={deleting} />
+      </Sheet>
     </Screen>
   );
 }

@@ -5,6 +5,7 @@ import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { LockScreen } from '@/components/LockScreen';
+import { NewPasswordScreen } from '@/components/NewPasswordScreen';
 import { AppText, Button } from '@/components/ui';
 import { useBackupActions } from '@/components/useBackupActions';
 import { StorageError } from '@/data/WalletRepository';
@@ -23,6 +24,7 @@ export default function RootLayout() {
   const lockLoaded = useAppLock((s) => s.loaded);
   const locked = useAppLock((s) => s.locked);
   const user = useAuth((s) => s.user);
+  const recovering = useAuth((s) => s.recovering);
   const walletStatus = useWallet((s) => s.status);
 
   useEffect(() => {
@@ -46,6 +48,8 @@ export default function RootLayout() {
     );
   } else if (signedIn && locked) {
     overlay = <LockScreen />;
+  } else if (signedIn && recovering) {
+    overlay = <NewPasswordScreen />;
   } else if (signedIn && walletStatus === 'error') {
     overlay = <LoadErrorScreen />;
   }
@@ -62,6 +66,9 @@ export default function RootLayout() {
           headerBackButtonDisplayMode: 'minimal',
         }}
       >
+        {/* Available signed in or out: email-link landing and the legal pages linked from sign-up. */}
+        <Stack.Screen name="auth-callback" options={{ headerShown: false }} />
+        <Stack.Screen name="legal" options={{ title: '' }} />
         <Stack.Protected guard={!signedIn}>
           <Stack.Screen name="(auth)" options={{ headerShown: false }} />
         </Stack.Protected>
@@ -71,6 +78,8 @@ export default function RootLayout() {
           <Stack.Screen name="report" options={{ title: t('report.title') }} />
           <Stack.Screen name="wallets" options={{ title: t('wallets.title') }} />
           <Stack.Screen name="profile" options={{ title: t('profile.title') }} />
+          <Stack.Screen name="categories" options={{ title: t('categories.title') }} />
+          <Stack.Screen name="category-edit" options={{ presentation: 'modal', headerShown: false }} />
           <Stack.Screen name="wallet-edit" options={{ presentation: 'modal', headerShown: false }} />
           <Stack.Screen name="pin" options={{ presentation: 'modal', headerShown: false }} />
         </Stack.Protected>

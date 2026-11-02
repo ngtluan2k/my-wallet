@@ -162,6 +162,20 @@ export default function WalletEditScreen() {
           />
         </ListGroup>
 
+        {existing?.archived && (
+          <Button
+            icon="arrow-undo-outline"
+            label={t('wallets.unarchive')}
+            onPress={() =>
+              walletStore
+                .getState()
+                .unarchiveWallet(existing.id)
+                .then(() => router.back())
+                .catch(() => Alert.alert(t('common.error'), t('storage.saveFailed')))
+            }
+          />
+        )}
+
         {existing && !existing.archived && (
           <Button
             variant="danger"

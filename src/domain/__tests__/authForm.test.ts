@@ -5,6 +5,7 @@ import {
   initials,
   normalizeEmail,
   passwordChangeErrors,
+  passwordStrength,
   signInErrors,
   signUpErrors,
 } from '../authForm';
@@ -54,5 +55,14 @@ describe('auth form validation', () => {
     expect(initials('Nguyễn Văn Nam', 'a@b.co')).toBe('NN');
     expect(initials('  ánh ', 'a@b.co')).toBe('Á');
     expect(initials(null, 'minh@example.com')).toBe('M');
+  });
+
+  it('rates password strength', () => {
+    expect(passwordStrength('')).toBe(0);
+    expect(passwordStrength('Ab1!')).toBe(1);
+    expect(passwordStrength('abcdefgh')).toBe(1);
+    expect(passwordStrength('abcd1234')).toBe(2);
+    expect(passwordStrength('Abcd1234!')).toBe(3);
+    expect(passwordStrength('abcdE12345')).toBe(3);
   });
 });

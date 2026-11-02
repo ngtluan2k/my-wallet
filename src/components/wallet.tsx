@@ -1,4 +1,5 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { router } from 'expo-router';
 import { useMemo, type ReactNode } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
@@ -11,7 +12,7 @@ import { useSelectedMonth } from '@/state/ui';
 import { useWallet, useWallets } from '@/state/wallet';
 import { radius, spacing, tint, useTheme } from '@/theme';
 
-import { AppText, IconCircle, Sheet, type IconName } from './ui';
+import { AppText, Button, IconCircle, Sheet, type IconName } from './ui';
 
 export function useCategories(): Map<string, Category> {
   const categories = useWallet((s) => s.data?.categories);
@@ -273,10 +274,15 @@ export function WalletSheet({
 }) {
   const wallets = activeWallets(useWallets()).filter((w) => w.id !== excludeId);
   const { colors } = useTheme();
-  const { money } = useT();
+  const { t, money } = useT();
   return (
     <Sheet visible={visible} title={title} onClose={onClose}>
-      <View style={[styles.sheetList, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+      {wallets.length === 0 && (
+        <AppText tone="muted" style={styles.sheetHint}>
+          {t('form.noOtherWallet')}
+        </AppText>
+      )}
+      <View style={[styles.sheetList, wallets.length === 0 && styles.hidden, { backgroundColor: colors.surface, borderColor: colors.border }]}>
         {wallets.map((w, i) => (
           <Pressable
             key={w.id}
@@ -303,6 +309,15 @@ export function WalletSheet({
           </Pressable>
         ))}
       </View>
+      <Button
+        variant="secondary"
+        icon="add"
+        label={t('wallets.add')}
+        onPress={() => {
+          onClose();
+          router.push('/wallet-edit');
+        }}
+      />
     </Sheet>
   );
 }
@@ -335,6 +350,8 @@ export function monthTransactions(transactions: Transaction[], month: MonthKey):
 }
 
 const styles = StyleSheet.create({
+  sheetHint: { textAlign: 'center' },
+  hidden: { display: 'none' },
   monthRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm },
   monthLabel: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, flexShrink: 1 },
   txRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingVertical: 12, paddingHorizontal: spacing.md },

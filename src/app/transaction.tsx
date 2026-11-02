@@ -12,7 +12,7 @@ import { addAmount, appendDigits, removeLastDigit } from '@/domain/money';
 import { vietnameseAmountWords } from '@/domain/numberWords';
 import { MAX_NOTE_LENGTH, type TransactionError } from '@/domain/transactions';
 import type { TransactionType } from '@/domain/types';
-import { defaultWalletId, walletBalances } from '@/domain/wallets';
+import { activeWallets, defaultWalletId, walletBalances } from '@/domain/wallets';
 import { useT } from '@/i18n';
 import { useSelectedMonth } from '@/state/ui';
 import { useTransactions, useWallet, useWallets, walletStore } from '@/state/wallet';
@@ -182,6 +182,16 @@ export default function TransactionScreen() {
             </AppText>
           )}
         </View>
+
+        {type === 'transfer' && activeWallets(wallets).length < 2 && (
+          <View style={[styles.card, styles.notice, { backgroundColor: colors.warningSoft, borderColor: colors.border }]}>
+            <Ionicons name="information-circle-outline" size={20} color={colors.warning} />
+            <AppText size={14} style={styles.flex}>
+              {t('form.transferNeedsWallet')}
+            </AppText>
+            <Button compact label={t('wallets.add')} onPress={() => router.push('/wallet-edit')} />
+          </View>
+        )}
 
         {type !== 'transfer' && (
           <View style={styles.section}>
@@ -460,6 +470,7 @@ const styles = StyleSheet.create({
   section: { gap: spacing.sm },
   card: { borderRadius: radius.lg, borderWidth: StyleSheet.hairlineWidth, padding: spacing.sm },
   cells: { padding: 0, overflow: 'hidden' },
+  notice: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, padding: spacing.md },
   cell: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingHorizontal: spacing.md, paddingVertical: 14 },
   cellIcon: { width: 32, height: 32, borderRadius: radius.sm, alignItems: 'center', justifyContent: 'center' },
   cellLabel: { flexShrink: 0 },

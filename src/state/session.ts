@@ -2,14 +2,21 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AppState } from 'react-native';
 import { create } from 'zustand';
 
-import { JsonFileRepository, readLegacyData, retireLegacyData, userFileName } from '@/data/jsonFileRepository';
+import {
+  deleteStoredFiles,
+  JsonFileRepository,
+  readLegacyData,
+  retireLegacyData,
+  userFileName,
+} from '@/data/jsonFileRepository';
 import { FileOutbox, userOutboxName } from '@/data/outbox';
 import { supabase } from '@/data/supabaseClient';
 import { createSupabaseRemote } from '@/data/supabaseRemote';
 import type { WalletData } from '@/domain/types';
 import { createSyncEngine, type SyncEngine, type SyncSnapshot } from '@/services/syncEngine';
 
-import { useAuth } from './auth';
+import { useAppLock } from './appLock';
+import { useAuth, type AuthErrorCode } from './auth';
 import { setCommitListener, walletStore } from './wallet';
 
 /**
@@ -22,6 +29,7 @@ export const useSync = create<SyncSnapshot>()(() => ({ status: 'idle', pending: 
 export const useLegacyImport = create<{ data: WalletData | null }>()(() => ({ data: null }));
 
 const PUSH_DELAY_MS = 1500;
+const cursorKey = (userId: string) => `sync-cursor:${userId}`;
 
 let engine: SyncEngine | null = null;
 let currentUserId: string | null = null;
@@ -38,13 +46,13 @@ function schedulePush() {
 async function openUser(userId: string) {
   currentUserId = userId;
   const outbox = new FileOutbox(userOutboxName(userId));
-  const cursorKey = `sync-cursor:${userId}`;
+  const key = cursorKey(userId);
   const thisEngine = createSyncEngine({
     remote: createSupabaseRemote(supabase, userId),
     outbox,
     cursor: {
-      get: () => AsyncStorage.getItem(cursorKey),
-      set: (value) => AsyncStorage.setItem(cursorKey, value),
+      get: () => AsyncStorage.getItem(key),
+      set: (value) => AsyncStorage.setItem(key, value),
     },
     target: {
       getData: () => walletStore.getState().data,
@@ -130,4 +138,24 @@ export async function importLegacyData(): Promise<void> {
 export function dismissLegacyImport(): void {
   retireLegacyData();
   useLegacyImport.setState({ data: null });
+}
+
+/**
+ * Permanently deletes the signed-in account: re-checks the password, deletes the account and its
+ * synced data on the server, signs out, then removes this user's files and the app lock from the device.
+ */
+export async function deleteAccount(password: string): Promise<AuthErrorCode | null> {
+  const auth = useAuth.getState();
+  const userId = auth.user?.id;
+  if (!userId) return 'unknown';
+  const check = await auth.verifyPassword(password);
+  if (check) return check;
+  const failure = await auth.deleteRemoteAccount();
+  if (failure) return failure;
+
+  await auth.signOut(); // closes the wallet store and sync engine for this user
+  deleteStoredFiles([userFileName(userId), userOutboxName(userId)]);
+  await AsyncStorage.removeItem(cursorKey(userId)).catch(() => undefined);
+  await useAppLock.getState().removePin().catch(() => undefined);
+  return null;
 }

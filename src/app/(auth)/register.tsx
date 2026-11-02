@@ -5,7 +5,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import { AuthLayout, FormNotice, PasswordField } from '@/components/AuthLayout';
 import { AppText, Button, TextField } from '@/components/ui';
-import { hasErrors, normalizeEmail, signUpErrors } from '@/domain/authForm';
+import { hasErrors, normalizeEmail, passwordStrength, signUpErrors } from '@/domain/authForm';
 import { useT } from '@/i18n';
 import { useAuth, type AuthErrorCode } from '@/state/auth';
 import { radius, spacing, useTheme } from '@/theme';
@@ -92,6 +92,7 @@ export default function RegisterScreen() {
         textContentType="newPassword"
         error={err('password')}
       />
+      {password !== '' && <StrengthMeter strength={passwordStrength(password)} />}
       <PasswordField
         label={t('register.confirmPassword')}
         value={confirm}
@@ -101,6 +102,14 @@ export default function RegisterScreen() {
         textContentType="newPassword"
         error={err('confirm')}
       />
+      {confirm !== '' && confirm === password && !errors?.confirm && (
+        <View style={styles.match}>
+          <Ionicons name="checkmark-circle" size={16} color={colors.primary} />
+          <AppText tone="primary" size={13} weight="600">
+            {t('register.match')}
+          </AppText>
+        </View>
+      )}
       <Pressable
         onPress={() => setAcceptedTerms((v) => !v)}
         accessibilityRole="checkbox"
@@ -116,7 +125,15 @@ export default function RegisterScreen() {
           {acceptedTerms && <Ionicons name="checkmark" size={16} color={colors.onPrimary} />}
         </View>
         <AppText size={14} tone={errors?.terms ? 'danger' : 'muted'} style={styles.flex}>
-          {t('register.terms')}
+          {t('register.termsPrefix')}
+          <AppText size={14} tone="primary" weight="600" onPress={() => router.push({ pathname: '/legal', params: { doc: 'terms' } })}>
+            {t('legal.terms.title')}
+          </AppText>
+          {t('register.termsAnd')}
+          <AppText size={14} tone="primary" weight="600" onPress={() => router.push({ pathname: '/legal', params: { doc: 'privacy' } })}>
+            {t('legal.privacy.title')}
+          </AppText>
+          {t('register.termsSuffix')}
         </AppText>
       </Pressable>
       <Button label={t('register.signUp')} onPress={submit} loading={busy} />
@@ -124,7 +141,30 @@ export default function RegisterScreen() {
   );
 }
 
+/** Three-segment strength bar under the password field. */
+function StrengthMeter({ strength }: { strength: 0 | 1 | 2 | 3 }) {
+  const { t } = useT();
+  const { colors } = useTheme();
+  const color = strength >= 3 ? colors.primary : strength === 2 ? colors.warning : colors.danger;
+  return (
+    <View style={styles.strength}>
+      <View style={styles.segments}>
+        {[1, 2, 3].map((level) => (
+          <View key={level} style={[styles.segment, { backgroundColor: level <= strength ? color : colors.border }]} />
+        ))}
+      </View>
+      <AppText size={12} weight="600" style={{ color }}>
+        {t(`register.strength.${strength === 0 ? 1 : strength}`)}
+      </AppText>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
+  strength: { gap: 6, marginTop: -spacing.sm },
+  segments: { flexDirection: 'row', gap: 6 },
+  segment: { flex: 1, height: 4, borderRadius: 2 },
+  match: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: -spacing.sm },
   flex: { flex: 1 },
   row: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   terms: { flexDirection: 'row', gap: spacing.sm, alignItems: 'flex-start' },

@@ -7,6 +7,7 @@ import { TabPage } from '@/components/AppHeader';
 import { SigningExpiryBanner } from '@/components/signing';
 import {
   AppText,
+  Badge,
   Button,
   Card,
   EmptyState,
@@ -19,7 +20,7 @@ import {
   type IconName,
 } from '@/components/ui';
 import { monthTransactions, TransactionRow, useCategories, useWalletMap } from '@/components/wallet';
-import { budgetUsage, usagePercent } from '@/domain/budgets';
+import { budgetOverview, budgetUsage, usagePercent } from '@/domain/budgets';
 import { today } from '@/domain/dates';
 import { sortTransactions, summarize, totalsByCategory } from '@/domain/transactions';
 import { totalBalance } from '@/domain/wallets';
@@ -45,6 +46,10 @@ export default function DashboardScreen() {
   const summary = useMemo(() => summarize(monthTxs), [monthTxs]);
   const balance = useMemo(() => totalBalance(wallets, transactions), [wallets, transactions]);
   const recent = useMemo(() => sortTransactions(transactions).slice(0, RECENT_COUNT), [transactions]);
+  const budgetStatus = useMemo(
+    () => (budgets.length ? budgetOverview(budgets, monthTxs, month, today()).status : null),
+    [budgets, monthTxs, month],
+  );
   const byCategory = useMemo(() => totalsByCategory(monthTxs, 'expense'), [monthTxs]);
 
   // The budget closest to (or furthest over) its limit, once it reaches the warning threshold.
@@ -106,9 +111,27 @@ export default function DashboardScreen() {
         <PageTitle eyebrow={monthLabel(month)} title={t('dashboard.title')} />
 
         <HeroCard>
-          <AppText tone="onHeroMuted" size={14} weight="500">
-            {t('dashboard.balance')}
-          </AppText>
+          <View style={styles.between}>
+            <AppText tone="onHeroMuted" size={14} weight="500">
+              {t('dashboard.balance')}
+            </AppText>
+            {budgetStatus && (
+              <Pressable
+                onPress={() => router.navigate('/budget')}
+                accessibilityRole="button"
+                style={[styles.heroChip, { backgroundColor: colors.heroPanel }]}
+              >
+                <Ionicons
+                  name={budgetStatus === 'ok' ? 'shield-checkmark-outline' : 'warning-outline'}
+                  size={13}
+                  color={colors.onHero}
+                />
+                <AppText tone="onHero" size={12} weight="600">
+                  {t(`dashboard.budgetStatus.${budgetStatus}`)}
+                </AppText>
+              </Pressable>
+            )}
+          </View>
           <AppText tone="onHero" size={34} weight="700" tabular adjustsFontSizeToFit numberOfLines={1}>
             {money(balance)}
           </AppText>
@@ -139,6 +162,11 @@ export default function DashboardScreen() {
                   {t('dashboard.alert.spentOf', { percent: alert.percent })}
                 </AppText>
               </View>
+              <Badge
+                label={`${alert.percent}%`}
+                color={alert.status === 'over' ? colors.danger : colors.warning}
+                background={alert.status === 'over' ? colors.dangerSoft : colors.warningSoft}
+              />
             </View>
             <ProgressBar ratio={alert.spent / alert.limit} color={alert.status === 'over' ? colors.danger : colors.warning} />
             <View style={styles.between}>
@@ -263,6 +291,7 @@ const styles = StyleSheet.create({
   pressed: { opacity: 0.7 },
   row: { flexDirection: 'row', gap: spacing.sm },
   between: { flexDirection: 'row', justifyContent: 'space-between', gap: spacing.md },
+  heroChip: { flexDirection: 'row', alignItems: 'center', gap: 4, borderRadius: radius.pill, paddingHorizontal: 10, paddingVertical: 4 },
   heroStat: { flex: 1, borderRadius: radius.md, padding: spacing.md, gap: spacing.xs },
   heroStatLabel: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
   quickRow: { flexDirection: 'row', justifyContent: 'space-between' },

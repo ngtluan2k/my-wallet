@@ -1,7 +1,9 @@
-import type { AuthError, User } from '@supabase/supabase-js';
+import { FunctionsFetchError, type AuthError, type User } from '@supabase/supabase-js';
+import * as Linking from 'expo-linking';
 import { create } from 'zustand';
 
 import { supabase } from '@/data/supabaseClient';
+import { parseAuthCallback } from '@/domain/authLink';
 
 /** Error codes the auth screens translate. */
 export type AuthErrorCode =
@@ -13,6 +15,8 @@ export type AuthErrorCode =
   | 'wrong_current_password'
   | 'reauthentication_needed'
   | 'rate_limited'
+  | 'link_invalid'
+  | 'delete_failed'
   | 'network'
   | 'unknown';
 
@@ -33,6 +37,14 @@ export function authErrorCode(error: AuthError | Error | null | undefined): Auth
   return 'unknown';
 }
 
+/**
+ * Where email links send the user back to: `mywallet://auth-callback?flow=…` in builds, the
+ * `exp://…/--/auth-callback` equivalent in Expo Go. Both must be listed in Supabase's Redirect URLs.
+ */
+export function authRedirectUrl(flow: 'confirm' | 'recovery'): string {
+  return Linking.createURL('auth-callback', { queryParams: { flow } });
+}
+
 /** The name entered at sign-up (or edited on the profile screen), if any. */
 export function displayName(user: User | null | undefined): string | null {
   const value = user?.user_metadata?.full_name;
@@ -42,12 +54,25 @@ export function displayName(user: User | null | undefined): string | null {
 interface AuthState {
   /** Undefined until the stored session has been read. */
   user: User | null | undefined;
+  /** True after opening a password-reset link: the app asks for a new password before anything else. */
+  recovering: boolean;
+  /** True while an email link is being exchanged for a session. */
+  handlingLink: boolean;
+  /** Set when an email link was expired or invalid; shown on the sign-in screen. */
+  linkError: AuthErrorCode | null;
   load(): Promise<void>;
   signIn(email: string, password: string): Promise<AuthErrorCode | null>;
   /** Returns 'confirm' when the account needs email confirmation before signing in. */
   signUp(email: string, password: string, fullName: string): Promise<AuthErrorCode | 'confirm' | null>;
   resetPassword(email: string): Promise<AuthErrorCode | null>;
   updateDisplayName(name: string): Promise<AuthErrorCode | null>;
+  /** Finishes a password reset: sets the new password and lets the user into the app. */
+  setNewPassword(password: string): Promise<AuthErrorCode | null>;
+  /** Re-checks the signed-in user's password (before sensitive actions). */
+  verifyPassword(password: string): Promise<AuthErrorCode | null>;
+  /** Deletes the account and all its synced data on the server (Edge Function `delete-account`). */
+  deleteRemoteAccount(): Promise<AuthErrorCode | null>;
+  clearLinkError(): void;
   /** Checks the current password first, so a borrowed unlocked phone can't take over the account. */
   changePassword(current: string, next: string): Promise<AuthErrorCode | null>;
   /** Ends the session. Wallet data stays on the device, keyed by user, for the next sign-in. */
@@ -55,9 +80,40 @@ interface AuthState {
 }
 
 let subscribed = false;
+let linkSubscribed = false;
+
+/** Turns a confirmation or password-reset link into a session. Other deep links are ignored. */
+async function handleAuthLink(url: string) {
+  const link = parseAuthCallback(url);
+  if (!link) return;
+  const set = useAuth.setState;
+  if (link.error) {
+    set({ linkError: 'link_invalid' });
+    return;
+  }
+  set({ handlingLink: true, linkError: null });
+  try {
+    const { error } = link.code
+      ? await supabase.auth.exchangeCodeForSession(link.code)
+      : await supabase.auth.setSession({ access_token: link.accessToken!, refresh_token: link.refreshToken! });
+    if (error) {
+      set({ linkError: 'link_invalid' });
+      return;
+    }
+    const { data } = await supabase.auth.getSession();
+    set({ user: data.session?.user ?? null, recovering: link.flow === 'recovery' && !!data.session });
+  } catch {
+    set({ linkError: 'network' });
+  } finally {
+    set({ handlingLink: false });
+  }
+}
 
 export const useAuth = create<AuthState>()((set, get) => ({
   user: undefined,
+  recovering: false,
+  handlingLink: false,
+  linkError: null,
 
   async load() {
     if (!subscribed) {
@@ -75,6 +131,12 @@ export const useAuth = create<AuthState>()((set, get) => ({
     } catch {
       set({ user: null });
     }
+    if (!linkSubscribed) {
+      linkSubscribed = true;
+      Linking.addEventListener('url', ({ url }) => void handleAuthLink(url));
+      const initial = await Linking.getInitialURL().catch(() => null);
+      if (initial) await handleAuthLink(initial);
+    }
   },
 
   async signIn(email, password) {
@@ -91,7 +153,7 @@ export const useAuth = create<AuthState>()((set, get) => ({
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
-        options: { data: { full_name: fullName } },
+        options: { data: { full_name: fullName }, emailRedirectTo: authRedirectUrl('confirm') },
       });
       if (error) return authErrorCode(error);
       // With email confirmation on, no session is returned until the link is opened.
@@ -103,7 +165,7 @@ export const useAuth = create<AuthState>()((set, get) => ({
 
   async resetPassword(email) {
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email);
+      const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: authRedirectUrl('recovery') });
       return authErrorCode(error);
     } catch (error) {
       return authErrorCode(error as Error);
@@ -121,15 +183,46 @@ export const useAuth = create<AuthState>()((set, get) => ({
     }
   },
 
-  async changePassword(current, next) {
+  async setNewPassword(password) {
+    try {
+      const { error } = await supabase.auth.updateUser({ password });
+      if (error) return authErrorCode(error);
+      set({ recovering: false });
+      return null;
+    } catch (error) {
+      return authErrorCode(error as Error);
+    }
+  },
+
+  async verifyPassword(password) {
     const email = get().user?.email;
     if (!email) return 'unknown';
     try {
-      const check = await supabase.auth.signInWithPassword({ email, password: current });
-      if (check.error) {
-        const code = authErrorCode(check.error);
-        return code === 'invalid_credentials' ? 'wrong_current_password' : code;
-      }
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (!error) return null;
+      const code = authErrorCode(error);
+      return code === 'invalid_credentials' ? 'wrong_current_password' : code;
+    } catch (error) {
+      return authErrorCode(error as Error);
+    }
+  },
+
+  async deleteRemoteAccount() {
+    try {
+      const { error } = await supabase.functions.invoke('delete-account', { method: 'POST' });
+      if (!error) return null;
+      return error instanceof FunctionsFetchError ? 'network' : 'delete_failed';
+    } catch {
+      return 'network';
+    }
+  },
+
+  clearLinkError: () => set({ linkError: null }),
+
+  async changePassword(current, next) {
+    const check = await get().verifyPassword(current);
+    if (check) return check;
+    try {
       const { error } = await supabase.auth.updateUser({ password: next });
       return authErrorCode(error);
     } catch (error) {
@@ -142,7 +235,7 @@ export const useAuth = create<AuthState>()((set, get) => ({
       // Local scope: only this device signs out, and it works offline.
       await supabase.auth.signOut({ scope: 'local' });
     } finally {
-      set({ user: null });
+      set({ user: null, recovering: false });
     }
   },
 }));

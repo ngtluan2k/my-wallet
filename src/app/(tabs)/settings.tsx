@@ -6,7 +6,7 @@ import { Alert, Pressable, StyleSheet, View } from 'react-native';
 
 import { TabPage } from '@/components/AppHeader';
 import { SigningExpiryInfo } from '@/components/signing';
-import { AppText, Card, GroupLabel, ListGroup, ListRow, PageTitle, Screen, Sheet, Toggle } from '@/components/ui';
+import { AppText, Button, Card, GroupLabel, ListGroup, ListRow, PageTitle, Screen, Sheet, Toggle } from '@/components/ui';
 import { useBackupActions } from '@/components/useBackupActions';
 import { useSignOut } from '@/components/useSignOut';
 import type { LanguagePreference, ThemePreference } from '@/data/settingsStorage';
@@ -109,7 +109,12 @@ export default function SettingsScreen() {
 
         <GroupLabel>{t('settings.section.data')}</GroupLabel>
         <ListGroup>
-          <ListRow icon="download-outline" title={t('settings.export')} subtitle={t('settings.exportDesc')} chevron onPress={exportData} />
+          <ListRow
+            icon="download-outline"
+            title={t('settings.export')}
+            subtitle={t('settings.exportDesc')}
+            accessory={<Button compact icon="share-outline" label={t('settings.exportAction')} onPress={exportData} />}
+          />
           <ListRow icon="cloud-upload-outline" title={t('settings.import')} subtitle={t('settings.importDesc')} chevron onPress={restoreData} />
           <ListRow icon="trash-outline" title={t('settings.resetData')} subtitle={t('settings.resetDataDesc')} destructive chevron onPress={resetData} />
         </ListGroup>
@@ -141,6 +146,7 @@ export default function SettingsScreen() {
         <GroupLabel>{t('settings.section.customization')}</GroupLabel>
         <ListGroup>
           <ListRow icon="wallet-outline" title={t('settings.wallets')} chevron onPress={() => router.push('/wallets')} />
+          <ListRow icon="pricetags-outline" title={t('settings.categories')} chevron onPress={() => router.push('/categories')} />
           <ListRow icon="cash-outline" title={t('settings.currency')} value={t('settings.currencyValue')} />
           <ListRow
             icon="language-outline"
@@ -171,6 +177,20 @@ export default function SettingsScreen() {
           </AppText>
           <SigningExpiryInfo />
         </Card>
+        <ListGroup>
+          <ListRow
+            icon="document-text-outline"
+            title={t('legal.terms.title')}
+            chevron
+            onPress={() => router.push({ pathname: '/legal', params: { doc: 'terms' } })}
+          />
+          <ListRow
+            icon="lock-closed-outline"
+            title={t('legal.privacy.title')}
+            chevron
+            onPress={() => router.push({ pathname: '/legal', params: { doc: 'privacy' } })}
+          />
+        </ListGroup>
 
         <View style={styles.footer}>
           <AppText tone="muted" size={13}>

@@ -77,3 +77,17 @@ export function retireLegacyData(): void {
     // Offering it again next time is harmless.
   }
 }
+
+/** Deletes files (and their temp copies) from the document directory, e.g. after deleting an account. */
+export function deleteStoredFiles(fileNames: string[]): void {
+  for (const name of fileNames) {
+    for (const candidate of [name, `${name}.tmp`]) {
+      try {
+        const file = new File(Paths.document, candidate);
+        if (file.exists) file.delete();
+      } catch {
+        // Best effort: the account id is gone, so a leftover file is never opened again.
+      }
+    }
+  }
+}
