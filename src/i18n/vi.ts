@@ -352,6 +352,8 @@ export const vi = {
   'settings.reminder': 'Nhắc ghi chép hằng ngày',
   'settings.reminderDesc': 'Mỗi ngày một thông báo nếu hôm nay bạn chưa ghi chép. Bấm vào để thêm giao dịch.',
   'settings.reminderTime': 'Giờ nhắc',
+  'settings.reminderProminent': 'Ưu tiên cao',
+  'settings.reminderProminentDesc': 'Vẫn hiện khi bật Tập trung / Không làm phiền và nằm lâu hơn trên màn hình khoá (Time Sensitive)',
   'settings.reminderTest': 'Gửi thử thông báo',
   'settings.reminderTestSent': 'Thông báo thử sẽ hiện sau khoảng 5 giây. Bấm vào thông báo để mở màn Thêm giao dịch.',
   'settings.reminderDenied': 'Ví Mình chưa được phép gửi thông báo. Hãy bật thông báo cho Ví Mình trong Cài đặt của iPhone.',

@@ -104,7 +104,8 @@ Phân đoạn **Tuần / Tháng**. Không đi quá kỳ hiện tại.
 - Thẻ ứng dụng: "Lưu trên máy · Đồng bộ với tài khoản".
 - **Tài khoản**: dòng hồ sơ (tên hiển thị + email, mở màn Hồ sơ) · Đăng xuất (đẩy thay đổi chưa đồng bộ trước; nếu còn thì cảnh báo).
 - **Dữ liệu & sao lưu**: Xuất file JSON (nút "Xuất file" trên dòng) · Xuất bảng tính CSV (mở bằng Excel/Numbers) · Khôi phục từ file (kiểm tra đầy đủ rồi xác nhận) · Xóa toàn bộ dữ liệu.
-- **Nhắc nhở**: Nhắc ghi chép hằng ngày (bật/tắt, xin quyền thông báo; bị từ chối thì gợi ý mở Cài đặt iPhone) · Giờ nhắc (mặc định 21:00) · Gửi thử thông báo.
+- **Nhắc nhở**: Nhắc ghi chép hằng ngày (bật/tắt, xin quyền thông báo; bị từ chối thì gợi ý mở Cài đặt iPhone) · Giờ nhắc (mặc định 21:00) · Ưu tiên cao (Time Sensitive, mặc định tắt) · Gửi thử thông báo.
+  Lời nhắc có âm thanh và đặt số 1 trên icon app; số này mất khi hôm nay đã ghi chép hoặc tắt nhắc.
   Không nhắc nếu hôm nay đã ghi chép (giao dịch định kỳ tự thêm không tính). Bấm thông báo mở màn Thêm giao dịch.
   Lịch nhắc được xếp sẵn 30 ngày và gia hạn mỗi lần mở app.
 - **Bảo mật**: Mã PIN khoá ứng dụng (Bật / Đổi mã / Tắt) · Mở khoá bằng Face ID / Touch ID (cần bật PIN trước).

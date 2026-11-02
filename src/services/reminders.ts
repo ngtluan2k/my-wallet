@@ -20,6 +20,25 @@ export interface ReminderContent {
   body: string;
 }
 
+export interface ReminderOptions {
+  /** Time Sensitive interruption level (needs the time-sensitive entitlement in app.json). */
+  prominent?: boolean;
+}
+
+/**
+ * What makes a reminder hard to miss: a sound, a badge on the app icon that stays until the user
+ * logs something (cleared by `clearReminderBadge`), and optionally Time Sensitive delivery.
+ */
+function notificationContent(content: ReminderContent, { prominent = false }: ReminderOptions = {}) {
+  return {
+    ...content,
+    sound: 'default' as const,
+    badge: 1,
+    interruptionLevel: prominent ? ('timeSensitive' as const) : ('active' as const),
+    data: { url: REMINDER_URL },
+  };
+}
+
 let configured = false;
 
 /** Shows reminders as a banner even while the app is open. Call once at startup. */
@@ -29,7 +48,7 @@ export function configureNotifications() {
   Notifications.setNotificationHandler({
     handleNotification: async () => ({
       shouldPlaySound: false,
-      shouldSetBadge: false,
+      shouldSetBadge: true,
       shouldShowBanner: true,
       shouldShowList: true,
     }),
@@ -45,7 +64,7 @@ export async function ensureNotificationPermission(): Promise<boolean> {
   const current = await Notifications.getPermissionsAsync();
   if (allowed(current)) return true;
   if (!current.canAskAgain) return false;
-  return allowed(await Notifications.requestPermissionsAsync({ ios: { allowAlert: true, allowSound: true, allowBadge: false } }));
+  return allowed(await Notifications.requestPermissionsAsync({ ios: { allowAlert: true, allowSound: true, allowBadge: true } }));
 }
 
 async function cancelScheduled(): Promise<void> {
@@ -57,13 +76,13 @@ async function cancelScheduled(): Promise<void> {
 }
 
 /** Replaces all scheduled reminders with one notification at each of `times` (empty turns them off). */
-export async function scheduleReminders(times: Date[], content: ReminderContent): Promise<void> {
+export async function scheduleReminders(times: Date[], content: ReminderContent, options?: ReminderOptions): Promise<void> {
   await cancelScheduled();
   const ids: string[] = [];
   for (const date of times) {
     ids.push(
       await Notifications.scheduleNotificationAsync({
-        content: { ...content, data: { url: REMINDER_URL } },
+        content: notificationContent(content, options),
         trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date },
       }),
     );
@@ -72,9 +91,14 @@ export async function scheduleReminders(times: Date[], content: ReminderContent)
 }
 
 /** Sends a reminder a few seconds from now so the user can see what it looks like. */
-export async function sendTestReminder(content: ReminderContent, seconds = 5): Promise<void> {
+export async function sendTestReminder(content: ReminderContent, options?: ReminderOptions, seconds = 5): Promise<void> {
   await Notifications.scheduleNotificationAsync({
-    content: { ...content, data: { url: REMINDER_URL } },
+    content: notificationContent(content, options),
     trigger: { type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL, seconds },
   });
+}
+
+/** Removes the reminder badge from the app icon (after the user logged something, or reminders were turned off). */
+export async function clearReminderBadge(): Promise<void> {
+  await Notifications.setBadgeCountAsync(0);
 }

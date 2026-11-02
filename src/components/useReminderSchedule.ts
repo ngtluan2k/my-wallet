@@ -4,7 +4,7 @@ import { AppState } from 'react-native';
 import { today } from '@/domain/dates';
 import { loggedOn, reminderTimes } from '@/domain/reminders';
 import { useT } from '@/i18n';
-import { configureNotifications, scheduleReminders } from '@/services/reminders';
+import { clearReminderBadge, configureNotifications, scheduleReminders } from '@/services/reminders';
 import { useSettings } from '@/state/settings';
 import { useTransactions } from '@/state/wallet';
 
@@ -19,6 +19,7 @@ export function useReminderSchedule() {
   const loaded = useSettings((s) => s.loaded);
   const enabled = useSettings((s) => s.reminderEnabled);
   const time = useSettings((s) => s.reminderTime);
+  const prominent = useSettings((s) => s.reminderProminent);
   const transactions = useTransactions();
 
   const [day, setDay] = useState(today);
@@ -35,8 +36,10 @@ export function useReminderSchedule() {
     if (!loaded) return;
     configureNotifications();
     const times = enabled ? reminderTimes(new Date(), time, loggedToday) : [];
-    scheduleReminders(times, { title: t('reminder.title'), body: t('reminder.body') }).catch(() => {
+    scheduleReminders(times, { title: t('reminder.title'), body: t('reminder.body') }, { prominent }).catch(() => {
       // Scheduling only fails without permission; the settings row explains how to allow it.
     });
-  }, [loaded, enabled, time, loggedToday, day, t]);
+    // The icon badge stays as a reminder until something is logged today.
+    if (loggedToday || !enabled) clearReminderBadge().catch(() => undefined);
+  }, [loaded, enabled, time, prominent, loggedToday, day, t]);
 }

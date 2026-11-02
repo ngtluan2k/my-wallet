@@ -12,7 +12,10 @@
       "config": {
         "usesNonExemptEncryption": false
       },
-      "infoPlist": {}
+      "infoPlist": {},
+      "entitlements": {
+        "com.apple.developer.usernotifications.time-sensitive": true
+      }
     },
     "android": {
       "adaptiveIcon": {

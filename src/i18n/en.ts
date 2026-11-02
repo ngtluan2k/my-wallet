@@ -353,6 +353,8 @@ export const en: Record<TranslationKey, string> = {
   'settings.reminder': 'Daily logging reminder',
   'settings.reminderDesc': 'A notification on days you haven’t logged anything yet. Tap it to add a transaction.',
   'settings.reminderTime': 'Reminder time',
+  'settings.reminderProminent': 'High priority',
+  'settings.reminderProminentDesc': 'Shows even during Focus / Do Not Disturb and stays longer on the lock screen (Time Sensitive)',
   'settings.reminderTest': 'Send a test notification',
   'settings.reminderTestSent': 'The test notification appears in about 5 seconds. Tap it to open Add transaction.',
   'settings.reminderDenied': 'My Wallet isn’t allowed to send notifications. Turn them on for My Wallet in iPhone Settings.',

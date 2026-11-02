@@ -44,6 +44,7 @@ export default function SettingsScreen() {
   const [picker, setPicker] = useState<'language' | 'theme' | null>(null);
   const reminderEnabled = useSettings((s) => s.reminderEnabled);
   const reminderTime = useSettings((s) => s.reminderTime);
+  const reminderProminent = useSettings((s) => s.reminderProminent);
   const [timePickerOpen, setTimePickerOpen] = useState(false);
 
   async function toggleReminder(enabled: boolean) {
@@ -63,7 +64,7 @@ export default function SettingsScreen() {
 
   async function testReminder() {
     try {
-      await sendTestReminder({ title: t('reminder.title'), body: t('reminder.body') });
+      await sendTestReminder({ title: t('reminder.title'), body: t('reminder.body') }, { prominent: reminderProminent });
       Alert.alert(t('settings.reminderTest'), t('settings.reminderTestSent'));
     } catch {
       Alert.alert(t('common.error'), t('settings.reminderDenied'));
@@ -203,6 +204,14 @@ export default function SettingsScreen() {
               value={reminderTime}
               chevron
               onPress={() => setTimePickerOpen(true)}
+            />
+          )}
+          {reminderEnabled && (
+            <ListRow
+              icon="alert-circle-outline"
+              title={t('settings.reminderProminent')}
+              subtitle={t('settings.reminderProminentDesc')}
+              accessory={<Toggle value={reminderProminent} onValueChange={(v) => update({ reminderProminent: v })} />}
             />
           )}
           {reminderEnabled && (

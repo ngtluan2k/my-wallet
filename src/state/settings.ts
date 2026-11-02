@@ -16,8 +16,8 @@ export const useSettings = create<SettingsState>()((set, get) => ({
   },
   update(patch) {
     set(patch);
-    const { language, theme, reminderEnabled, reminderTime } = get();
+    const { language, theme, reminderEnabled, reminderTime, reminderProminent } = get();
     // A failed settings write only loses a preference, so it isn't surfaced.
-    saveSettings({ language, theme, reminderEnabled, reminderTime }).catch(() => undefined);
+    saveSettings({ language, theme, reminderEnabled, reminderTime, reminderProminent }).catch(() => undefined);
   },
 }));

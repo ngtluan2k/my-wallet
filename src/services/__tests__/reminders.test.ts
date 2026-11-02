@@ -27,9 +27,14 @@ describe('reminder scheduling', () => {
     await scheduleReminders(times, content);
     expect(schedule).toHaveBeenCalledTimes(2);
     expect(schedule).toHaveBeenCalledWith({
-      content: { ...content, data: { url: REMINDER_URL } },
+      content: { ...content, sound: 'default', badge: 1, interruptionLevel: 'active', data: { url: REMINDER_URL } },
       trigger: { type: 'date', date: times[0] },
     });
+  });
+
+  it('marks reminders Time Sensitive when high priority is on', async () => {
+    await scheduleReminders([new Date(2026, 10, 3, 21)], content, { prominent: true });
+    expect(schedule.mock.calls[0][0].content.interruptionLevel).toBe('timeSensitive');
   });
 
   it('cancels the previous batch and the old repeating reminder before rescheduling', async () => {
