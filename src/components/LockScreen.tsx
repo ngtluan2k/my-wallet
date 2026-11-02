@@ -4,6 +4,7 @@ import { Alert, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useT } from '@/i18n';
+import { MAX_PIN_ATTEMPTS } from '@/domain/pinLock';
 import { useAppLock } from '@/state/appLock';
 import { useAuth } from '@/state/auth';
 import { radius, spacing, useTheme } from '@/theme';
@@ -16,8 +17,22 @@ export function LockScreen() {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const biometricEnabled = useAppLock((s) => s.biometricEnabled);
+  const failures = useAppLock((s) => s.failures);
+  const lockedUntil = useAppLock((s) => s.lockedUntil);
   const [pin, setPin] = useState('');
   const [wrong, setWrong] = useState(false);
+  const [now, setNow] = useState(() => Date.now());
+  const waitSeconds = lockedUntil !== null && lockedUntil > now ? Math.ceil((lockedUntil - now) / 1000) : 0;
+
+  // Ticks the lockout countdown; stops once the wait is over.
+  useEffect(() => {
+    if (lockedUntil === null || lockedUntil <= Date.now()) return;
+    const timer = setInterval(() => {
+      setNow(Date.now());
+      if (Date.now() >= lockedUntil) clearInterval(timer);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [lockedUntil]);
 
   const tryBiometrics = useCallback(() => {
     void useAppLock.getState().unlockWithBiometrics(t('lock.biometricPrompt'));
@@ -28,9 +43,17 @@ export function LockScreen() {
   }, [biometricEnabled, tryBiometrics]);
 
   async function submit(value: string) {
-    if (await useAppLock.getState().unlockWithPin(value)) return;
-    setWrong(true);
+    const result = await useAppLock.getState().unlockWithPin(value);
+    setNow(Date.now());
+    if (result === 'ok') return;
     setPin('');
+    if (result === 'exhausted') {
+      // The lock is already removed; data synced to the account is safe.
+      await useAuth.getState().signOut();
+      Alert.alert(t('lock.exhaustedTitle'), t('lock.exhausted'));
+      return;
+    }
+    setWrong(result === 'wrong');
   }
 
   function forgot() {
@@ -62,7 +85,15 @@ export function LockScreen() {
         <AppText size={22} weight="700">
           {t('lock.title')}
         </AppText>
-        <AppText tone={wrong ? 'danger' : 'muted'}>{wrong ? t('lock.wrong') : t('lock.subtitle')}</AppText>
+        <AppText tone={wrong || waitSeconds > 0 ? 'danger' : 'muted'} style={styles.center}>
+          {waitSeconds > 0
+            ? t('lock.wait', { seconds: waitSeconds })
+            : wrong
+              ? MAX_PIN_ATTEMPTS - failures <= 5
+                ? t('lock.wrongRemaining', { count: MAX_PIN_ATTEMPTS - failures })
+                : t('lock.wrong')
+              : t('lock.subtitle')}
+        </AppText>
       </View>
       <PinPad
         value={pin}
@@ -71,6 +102,7 @@ export function LockScreen() {
           setWrong(false);
         }}
         onComplete={submit}
+        disabled={waitSeconds > 0}
         extraKey={biometricEnabled ? { icon: 'scan-outline', label: t('lock.useBiometric'), onPress: tryBiometrics } : undefined}
       />
       <Pressable onPress={forgot} hitSlop={12} accessibilityRole="button">
@@ -84,6 +116,7 @@ export function LockScreen() {
 
 const styles = StyleSheet.create({
   container: { alignItems: 'center', justifyContent: 'space-between' },
-  header: { alignItems: 'center', gap: spacing.sm },
+  header: { alignItems: 'center', gap: spacing.sm, paddingHorizontal: spacing.lg },
+  center: { textAlign: 'center' },
   logo: { width: 64, height: 64, borderRadius: radius.lg, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.sm },
 });

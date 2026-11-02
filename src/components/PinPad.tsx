@@ -14,17 +14,21 @@ export function PinPad({
   onChange,
   onComplete,
   extraKey,
+  disabled,
 }: {
   value: string;
   onChange(value: string): void;
   onComplete(value: string): void;
   /** Optional bottom-left key, e.g. Face ID. */
   extraKey?: { icon: 'scan-outline'; label: string; onPress(): void };
+  /** Digits are ignored (e.g. during a wrong-PIN lockout); the extra key still works. */
+  disabled?: boolean;
 }) {
   const { colors } = useTheme();
 
   function press(key: (typeof KEYS)[number]) {
     if (key === 'extra') return extraKey?.onPress();
+    if (disabled) return;
     if (key === 'back') return onChange(value.slice(0, -1));
     if (value.length >= PIN_LENGTH) return;
     const next = value + key;

@@ -16,6 +16,7 @@ class FakeRemote implements RemoteApi {
     categories: new Map(),
     transactions: new Map(),
     budgets: new Map(),
+    recurring: new Map(),
   };
   clock = Date.parse('2026-10-28T00:00:00.000Z');
   failNext = false;
@@ -130,5 +131,27 @@ describe('sync engine', () => {
     await a.engine.sync();
     expect(a.engine.snapshot).toMatchObject({ status: 'idle', pending: 0 });
     expect(remote.tables.transactions.has('t9')).toBe(true);
+  });
+
+  it('lets the later edit win when two devices change the same transaction', async () => {
+    const remote = new FakeRemote();
+    const a = device(remote, { ...createInitialData('Ví chính', now), transactions: [tx('t1', 1000)] });
+    await a.engine.sync();
+    const b = device(remote, createInitialData('Ví chính', now));
+    await b.engine.sync();
+
+    // A edits offline at 10:00; B edits the same transaction at 11:00 and syncs first.
+    const older = { ...tx('t1', 2000), updatedAt: '2026-10-28T10:00:00.000Z' };
+    const newer = { ...tx('t1', 3000), updatedAt: '2026-10-28T11:00:00.000Z' };
+    a.data = { ...a.data, transactions: [older] };
+    await a.engine.enqueue([{ table: 'transactions', id: 't1', kind: 'upsert', record: older }]);
+    b.data = { ...b.data, transactions: [newer] };
+    await b.engine.enqueue([{ table: 'transactions', id: 't1', kind: 'upsert', record: newer }]);
+    await b.engine.sync();
+
+    await a.engine.sync();
+    expect(a.data.transactions.map((t) => t.amount)).toEqual([3000]);
+    expect(remote.tables.transactions.get('t1')?.amount).toBe(3000);
+    expect(a.engine.snapshot).toMatchObject({ status: 'idle', pending: 0 });
   });
 });

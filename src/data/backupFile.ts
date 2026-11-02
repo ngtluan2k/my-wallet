@@ -17,6 +17,15 @@ export async function exportBackup(data: WalletData, now = new Date()): Promise<
   return 'shared';
 }
 
+/** Writes a CSV export and opens the share sheet, e.g. to open it in Excel or Numbers. */
+export async function exportCsvFile(csv: string, now = new Date()): Promise<ExportResult> {
+  if (!(await Sharing.isAvailableAsync())) return 'unavailable';
+  const file = new File(Paths.cache, `vi-minh-giao-dich-${today(now)}.csv`);
+  await file.write(csv);
+  await Sharing.shareAsync(file.uri, { mimeType: 'text/csv', UTI: 'public.comma-separated-values-text' });
+  return 'shared';
+}
+
 /** Lets the user pick a backup file and validates it. Returns null if the user cancels. */
 export async function pickBackup(): Promise<ParseResult | null> {
   // Any type: JSON files often arrive with a generic MIME type; content validation decides.

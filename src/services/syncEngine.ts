@@ -1,4 +1,12 @@
-import { diffWalletData, SYNC_TABLES, syncKey, type RemoteChange, type SyncOp, type SyncTable } from '@/domain/sync';
+import {
+  diffWalletData,
+  supersededByRemote,
+  SYNC_TABLES,
+  syncKey,
+  type RemoteChange,
+  type SyncOp,
+  type SyncTable,
+} from '@/domain/sync';
 import type { WalletData } from '@/domain/types';
 import type { Outbox } from '@/data/outbox';
 import { fromRow, toRow, type Row } from '@/data/syncRows';
@@ -119,19 +127,36 @@ export function createSyncEngine({ remote, outbox, cursor, target, onChange, now
       const missing = diffWalletData(null, data).filter((op) => !remoteKeys.has(syncKey(op.table, op.id)));
       await outbox.append(missing);
     }
-    await target.applyRemote(changes, await pendingKeys());
+    await applyPulled(changes);
     await flush();
     // The cursor only ever holds server times; device clocks can't be trusted against them. With an
     // empty server, start from the epoch: the next pull re-reads our own pushes once, harmlessly.
     await cursor.set(latest ?? EPOCH);
   }
 
+  /**
+   * Pull before push, so a pending local edit can be compared with a newer edit made on another
+   * device (last write wins by `updatedAt`) instead of blindly overwriting it.
+   */
   async function incrementalSync(since: string) {
-    await flush();
     const from = new Date(Date.parse(since) - PULL_OVERLAP_MS).toISOString();
     const { changes, latest } = await pull(from);
-    await target.applyRemote(changes, await pendingKeys());
+    await applyPulled(changes);
+    await flush();
     if (latest && Date.parse(latest) > Date.parse(since)) await cursor.set(latest);
+  }
+
+  /** Drops local operations that lost to newer server versions, then applies the server's changes. */
+  async function applyPulled(changes: RemoteChange[]) {
+    const data = target.getData();
+    if (data && changes.length) {
+      const superseded = supersededByRemote(data, changes, await pendingKeys());
+      if (superseded.size) {
+        await outbox.remove(superseded);
+        await refreshPending();
+      }
+    }
+    await target.applyRemote(changes, await pendingKeys());
   }
 
   async function runOnce() {

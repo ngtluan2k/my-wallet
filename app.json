@@ -38,6 +38,12 @@
         {
           "faceIDPermission": "Ví Mình dùng Face ID để mở khoá ứng dụng."
         }
+      ],
+      [
+        "expo-notifications",
+        {
+          "enableRemoteNotifications": false
+        }
       ]
     ],
     "scheme": "mywallet",

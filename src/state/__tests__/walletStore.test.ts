@@ -129,15 +129,24 @@ describe('walletStore', () => {
     expect(repository.saved).toEqual(restored);
   });
 
-  it('applies remote changes without reporting them, and rejects invalid results', async () => {
+  it('applies remote changes without reporting them, skipping rows that would make the data invalid', async () => {
     const { store, committed } = await setup();
     await store.getState().applyRemote([{ table: 'budgets', id: 'exp-food', record: { categoryId: 'exp-food', limit: 9 } }], new Set());
     expect(store.getState().data?.budgets).toEqual([{ categoryId: 'exp-food', limit: 9 }]);
     expect(committed).toEqual([]);
 
-    await expect(
-      store.getState().applyRemote([{ table: 'budgets', id: 'inc-salary', record: { categoryId: 'inc-salary', limit: 9 } }], new Set()),
-    ).rejects.toThrow('remote_invalid');
+    // A budget on an income category is invalid; the valid change next to it still applies.
+    await store.getState().applyRemote(
+      [
+        { table: 'budgets', id: 'inc-salary', record: { categoryId: 'inc-salary', limit: 9 } },
+        { table: 'budgets', id: 'exp-transport', record: { categoryId: 'exp-transport', limit: 5 } },
+      ],
+      new Set(),
+    );
+    expect(store.getState().data?.budgets).toEqual([
+      { categoryId: 'exp-food', limit: 9 },
+      { categoryId: 'exp-transport', limit: 5 },
+    ]);
   });
 
   it('closes and ignores a slow load for a previous user', async () => {
@@ -171,5 +180,31 @@ describe('walletStore', () => {
     await store.getState().archiveWallet(id);
     await store.getState().unarchiveWallet(id);
     expect(store.getState().data?.wallets.find((w) => w.id === id)?.archived).toBe(false);
+  });
+
+  it('adds recurring rules with their due occurrences and protects the wallet they use', async () => {
+    const { store, committed } = await setup();
+    const bank = await store.getState().addWallet({ name: 'Bank', kind: 'bank', color: '#0EA5E9', openingBalance: 0, isDefault: false });
+    const id = await store
+      .getState()
+      .addRecurring(
+        { type: 'expense', amount: 100_000, walletId: bank, categoryId: 'exp-bills', frequency: 'weekly', startDate: '2026-10-19' },
+        '2026-10-28',
+      );
+    expect(store.getState().data?.transactions.map((t) => t.id)).toEqual([`${id}@2026-10-19`, `${id}@2026-10-26`]);
+    expect(store.getState().data?.recurring[0].nextDate).toBe('2026-11-02');
+    expect(committed.at(-1)?.map((op) => op.table).sort()).toEqual(['recurring', 'transactions', 'transactions']);
+
+    await expect(store.getState().deleteWallet(bank)).rejects.toThrow('wallet_in_use');
+
+    await store.getState().setRecurringPaused(id, true, '2026-11-09');
+    await store.getState().runRecurring('2026-11-09');
+    expect(store.getState().data?.transactions).toHaveLength(2);
+    await store.getState().setRecurringPaused(id, false, '2026-11-09');
+    expect(store.getState().data?.transactions).toHaveLength(4);
+
+    await store.getState().deleteRecurring(id);
+    expect(store.getState().data?.recurring).toEqual([]);
+    expect(store.getState().data?.transactions).toHaveLength(4);
   });
 });

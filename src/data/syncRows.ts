@@ -1,5 +1,5 @@
 import type { RemoteChange, SyncRecord, SyncTable } from '@/domain/sync';
-import type { Budget, Category, Transaction, Wallet } from '@/domain/types';
+import type { Budget, Category, RecurringRule, Transaction, Wallet } from '@/domain/types';
 
 /** Database row shape (snake_case). user_id is filled in by the server from the session. */
 export type Row = Record<string, unknown>;
@@ -61,6 +61,24 @@ export function toRow(table: SyncTable, record: SyncRecord): Row {
     case 'budgets': {
       const b = record as Budget;
       return { category_id: b.categoryId, limit_amount: b.limit, deleted_at: null };
+    }
+    case 'recurring': {
+      const r = record as RecurringRule;
+      return {
+        id: r.id,
+        type: r.type,
+        amount: r.amount,
+        wallet_id: r.walletId,
+        category_id: r.categoryId,
+        note: orNull(r.note),
+        frequency: r.frequency,
+        start_date: r.startDate,
+        next_date: r.nextDate,
+        paused: r.paused ?? false,
+        created_at: r.createdAt,
+        updated_at: r.updatedAt,
+        deleted_at: null,
+      };
     }
   }
 }
@@ -127,6 +145,25 @@ export function fromRow(table: SyncTable, row: Row): RemoteChange {
       };
     case 'budgets':
       return { table, id, record: { categoryId: id, limit: toInt(row.limit_amount) } };
+    case 'recurring':
+      return {
+        table,
+        id,
+        record: compact<RecurringRule>({
+          id,
+          type: row.type as RecurringRule['type'],
+          amount: toInt(row.amount),
+          walletId: String(row.wallet_id),
+          categoryId: String(row.category_id),
+          note: orUndefined(row.note as string | null),
+          frequency: row.frequency as RecurringRule['frequency'],
+          startDate: toDate(row.start_date),
+          nextDate: toDate(row.next_date),
+          paused: row.paused ? true : undefined,
+          createdAt: toIso(row.created_at),
+          updatedAt: toIso(row.updated_at),
+        }),
+      };
   }
 }
 
@@ -136,4 +173,5 @@ export const KEY_COLUMN: Record<SyncTable, string> = {
   categories: 'id',
   transactions: 'id',
   budgets: 'category_id',
+  recurring: 'id',
 };

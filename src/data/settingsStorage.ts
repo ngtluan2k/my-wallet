@@ -7,9 +7,13 @@ export type ThemePreference = 'system' | 'light' | 'dark';
 export interface Settings {
   language: LanguagePreference;
   theme: ThemePreference;
+  /** Daily local notification reminding the user to log spending. Off by default. */
+  reminderEnabled: boolean;
+  /** `HH:mm`, device local time. */
+  reminderTime: string;
 }
 
-export const DEFAULT_SETTINGS: Settings = { language: 'system', theme: 'system' };
+export const DEFAULT_SETTINGS: Settings = { language: 'system', theme: 'system', reminderEnabled: false, reminderTime: '21:00' };
 
 const KEY = 'settings';
 
@@ -21,6 +25,11 @@ export async function loadSettings(): Promise<Settings> {
     return {
       language: ['system', 'vi', 'en'].includes(parsed.language as string) ? parsed.language! : 'system',
       theme: ['system', 'light', 'dark'].includes(parsed.theme as string) ? parsed.theme! : 'system',
+      reminderEnabled: parsed.reminderEnabled === true,
+      reminderTime:
+        typeof parsed.reminderTime === 'string' && /^([01]\d|2[0-3]):[0-5]\d$/.test(parsed.reminderTime)
+          ? parsed.reminderTime
+          : DEFAULT_SETTINGS.reminderTime,
     };
   } catch {
     return DEFAULT_SETTINGS;
@@ -28,5 +37,6 @@ export async function loadSettings(): Promise<Settings> {
 }
 
 export async function saveSettings(settings: Settings): Promise<void> {
-  await AsyncStorage.setItem(KEY, JSON.stringify({ language: settings.language, theme: settings.theme }));
+  const { language, theme, reminderEnabled, reminderTime } = settings;
+  await AsyncStorage.setItem(KEY, JSON.stringify({ language, theme, reminderEnabled, reminderTime }));
 }

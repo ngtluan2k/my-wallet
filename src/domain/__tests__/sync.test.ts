@@ -1,6 +1,15 @@
-import { applyRemoteChanges, compactOps, diffWalletData, syncKey, type SyncOp } from '../sync';
+import {
+  applyRemoteChanges,
+  applyRemoteChangesSafely,
+  compactOps,
+  diffWalletData,
+  supersededByRemote,
+  syncKey,
+  type SyncOp,
+} from '../sync';
+import type { WalletData } from '../types';
 import { createTransaction } from '../transactions';
-import { createInitialData } from '../walletData';
+import { createInitialData, parseWalletData } from '../walletData';
 
 const now = new Date('2026-10-28T03:00:00.000Z');
 const base = createInitialData('Ví chính', now);
@@ -76,5 +85,46 @@ describe('applyRemoteChanges', () => {
 
   it('returns the same object when there is nothing to apply', () => {
     expect(applyRemoteChanges(local, [], new Set())).toBe(local);
+  });
+});
+
+describe('supersededByRemote', () => {
+  it('drops a pending local edit only when the server copy is newer', () => {
+    const local = { ...base, transactions: [{ ...t1, updatedAt: '2026-10-28T10:00:00.000Z' }] };
+    const pending = new Set([syncKey('transactions', 't1'), syncKey('budgets', 'exp-food')]);
+    const newer = { ...t1, amount: 9, updatedAt: '2026-10-28T11:00:00.000Z' };
+    const older = { ...t1, amount: 9, updatedAt: '2026-10-28T09:00:00.000Z' };
+    expect([...supersededByRemote(local, [{ table: 'transactions', id: 't1', record: newer }], pending)]).toEqual(['transactions:t1']);
+    expect(supersededByRemote(local, [{ table: 'transactions', id: 't1', record: older }], pending).size).toBe(0);
+    // No timestamps on budgets, and remote deletions: the local pending change is kept.
+    expect(supersededByRemote(local, [{ table: 'budgets', id: 'exp-food', record: { categoryId: 'exp-food', limit: 1 } }], pending).size).toBe(0);
+    expect(supersededByRemote(local, [{ table: 'transactions', id: 't1' }], pending).size).toBe(0);
+  });
+});
+
+describe('applyRemoteChangesSafely', () => {
+  const validate = (d: WalletData) => {
+    const parsed = parseWalletData(d);
+    return parsed.ok ? parsed.data : null;
+  };
+
+  it('skips a bad row but keeps coupled valid changes together', () => {
+    const bank = { ...base.wallets[0], id: 'bank', name: 'Bank', isDefault: false };
+    const data = { ...base, wallets: [...base.wallets, bank] };
+    const result = applyRemoteChangesSafely(
+      data,
+      [
+        // Moving the default flag needs both rows at once; either alone is invalid.
+        { table: 'wallets', id: 'wallet-default', record: { ...base.wallets[0], isDefault: false } },
+        { table: 'wallets', id: 'bank', record: { ...bank, isDefault: true } },
+        { table: 'transactions', id: 'bad', record: { ...t1, id: 'bad', amount: -5 } },
+        { table: 'transactions', id: 't1', record: t1 },
+      ],
+      new Set(),
+      validate,
+    );
+    expect(result.skipped.map((c) => c.id)).toEqual(['bad']);
+    expect(result.data.wallets.find((w) => w.isDefault)?.id).toBe('bank');
+    expect(result.data.transactions.map((t) => t.id)).toEqual(['t1']);
   });
 });

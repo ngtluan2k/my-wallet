@@ -9,7 +9,7 @@ import {
   type CategoryError,
   type CategoryInput,
 } from '@/domain/categories';
-import { applyRemoteChanges, diffWalletData, type RemoteChange, type SyncOp } from '@/domain/sync';
+import { applyRemoteChangesSafely, diffWalletData, type RemoteChange, type SyncOp } from '@/domain/sync';
 import {
   createTransaction,
   updateTransaction,
@@ -17,7 +17,15 @@ import {
   type TransactionError,
   type TransactionInput,
 } from '@/domain/transactions';
-import type { WalletData } from '@/domain/types';
+import {
+  createRecurringRule,
+  generateDueTransactions,
+  ruleUsesWallet,
+  updateRecurringRule,
+  validateRecurringInput,
+  type RecurringInput,
+} from '@/domain/recurring';
+import type { LocalDate, WalletData } from '@/domain/types';
 import { createInitialData, parseWalletData } from '@/domain/walletData';
 import {
   addWallet,
@@ -63,6 +71,14 @@ export interface WalletState {
   editCategory(id: string, input: Omit<CategoryInput, 'type'>, takenNames: string[]): Promise<void>;
   /** Unused user categories only; also removes the category's budget. */
   deleteCategory(id: string): Promise<void>;
+  /** Creates the rule, plus any occurrences already due (start date in the past). */
+  addRecurring(input: RecurringInput, today: LocalDate): Promise<string>;
+  editRecurring(id: string, input: RecurringInput, today: LocalDate): Promise<void>;
+  setRecurringPaused(id: string, paused: boolean, today: LocalDate): Promise<void>;
+  /** Deletes the rule; transactions it already created stay. */
+  deleteRecurring(id: string): Promise<void>;
+  /** Creates every recurring occurrence due up to `today`. */
+  runRecurring(today: LocalDate): Promise<void>;
   /** Replaces all data, e.g. when restoring a backup. `data` must already be validated. */
   replaceAll(data: WalletData): Promise<void>;
   /** Clears every transaction, budget and wallet, keeping one fresh default wallet. */
@@ -240,7 +256,10 @@ export function createWalletStore({
       archiveWallet: (id) => mutate((data) => ({ ...data, wallets: archiveWallet(data.wallets, id, now()) })),
 
       deleteWallet: (id) =>
-        mutate((data) => ({ ...data, wallets: deleteWallet(data.wallets, data.transactions, id, now()) })),
+        mutate((data) => {
+          if (ruleUsesWallet(data.recurring, id)) throw new Error('wallet_in_use');
+          return { ...data, wallets: deleteWallet(data.wallets, data.transactions, id, now()) };
+        }),
 
       unarchiveWallet: (id) =>
         mutate((data) => {
@@ -269,6 +288,46 @@ export function createWalletStore({
 
       deleteCategory: (id) => mutate((data) => ({ ...data, ...deleteCategory(data, id) })),
 
+      async addRecurring(input, today) {
+        const id = newId();
+        await mutate((data) => {
+          const errors = validateRecurringInput(input, data);
+          if (errors.length) throw new ValidationError(errors);
+          const next = { ...data, recurring: [...data.recurring, createRecurringRule(input, id, now())] };
+          return generateDueTransactions(next, today, now());
+        });
+        return id;
+      },
+
+      editRecurring: (id, input, today) =>
+        mutate((data) => {
+          const rule = data.recurring.find((r) => r.id === id);
+          if (!rule) throw new Error('not_found');
+          const errors = validateRecurringInput(input, data);
+          if (errors.length) throw new ValidationError(errors);
+          const next = { ...data, recurring: data.recurring.map((r) => (r.id === id ? updateRecurringRule(r, input, now()) : r)) };
+          return generateDueTransactions(next, today, now());
+        }),
+
+      setRecurringPaused: (id, paused, today) =>
+        mutate((data) => {
+          const rule = data.recurring.find((r) => r.id === id);
+          if (!rule) throw new Error('not_found');
+          if (!!rule.paused === paused) return data;
+          const { paused: _old, ...rest } = rule;
+          const updated = { ...rest, ...(paused ? { paused: true } : {}), updatedAt: now().toISOString() };
+          const next = { ...data, recurring: data.recurring.map((r) => (r.id === id ? updated : r)) };
+          return paused ? next : generateDueTransactions(next, today, now());
+        }),
+
+      deleteRecurring: (id) =>
+        mutate((data) => {
+          if (!data.recurring.some((r) => r.id === id)) return data;
+          return { ...data, recurring: data.recurring.filter((r) => r.id !== id) };
+        }),
+
+      runRecurring: (today) => mutate((data) => generateDueTransactions(data, today, now())),
+
       // Works even when loading failed: restoring a backup is how users recover from a corrupt file.
       replaceAll: (replacement) =>
         enqueue(async () => {
@@ -287,14 +346,19 @@ export function createWalletStore({
           await report(diffWalletData(previous, fresh));
         }),
 
+      // A server row that fails validation is skipped (and pulled again next time) instead of
+      // blocking every other change.
       applyRemote: (changes, pending) =>
         mutate(
           (data) => {
-            const merged = applyRemoteChanges(data, changes, pending);
-            if (merged === data) return data;
-            const parsed = parseWalletData(merged);
-            if (!parsed.ok) throw new Error('remote_invalid');
-            return parsed.data;
+            const result = applyRemoteChangesSafely(data, changes, pending, (candidate) => {
+              const parsed = parseWalletData(candidate);
+              return parsed.ok ? parsed.data : null;
+            });
+            if (result.skipped.length && __DEV__) {
+              console.warn('[sync] skipped invalid server rows', result.skipped.map((c) => `${c.table}:${c.id}`));
+            }
+            return result.data;
           },
           { sync: false },
         ),

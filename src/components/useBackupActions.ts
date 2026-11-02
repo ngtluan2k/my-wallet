@@ -1,17 +1,42 @@
 import { Alert } from 'react-native';
 
-import { exportBackup, pickBackup } from '@/data/backupFile';
+import { exportBackup, exportCsvFile, pickBackup } from '@/data/backupFile';
+import { transactionsToCsv } from '@/domain/csv';
 import { useT } from '@/i18n';
 import { walletStore } from '@/state/wallet';
 
 export function useBackupActions() {
-  const { t } = useT();
+  const { t, categoryName } = useT();
 
   async function exportData() {
     const data = walletStore.getState().data;
     if (!data) return;
     try {
       if ((await exportBackup(data)) === 'unavailable') Alert.alert(t('settings.exportUnavailable'));
+    } catch {
+      Alert.alert(t('common.error'), t('settings.exportFailed'));
+    }
+  }
+
+  async function exportCsv() {
+    const data = walletStore.getState().data;
+    if (!data) return;
+    const csv = transactionsToCsv(data.transactions, data.categories, data.wallets, {
+      headers: [
+        t('csv.date'),
+        t('csv.time'),
+        t('csv.type'),
+        t('csv.amount'),
+        t('csv.category'),
+        t('csv.wallet'),
+        t('csv.toWallet'),
+        t('csv.note'),
+      ],
+      type: { expense: t('type.expense'), income: t('type.income'), transfer: t('type.transfer') },
+      categoryName,
+    });
+    try {
+      if ((await exportCsvFile(csv)) === 'unavailable') Alert.alert(t('settings.exportUnavailable'));
     } catch {
       Alert.alert(t('common.error'), t('settings.exportFailed'));
     }
@@ -49,5 +74,5 @@ export function useBackupActions() {
     ]);
   }
 
-  return { exportData, restoreData };
+  return { exportData, exportCsv, restoreData };
 }

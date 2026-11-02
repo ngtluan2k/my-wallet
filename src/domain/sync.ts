@@ -1,15 +1,15 @@
-import type { Budget, Category, Transaction, Wallet, WalletData } from './types';
+import type { Budget, Category, RecurringRule, Transaction, Wallet, WalletData } from './types';
 
 /**
  * Sync model: the local file is the source of truth. Every committed local change becomes an
  * outbox entry, pushed in order. Pulling applies remote changes except for records that still have
  * a pending local change, so a local edit is never overwritten before it reaches the server.
  */
-export type SyncTable = 'wallets' | 'categories' | 'transactions' | 'budgets';
+export type SyncTable = 'wallets' | 'categories' | 'transactions' | 'budgets' | 'recurring';
 
-export const SYNC_TABLES: SyncTable[] = ['wallets', 'categories', 'transactions', 'budgets'];
+export const SYNC_TABLES: SyncTable[] = ['wallets', 'categories', 'transactions', 'budgets', 'recurring'];
 
-export type SyncRecord = Wallet | Category | Transaction | Budget;
+export type SyncRecord = Wallet | Category | Transaction | Budget | RecurringRule;
 
 export type SyncOp =
   | { table: SyncTable; id: string; kind: 'upsert'; record: SyncRecord }
@@ -106,8 +106,71 @@ export function applyRemoteChanges(data: WalletData, changes: RemoteChange[], pe
     categories: [...tables.categories.values()] as Category[],
     transactions: [...tables.transactions.values()] as Transaction[],
     budgets: [...tables.budgets.values()] as Budget[],
+    recurring: [...tables.recurring.values()] as RecurringRule[],
   };
 }
+
+/**
+ * Pending local operations that lost to a newer server version. Records with `updatedAt`
+ * (wallets, transactions) are compared last-write-wins: if the server's copy was edited after the
+ * local one, the local operation is dropped and the server's copy applied. Records without a
+ * timestamp (categories, budgets) and remote deletions keep the local pending change.
+ */
+export function supersededByRemote(data: WalletData, changes: RemoteChange[], pending: Set<string>): Set<string> {
+  const superseded = new Set<string>();
+  const locals = new Map<string, SyncRecord>();
+  for (const table of SYNC_TABLES) for (const r of recordsOf(data, table)) locals.set(syncKey(table, recordId(table, r)), r);
+  for (const change of changes) {
+    const key = syncKey(change.table, change.id);
+    if (!pending.has(key) || !change.record) continue;
+    const remoteAt = (change.record as { updatedAt?: string }).updatedAt;
+    const localAt = (locals.get(key) as { updatedAt?: string } | undefined)?.updatedAt;
+    if (remoteAt && localAt && Date.parse(remoteAt) > Date.parse(localAt)) superseded.add(key);
+  }
+  return superseded;
+}
+
+/**
+ * Like `applyRemoteChanges`, but never lets one bad server row block the rest. If the merged data
+ * fails validation, changes that make it invalid are left out (found by trying the merge without
+ * each one), and as a last resort changes are applied one at a time, keeping those that validate.
+ */
+export function applyRemoteChangesSafely(
+  data: WalletData,
+  changes: RemoteChange[],
+  pending: Set<string>,
+  validate: (candidate: WalletData) => WalletData | null,
+): { data: WalletData; skipped: RemoteChange[] } {
+  const merged = applyRemoteChanges(data, changes, pending);
+  if (merged === data) return { data, skipped: [] };
+  const valid = validate(merged);
+  if (valid) return { data: valid, skipped: [] };
+
+  // Leave-one-out: usually a single malformed row; this keeps coupled changes (such as moving the
+  // default flag between two wallets) together.
+  let kept = changes;
+  const skipped: RemoteChange[] = [];
+  for (let round = 0; round < MAX_SKIPPED_CHANGES; round++) {
+    const culprit = kept.findIndex((_, i) => validate(applyRemoteChanges(data, kept.filter((__, j) => j !== i), pending)));
+    if (culprit < 0) break;
+    skipped.push(kept[culprit]);
+    kept = kept.filter((_, j) => j !== culprit);
+    const result = validate(applyRemoteChanges(data, kept, pending));
+    if (result) return { data: result, skipped };
+  }
+
+  let current = data;
+  for (const change of kept) {
+    const next = applyRemoteChanges(current, [change], pending);
+    if (next === current) continue;
+    const result = validate(next);
+    if (result) current = result;
+    else skipped.push(change);
+  }
+  return { data: current, skipped };
+}
+
+const MAX_SKIPPED_CHANGES = 5;
 
 export function isEmptyData(data: WalletData): boolean {
   return data.transactions.length === 0 && data.budgets.length === 0;

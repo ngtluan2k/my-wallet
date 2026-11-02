@@ -70,13 +70,15 @@ export function categoryInUse(transactions: Transaction[], id: string): boolean 
 
 /** Deletes an unused user category together with its budget. */
 export function deleteCategory(
-  data: { categories: Category[]; transactions: Transaction[]; budgets: Budget[] },
+  data: { categories: Category[]; transactions: Transaction[]; budgets: Budget[]; recurring?: { categoryId: string }[] },
   id: string,
 ): { categories: Category[]; budgets: Budget[] } {
   const target = data.categories.find((c) => c.id === id);
   if (!target) throw new Error('not_found');
   if (target.builtInKey) throw new Error('built_in');
-  if (categoryInUse(data.transactions, id)) throw new Error('category_in_use');
+  if (categoryInUse(data.transactions, id) || data.recurring?.some((r) => r.categoryId === id)) {
+    throw new Error('category_in_use');
+  }
   return {
     categories: data.categories.filter((c) => c.id !== id),
     budgets: data.budgets.filter((b) => b.categoryId !== id),

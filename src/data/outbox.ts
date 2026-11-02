@@ -1,6 +1,6 @@
 import { File, Paths } from 'expo-file-system';
 
-import { compactOps, type SyncOp } from '@/domain/sync';
+import { compactOps, syncKey, type SyncOp } from '@/domain/sync';
 
 /** Durable, ordered queue of local changes waiting to reach the server. */
 export interface Outbox {
@@ -8,6 +8,8 @@ export interface Outbox {
   append(ops: SyncOp[]): Promise<void>;
   /** Removes the first `count` entries after they were pushed. */
   dropFirst(count: number): Promise<void>;
+  /** Removes entries by `syncKey`, e.g. local changes superseded by a newer server version. */
+  remove(keys: Set<string>): Promise<void>;
 }
 
 /** Outbox kept in memory, for tests. */
@@ -21,6 +23,9 @@ export class MemoryOutbox implements Outbox {
   }
   async dropFirst(count: number) {
     this.ops = this.ops.slice(count);
+  }
+  async remove(keys: Set<string>) {
+    this.ops = this.ops.filter((op) => !keys.has(syncKey(op.table, op.id)));
   }
 }
 
@@ -76,6 +81,14 @@ export class FileOutbox implements Outbox {
   dropFirst(count: number) {
     return this.run(async () => {
       await this.write((await this.read()).slice(count));
+    });
+  }
+
+  remove(keys: Set<string>) {
+    return this.run(async () => {
+      const ops = await this.read();
+      const kept = ops.filter((op) => !keys.has(syncKey(op.table, op.id)));
+      if (kept.length !== ops.length) await this.write(kept);
     });
   }
 }

@@ -8,6 +8,7 @@ import { LockScreen } from '@/components/LockScreen';
 import { NewPasswordScreen } from '@/components/NewPasswordScreen';
 import { AppText, Button } from '@/components/ui';
 import { useBackupActions } from '@/components/useBackupActions';
+import { useReminderSchedule } from '@/components/useReminderSchedule';
 import { StorageError } from '@/data/WalletRepository';
 import { useT } from '@/i18n';
 import { useAppLock, watchAppLock } from '@/state/appLock';
@@ -26,6 +27,7 @@ export default function RootLayout() {
   const user = useAuth((s) => s.user);
   const recovering = useAuth((s) => s.recovering);
   const walletStatus = useWallet((s) => s.status);
+  useReminderSchedule();
 
   useEffect(() => {
     useSettings.getState().load();
@@ -79,6 +81,8 @@ export default function RootLayout() {
           <Stack.Screen name="wallets" options={{ title: t('wallets.title') }} />
           <Stack.Screen name="profile" options={{ title: t('profile.title') }} />
           <Stack.Screen name="categories" options={{ title: t('categories.title') }} />
+          <Stack.Screen name="recurring" options={{ title: t('recurring.title') }} />
+          <Stack.Screen name="recurring-edit" options={{ presentation: 'modal', headerShown: false }} />
           <Stack.Screen name="category-edit" options={{ presentation: 'modal', headerShown: false }} />
           <Stack.Screen name="wallet-edit" options={{ presentation: 'modal', headerShown: false }} />
           <Stack.Screen name="pin" options={{ presentation: 'modal', headerShown: false }} />

@@ -69,10 +69,35 @@ export interface Wallet {
   updatedAt: string;
 }
 
+export type RecurringFrequency = 'weekly' | 'monthly';
+
+/**
+ * A transaction that repeats (rent, salary, subscriptions). Occurrences up to today are created as
+ * ordinary transactions with the id `<rule id>@<date>`, so two devices create the same record.
+ */
+export interface RecurringRule {
+  id: string;
+  type: CategoryType;
+  amount: number;
+  walletId: string;
+  categoryId: string;
+  note?: string;
+  frequency: RecurringFrequency;
+  /** First occurrence. Its weekday (weekly) or day of month (monthly, clamped to short months) repeats. */
+  startDate: LocalDate;
+  /** Next occurrence not created yet. */
+  nextDate: LocalDate;
+  /** Paused rules create nothing; also set automatically when the wallet or category became unusable. */
+  paused?: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface WalletData {
   version: number;
   transactions: Transaction[];
   categories: Category[];
   budgets: Budget[];
   wallets: Wallet[];
+  recurring: RecurringRule[];
 }

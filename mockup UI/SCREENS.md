@@ -78,10 +78,18 @@ Tên ví lấy từ dữ liệu, không cố định (Momo/Techcombank trong ả
 Hạn mức là theo tháng cho từng danh mục chi và áp dụng cho mọi tháng.
 Khác ảnh mockup: danh mục theo bộ danh mục có sẵn của app (ảnh gộp "Mua sắm & Giải trí" chỉ là ví dụ).
 
-## Báo cáo tuần (`report.tsx`)
+## Báo cáo (`report.tsx`)
 
-Chọn tuần (thứ Hai → Chủ nhật, không đi quá tuần hiện tại) · Tổng thu / Tổng chi ·
-cột chi theo từng ngày (hôm nay tô màu chính) · so sánh với tuần trước (± %) · top danh mục chi kèm thanh tỉ lệ.
+Phân đoạn **Tuần / Tháng**. Không đi quá kỳ hiện tại.
+
+- **Tuần** (thứ Hai → Chủ nhật): Tổng thu / Tổng chi · cột chi theo từng ngày (hôm nay tô màu chính) · so sánh với tuần trước (± %) · top danh mục chi kèm thanh tỉ lệ.
+- **Tháng**: Tổng thu / Tổng chi · Tỷ lệ tiết kiệm ((thu − chi) ÷ thu) · cột thu chi 6 tháng gần nhất · so sánh với tháng trước · top danh mục chi.
+
+## Giao dịch định kỳ (`recurring.tsx`, `recurring-edit.tsx`)
+
+- Danh sách: icon danh mục · ghi chú (hoặc tên danh mục) · "Hằng tháng, ngày 5 · Ví" · "Lần tới: …" · số tiền; nhãn "Tạm dừng".
+- Form: Chi/Thu · Số tiền · Danh mục · Ví · Ghi chú · Lặp lại (Hằng tuần / Hằng tháng) · Bắt đầu từ · Tạm dừng (khi sửa) · Xoá.
+- Đến ngày, giao dịch được tự thêm vào sổ (cả các lần đã qua nếu ngày bắt đầu ở quá khứ). Xoá quy tắc không xoá giao dịch đã thêm.
 
 ## Ví của tôi (`wallets.tsx`) và Thêm/sửa ví (`wallet-edit.tsx`)
 
@@ -95,9 +103,10 @@ cột chi theo từng ngày (hôm nay tô màu chính) · so sánh với tuần 
 
 - Thẻ ứng dụng: "Lưu trên máy · Đồng bộ với tài khoản".
 - **Tài khoản**: dòng hồ sơ (tên hiển thị + email, mở màn Hồ sơ) · Đăng xuất (đẩy thay đổi chưa đồng bộ trước; nếu còn thì cảnh báo).
-- **Dữ liệu & sao lưu**: Xuất file JSON (nút "Xuất file" trên dòng) · Khôi phục từ file (kiểm tra đầy đủ rồi xác nhận) · Xóa toàn bộ dữ liệu.
+- **Dữ liệu & sao lưu**: Xuất file JSON (nút "Xuất file" trên dòng) · Xuất bảng tính CSV (mở bằng Excel/Numbers) · Khôi phục từ file (kiểm tra đầy đủ rồi xác nhận) · Xóa toàn bộ dữ liệu.
+- **Nhắc nhở**: Nhắc ghi chép hằng ngày (bật/tắt, xin quyền thông báo; bị từ chối thì gợi ý mở Cài đặt iPhone) · Giờ nhắc (mặc định 21:00).
 - **Bảo mật**: Mã PIN khoá ứng dụng (Bật / Đổi mã / Tắt) · Mở khoá bằng Face ID / Touch ID (cần bật PIN trước).
-- **Tùy biến**: Quản lý ví · Quản lý danh mục · Đơn vị tiền tệ **VND (₫)** (chỉ hiển thị) · Ngôn ngữ (Hệ thống / Tiếng Việt / English) · Giao diện (Hệ thống / Sáng / Tối).
+- **Tùy biến**: Quản lý ví · Quản lý danh mục · Giao dịch định kỳ · Đơn vị tiền tệ **VND (₫)** (chỉ hiển thị) · Ngôn ngữ (Hệ thống / Tiếng Việt / English) · Giao diện (Hệ thống / Sáng / Tối).
 - **Giới thiệu**: triết lý thiết kế, thông tin chữ ký ứng dụng, Điều khoản dịch vụ, Chính sách quyền riêng tư, phiên bản.
 
 Khác ảnh mockup: không có "Đánh giá trên App Store" (chưa có link), không có trang "Về ứng dụng" riêng,
@@ -138,4 +147,6 @@ không có "Email hoặc Số điện thoại" (chỉ email).
 ## Màn khoá (`components/LockScreen.tsx`)
 
 Hiện khi mở app hoặc quay lại sau hơn 60 giây ở nền, nếu đã bật PIN. Nhập PIN 4 số hoặc dùng Face ID.
+Sai 5 lần thì phải chờ 30 giây (gấp đôi mỗi lần sai tiếp, tối đa 15 phút), có đếm ngược; còn ≤ 5 lần thì báo số lần còn lại.
+Sai lần thứ 10: tắt khoá và đăng xuất.
 "Quên mã PIN?" → đăng xuất (tắt khoá); dữ liệu đã đồng bộ vẫn còn trong tài khoản.

@@ -12,6 +12,7 @@ import {
 import { FileOutbox, userOutboxName } from '@/data/outbox';
 import { supabase } from '@/data/supabaseClient';
 import { createSupabaseRemote } from '@/data/supabaseRemote';
+import { today } from '@/domain/dates';
 import type { WalletData } from '@/domain/types';
 import { createSyncEngine, type SyncEngine, type SyncSnapshot } from '@/services/syncEngine';
 
@@ -76,8 +77,15 @@ async function openUser(userId: string) {
   await thisEngine.refreshPending();
   if (walletStore.getState().status === 'ready') {
     useLegacyImport.setState({ data: await readLegacyData() });
+    await runRecurring();
     void thisEngine.sync();
   }
+}
+
+/** Creates recurring transactions that came due (e.g. overnight). A failed save just retries later. */
+async function runRecurring() {
+  if (walletStore.getState().status !== 'ready') return;
+  await walletStore.getState().runRecurring(today()).catch(() => undefined);
 }
 
 function closeUser() {
@@ -107,7 +115,7 @@ export function startSession() {
   if (initial) void openUser(initial);
 
   AppState.addEventListener('change', (state) => {
-    if (state === 'active') void engine?.sync();
+    if (state === 'active') void runRecurring().then(() => engine?.sync());
   });
 }
 

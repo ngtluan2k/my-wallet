@@ -1,6 +1,6 @@
 import { startOfWeek } from '../dates';
 import { vietnameseAmountWords, vietnameseNumberWords } from '../numberWords';
-import { weeklyReport } from '../reports';
+import { monthlyReport, weeklyReport } from '../reports';
 import type { Transaction } from '../types';
 
 const tx = (date: string, type: Transaction['type'], amount: number, categoryId?: string): Transaction => ({
@@ -75,5 +75,35 @@ describe('vietnameseNumberWords', () => {
   it('formats amounts with a capital letter and đồng', () => {
     expect(vietnameseAmountWords(150_000)).toBe('Một trăm năm mươi nghìn đồng');
     expect(vietnameseAmountWords(-1)).toBe('');
+  });
+});
+
+describe('monthlyReport', () => {
+  const txs = [
+    tx('2026-09-10', 'expense', 400_000, 'exp-food'),
+    tx('2026-10-01', 'income', 10_000_000, 'inc-salary'),
+    tx('2026-10-05', 'expense', 300_000, 'exp-food'),
+    tx('2026-10-20', 'expense', 200_000, 'exp-transport'),
+    tx('2026-10-21', 'transfer', 5_000_000),
+    tx('2026-11-01', 'expense', 50_000, 'exp-food'),
+  ];
+
+  it('sums the month, ranks categories and compares with the previous month', () => {
+    const report = monthlyReport(txs, '2026-10', 5, 3);
+    expect(report).toMatchObject({ month: '2026-10', income: 10_000_000, expense: 500_000, savingsRate: 95 });
+    expect(report.topCategories.map((c) => c.categoryId)).toEqual(['exp-food', 'exp-transport']);
+    expect(report.previousExpense).toBe(400_000);
+    expect(report.expenseChangePercent).toBe(25);
+    expect(report.trend).toEqual([
+      { month: '2026-08', income: 0, expense: 0 },
+      { month: '2026-09', income: 0, expense: 400_000 },
+      { month: '2026-10', income: 10_000_000, expense: 500_000 },
+    ]);
+  });
+
+  it('has no savings rate or change without a baseline', () => {
+    const report = monthlyReport(txs, '2026-09');
+    expect(report.savingsRate).toBeNull();
+    expect(report.expenseChangePercent).toBeNull();
   });
 });

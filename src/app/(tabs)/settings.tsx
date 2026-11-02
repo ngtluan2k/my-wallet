@@ -1,13 +1,16 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
+import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import * as Application from 'expo-application';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Alert, Pressable, StyleSheet, View } from 'react-native';
+import { Alert, Linking, Platform, Pressable, StyleSheet, View } from 'react-native';
 
 import { TabPage } from '@/components/AppHeader';
 import { SigningExpiryInfo } from '@/components/signing';
 import { AppText, Badge, Button, Card, GroupLabel, ListGroup, ListRow, PageTitle, Screen, Sheet, Toggle } from '@/components/ui';
 import { useBackupActions } from '@/components/useBackupActions';
+import { formatTime, toPickerDate, today } from '@/domain/dates';
+import { ensureNotificationPermission } from '@/services/reminders';
 import { useSignOut } from '@/components/useSignOut';
 import type { LanguagePreference, ThemePreference } from '@/data/settingsStorage';
 import { useT, type TranslationKey } from '@/i18n';
@@ -37,8 +40,31 @@ export default function SettingsScreen() {
   const user = useAuth((s) => s.user);
   const signOut = useSignOut();
   const { pinSet, biometricEnabled, biometricAvailable } = useAppLock();
-  const { exportData, restoreData } = useBackupActions();
+  const { exportData, exportCsv, restoreData } = useBackupActions();
   const [picker, setPicker] = useState<'language' | 'theme' | null>(null);
+  const reminderEnabled = useSettings((s) => s.reminderEnabled);
+  const reminderTime = useSettings((s) => s.reminderTime);
+  const [timePickerOpen, setTimePickerOpen] = useState(false);
+
+  async function toggleReminder(enabled: boolean) {
+    if (!enabled) {
+      update({ reminderEnabled: false });
+      return;
+    }
+    if (await ensureNotificationPermission()) {
+      update({ reminderEnabled: true });
+      return;
+    }
+    Alert.alert(t('settings.reminder'), t('settings.reminderDenied'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('settings.openSystemSettings'), onPress: () => void Linking.openSettings() },
+    ]);
+  }
+
+  function onPickReminderTime(event: DateTimePickerEvent, value?: Date) {
+    if (Platform.OS === 'android') setTimePickerOpen(false);
+    if (event.type !== 'dismissed' && value) update({ reminderTime: formatTime(value) });
+  }
 
   function resetData() {
     Alert.alert(t('settings.resetData'), t('settings.resetConfirm'), [
@@ -118,6 +144,13 @@ export default function SettingsScreen() {
             subtitle={t('settings.exportDesc')}
             accessory={<Button compact icon="share-outline" label={t('settings.exportAction')} onPress={exportData} />}
           />
+          <ListRow
+            icon="grid-outline"
+            title={t('settings.exportCsv')}
+            subtitle={t('settings.exportCsvDesc')}
+            chevron
+            onPress={exportCsv}
+          />
           <ListRow icon="cloud-upload-outline" title={t('settings.import')} subtitle={t('settings.importDesc')} chevron onPress={restoreData} />
           <ListRow icon="trash-outline" title={t('settings.resetData')} subtitle={t('settings.resetDataDesc')} destructive chevron onPress={resetData} />
         </ListGroup>
@@ -146,10 +179,30 @@ export default function SettingsScreen() {
           />
         </ListGroup>
 
+        <GroupLabel>{t('settings.section.reminder')}</GroupLabel>
+        <ListGroup>
+          <ListRow
+            icon="notifications-outline"
+            title={t('settings.reminder')}
+            subtitle={t('settings.reminderDesc')}
+            accessory={<Toggle value={reminderEnabled} onValueChange={(v) => void toggleReminder(v)} />}
+          />
+          {reminderEnabled && (
+            <ListRow
+              icon="time-outline"
+              title={t('settings.reminderTime')}
+              value={reminderTime}
+              chevron
+              onPress={() => setTimePickerOpen(true)}
+            />
+          )}
+        </ListGroup>
+
         <GroupLabel>{t('settings.section.customization')}</GroupLabel>
         <ListGroup>
           <ListRow icon="wallet-outline" title={t('settings.wallets')} chevron onPress={() => router.push('/wallets')} />
           <ListRow icon="pricetags-outline" title={t('settings.categories')} chevron onPress={() => router.push('/categories')} />
+          <ListRow icon="repeat-outline" title={t('settings.recurring')} chevron onPress={() => router.push('/recurring')} />
           <ListRow icon="cash-outline" title={t('settings.currency')} value={t('settings.currencyValue')} />
           <ListRow
             icon="language-outline"
@@ -207,6 +260,23 @@ export default function SettingsScreen() {
         </View>
       </Screen>
 
+      {Platform.OS === 'ios' ? (
+        <Sheet visible={timePickerOpen} title={t('settings.reminderTime')} onClose={() => setTimePickerOpen(false)}>
+          <DateTimePicker
+            value={toPickerDate(today(), reminderTime)}
+            mode="time"
+            display="spinner"
+            onChange={onPickReminderTime}
+            style={styles.spinner}
+          />
+          <Button label={t('common.done')} onPress={() => setTimePickerOpen(false)} />
+        </Sheet>
+      ) : (
+        timePickerOpen && (
+          <DateTimePicker value={toPickerDate(today(), reminderTime)} mode="time" is24Hour onChange={onPickReminderTime} />
+        )
+      )}
+
       <Sheet visible={picker !== null} title={picker === 'theme' ? t('settings.theme') : t('settings.language')} onClose={() => setPicker(null)}>
         <ListGroup>
           {(picker === 'theme' ? THEMES : LANGUAGES).map((option) => {
@@ -238,6 +308,7 @@ export default function SettingsScreen() {
 
 const styles = StyleSheet.create({
   flex: { flex: 1, minWidth: 0 },
+  spinner: { alignSelf: 'center' },
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   appCard: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   appIcon: { width: 52, height: 52, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center' },
