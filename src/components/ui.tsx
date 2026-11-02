@@ -415,18 +415,26 @@ export function Toggle({ value, onValueChange, disabled }: { value: boolean; onV
 
 export function TextField({
   label,
+  hint,
   error,
   icon,
   right,
   ...props
-}: TextInputProps & { label?: string; error?: string; icon?: IconName; right?: ReactNode }) {
+}: TextInputProps & { label?: string; hint?: string; error?: string; icon?: IconName; right?: ReactNode }) {
   const { colors } = useTheme();
   return (
     <View style={styles.field}>
       {label && (
-        <AppText weight="600" size={14}>
-          {label}
-        </AppText>
+        <View style={styles.fieldLabel}>
+          <AppText weight="600" size={14}>
+            {label}
+          </AppText>
+          {hint && (
+            <AppText tone="muted" size={13}>
+              {hint}
+            </AppText>
+          )}
+        </View>
       )}
       <View
         style={[
@@ -517,6 +525,7 @@ const styles = StyleSheet.create({
   screenContent: { paddingHorizontal: spacing.md, paddingTop: spacing.md, paddingBottom: 120, gap: spacing.lg },
   pageTitle: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', gap: spacing.md },
   eyebrow: { letterSpacing: 0.8, marginBottom: 2 },
+  fieldLabel: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: spacing.sm },
   card: { borderRadius: radius.lg, borderWidth: StyleSheet.hairlineWidth, padding: spacing.md, gap: spacing.md },
   hero: { borderRadius: radius.xl, padding: spacing.lg, gap: spacing.md },
   sectionHeader: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: spacing.md },

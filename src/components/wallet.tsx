@@ -94,7 +94,9 @@ export function TransactionRow({
   const when = [showDate ? relativeDate(transaction.transactionDate) : null, transaction.transactionTime]
     .filter(Boolean)
     .join(', ');
-  const subtitle = [isTransfer && transaction.note ? transaction.note : label, when].filter(Boolean).join(' • ');
+  const what = isTransfer && transaction.note ? transaction.note : label;
+  // Matches the mockups: "Hôm nay, 12:30 • Ăn uống" on the dashboard, "Ăn uống • 08:30" in the day-grouped ledger.
+  const subtitle = (showDate ? [when, what] : [what, when]).filter(Boolean).join(' • ');
 
   const sign = transaction.type === 'income' ? '+' : transaction.type === 'expense' ? '−' : '';
   const tone = transaction.type === 'income' ? 'income' : transaction.type === 'expense' ? 'expense' : 'transfer';

@@ -118,9 +118,14 @@ export default function BudgetScreen() {
         ) : (
           <>
             <View style={styles.between}>
-              <AppText size={20} weight="600" style={styles.flex}>
-                {t('budget.section')}
-              </AppText>
+              <View style={[styles.flex, styles.sectionTitle]}>
+                <AppText size={20} weight="600" style={styles.shrink}>
+                  {t('budget.section')}
+                </AppText>
+                {usage.length > 0 && (
+                  <Badge label={t('budget.count', { count: usage.length })} color={colors.textMuted} background={colors.surfaceMuted} />
+                )}
+              </View>
               {usage.length > 1 && (
                 <Pressable
                   onPress={() => setSort((s) => (s === 'percent' ? 'name' : 'percent'))}
@@ -295,6 +300,8 @@ function LimitRow({ category, limit }: { category: Category; limit: number | und
 
 const styles = StyleSheet.create({
   flex: { flex: 1, minWidth: 0 },
+  shrink: { flexShrink: 1 },
+  sectionTitle: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   caps: { textTransform: 'uppercase', letterSpacing: 0.6 },
   between: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md },
   heroChip: { flexDirection: 'row', alignItems: 'center', gap: 4, borderRadius: radius.pill, paddingHorizontal: 10, paddingVertical: 4 },

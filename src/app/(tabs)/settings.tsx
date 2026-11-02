@@ -6,7 +6,7 @@ import { Alert, Pressable, StyleSheet, View } from 'react-native';
 
 import { TabPage } from '@/components/AppHeader';
 import { SigningExpiryInfo } from '@/components/signing';
-import { AppText, Button, Card, GroupLabel, ListGroup, ListRow, PageTitle, Screen, Sheet, Toggle } from '@/components/ui';
+import { AppText, Badge, Button, Card, GroupLabel, ListGroup, ListRow, PageTitle, Screen, Sheet, Toggle } from '@/components/ui';
 import { useBackupActions } from '@/components/useBackupActions';
 import { useSignOut } from '@/components/useSignOut';
 import type { LanguagePreference, ThemePreference } from '@/data/settingsStorage';
@@ -85,9 +85,12 @@ export default function SettingsScreen() {
               <Ionicons name="shield-checkmark" size={26} color={colors.primary} />
             </View>
             <View style={styles.flex}>
-              <AppText size={18} weight="700">
-                {t('app.name')}
-              </AppText>
+              <View style={styles.nameRow}>
+                <AppText size={18} weight="700">
+                  {t('app.name')}
+                </AppText>
+                {version && <Badge label={`v${version}`} color={colors.textMuted} background={colors.surfaceMuted} />}
+              </View>
               <AppText tone="muted" size={13}>
                 {t('settings.appTagline')}
               </AppText>
@@ -235,6 +238,7 @@ export default function SettingsScreen() {
 
 const styles = StyleSheet.create({
   flex: { flex: 1, minWidth: 0 },
+  nameRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   appCard: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   appIcon: { width: 52, height: 52, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center' },
   philosophy: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },

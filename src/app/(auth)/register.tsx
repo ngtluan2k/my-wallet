@@ -46,6 +46,7 @@ export default function RegisterScreen() {
     <AuthLayout
       title={t('register.title')}
       subtitle={t('register.subtitle')}
+      eyebrow={t('register.eyebrow')}
       back
       footer={
         <View style={styles.row}>
@@ -62,6 +63,7 @@ export default function RegisterScreen() {
       {confirmSentTo && <FormNotice tone="primary" message={t('register.confirmEmail', { email: confirmSentTo })} />}
       <TextField
         label={t('register.fullName')}
+        hint={t('register.required')}
         icon="person-outline"
         value={fullName}
         onChangeText={setFullName}
@@ -72,6 +74,7 @@ export default function RegisterScreen() {
       />
       <TextField
         label={t('register.email')}
+        hint={t('register.required')}
         icon="mail-outline"
         value={email}
         onChangeText={setEmail}
@@ -85,6 +88,7 @@ export default function RegisterScreen() {
       />
       <PasswordField
         label={t('register.password')}
+        hint={t('register.passwordHint')}
         value={password}
         onChangeText={setPassword}
         placeholder={t('register.passwordPlaceholder')}

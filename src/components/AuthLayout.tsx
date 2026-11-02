@@ -13,12 +13,15 @@ import { AppText, TextField } from './ui';
 export function AuthLayout({
   title,
   subtitle,
+  eyebrow,
   back,
   children,
   footer,
 }: {
   title: string;
   subtitle: string;
+  /** Small chip above the title (sign-up: "Start your financial journey"). */
+  eyebrow?: string;
   back?: boolean;
   children: ReactNode;
   footer?: ReactNode;
@@ -46,12 +49,26 @@ export function AuthLayout({
           ) : (
             <View />
           )}
+          <View style={styles.secure}>
+            <Ionicons name="shield-checkmark-outline" size={16} color={colors.primary} />
+            <AppText tone="muted" size={13}>
+              {t('auth.encrypted')}
+            </AppText>
+          </View>
         </View>
 
         <View style={styles.header}>
           <View style={[styles.logo, { backgroundColor: colors.primary }]}>
             <Ionicons name="wallet" size={32} color={colors.onPrimary} />
           </View>
+          {eyebrow && (
+            <View style={[styles.eyebrow, { backgroundColor: colors.primarySoft }]}>
+              <Ionicons name="sparkles-outline" size={14} color={colors.primary} />
+              <AppText tone="primary" size={13} weight="600">
+                {eyebrow}
+              </AppText>
+            </View>
+          )}
           <AppText size={28} weight="700" style={styles.centerText}>
             {title}
           </AppText>
@@ -122,6 +139,8 @@ export function FormNotice({ message, tone }: { message: string; tone: 'danger' 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   content: { flexGrow: 1, paddingHorizontal: spacing.lg, gap: spacing.xl },
+  secure: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  eyebrow: { flexDirection: 'row', alignItems: 'center', gap: 6, borderRadius: radius.pill, paddingHorizontal: 12, paddingVertical: 4 },
   topBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', minHeight: 44 },
   back: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
   header: { alignItems: 'center', gap: spacing.sm },
