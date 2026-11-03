@@ -22,11 +22,12 @@ import {
 import { monthTransactions, TransactionRow, useCategories, useWalletMap } from '@/components/wallet';
 import { budgetOverview, budgetUsage, usagePercent } from '@/domain/budgets';
 import { today } from '@/domain/dates';
+import { debtTotals } from '@/domain/debts';
 import { sortTransactions, summarize, totalsByCategory } from '@/domain/transactions';
 import { totalBalance } from '@/domain/wallets';
 import { useT } from '@/i18n';
 import { dismissLegacyImport, importLegacyData, useLegacyImport } from '@/state/session';
-import { useBudgets, useTransactions, useWallets } from '@/state/wallet';
+import { useBudgets, useDebts, useTransactions, useWallets } from '@/state/wallet';
 import { radius, spacing, useTheme } from '@/theme';
 
 const TOP_CATEGORIES = 4;
@@ -38,19 +39,21 @@ export default function DashboardScreen() {
   const transactions = useTransactions();
   const budgets = useBudgets();
   const wallets = useWallets();
+  const debts = useDebts();
   const categories = useCategories();
   const walletMap = useWalletMap();
   const month = today().slice(0, 7);
 
   const monthTxs = useMemo(() => monthTransactions(transactions, month), [transactions, month]);
   const summary = useMemo(() => summarize(monthTxs), [monthTxs]);
-  const balance = useMemo(() => totalBalance(wallets, transactions), [wallets, transactions]);
+  const balance = useMemo(() => totalBalance(wallets, transactions, debts), [wallets, transactions, debts]);
   const recent = useMemo(() => sortTransactions(transactions).slice(0, RECENT_COUNT), [transactions]);
   const budgetStatus = useMemo(
     () => (budgets.length ? budgetOverview(budgets, monthTxs, month, today()).status : null),
     [budgets, monthTxs, month],
   );
   const byCategory = useMemo(() => totalsByCategory(monthTxs, 'expense'), [monthTxs]);
+  const debtSummary = useMemo(() => debtTotals(debts), [debts]);
 
   // The budget closest to (or furthest over) its limit, once it reaches the warning threshold.
   const alert = useMemo(() => {
@@ -182,6 +185,38 @@ export default function DashboardScreen() {
                   {money(alert.limit)}
                 </AppText>
               </AppText>
+            </View>
+          </Card>
+        )}
+
+        {(debtSummary.owedToMe > 0 || debtSummary.iOwe > 0) && (
+          <Card onPress={() => router.push('/debts')}>
+            <SectionHeader title={t('dashboard.debts.title')} />
+            <View style={styles.row}>
+              <Pressable
+                style={styles.flex}
+                onPress={() => router.push({ pathname: '/debts', params: { direction: 'lent' } })}
+                accessibilityRole="button"
+              >
+                <AppText tone="muted" size={13}>
+                  {t('dashboard.debts.owedToMe')}
+                </AppText>
+                <AppText weight="600" size={17} tabular tone="income" numberOfLines={1} adjustsFontSizeToFit>
+                  {money(debtSummary.owedToMe)}
+                </AppText>
+              </Pressable>
+              <Pressable
+                style={styles.flex}
+                onPress={() => router.push({ pathname: '/debts', params: { direction: 'borrowed' } })}
+                accessibilityRole="button"
+              >
+                <AppText tone="muted" size={13}>
+                  {t('dashboard.debts.iOwe')}
+                </AppText>
+                <AppText weight="600" size={17} tabular tone="expense" numberOfLines={1} adjustsFontSizeToFit>
+                  {money(debtSummary.iOwe)}
+                </AppText>
+              </Pressable>
             </View>
           </Card>
         )}

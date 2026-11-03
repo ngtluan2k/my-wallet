@@ -1,5 +1,5 @@
 import type { RemoteChange, SyncRecord, SyncTable } from '@/domain/sync';
-import type { Budget, Category, RecurringRule, Transaction, Wallet } from '@/domain/types';
+import type { Budget, Category, Debt, RecurringRule, Transaction, Wallet } from '@/domain/types';
 
 /** Database row shape (snake_case). user_id is filled in by the server from the session. */
 export type Row = Record<string, unknown>;
@@ -77,6 +77,23 @@ export function toRow(table: SyncTable, record: SyncRecord): Row {
         paused: r.paused ?? false,
         created_at: r.createdAt,
         updated_at: r.updatedAt,
+        deleted_at: null,
+      };
+    }
+    case 'debts': {
+      const d = record as Debt;
+      return {
+        id: d.id,
+        direction: d.direction,
+        person: d.person,
+        amount: d.amount,
+        wallet_id: d.walletId,
+        debt_date: d.date,
+        note: orNull(d.note),
+        settled_date: orNull(d.settledDate),
+        settle_wallet_id: orNull(d.settleWalletId),
+        created_at: d.createdAt,
+        updated_at: d.updatedAt,
         deleted_at: null,
       };
     }
@@ -164,6 +181,24 @@ export function fromRow(table: SyncTable, row: Row): RemoteChange {
           updatedAt: toIso(row.updated_at),
         }),
       };
+    case 'debts':
+      return {
+        table,
+        id,
+        record: compact<Debt>({
+          id,
+          direction: row.direction as Debt['direction'],
+          person: String(row.person),
+          amount: toInt(row.amount),
+          walletId: String(row.wallet_id),
+          date: toDate(row.debt_date),
+          note: orUndefined(row.note as string | null),
+          settledDate: row.settled_date ? toDate(row.settled_date) : undefined,
+          settleWalletId: orUndefined(row.settle_wallet_id as string | null),
+          createdAt: toIso(row.created_at),
+          updatedAt: toIso(row.updated_at),
+        }),
+      };
   }
 }
 
@@ -174,4 +209,5 @@ export const KEY_COLUMN: Record<SyncTable, string> = {
   transactions: 'id',
   budgets: 'category_id',
   recurring: 'id',
+  debts: 'id',
 };

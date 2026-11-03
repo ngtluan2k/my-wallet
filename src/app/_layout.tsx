@@ -85,6 +85,8 @@ export default function RootLayout() {
           <Stack.Screen name="categories" options={{ title: t('categories.title') }} />
           <Stack.Screen name="recurring" options={{ title: t('recurring.title') }} />
           <Stack.Screen name="recurring-edit" options={{ presentation: 'modal', headerShown: false }} />
+          <Stack.Screen name="debts" options={{ title: t('debt.title') }} />
+          <Stack.Screen name="debt-edit" options={{ presentation: 'modal', headerShown: false }} />
           <Stack.Screen name="category-edit" options={{ presentation: 'modal', headerShown: false }} />
           <Stack.Screen name="wallet-edit" options={{ presentation: 'modal', headerShown: false }} />
           <Stack.Screen name="pin" options={{ presentation: 'modal', headerShown: false }} />

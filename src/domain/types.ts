@@ -93,6 +93,31 @@ export interface RecurringRule {
   updatedAt: string;
 }
 
+/** `lent`: someone owes the user. `borrowed`: the user owes someone. */
+export type DebtDirection = 'lent' | 'borrowed';
+
+/**
+ * Money lent to or borrowed from a person. It moves wallet money (lending takes money out of
+ * `walletId`, borrowing puts it in; settling reverses that on `settleWalletId`) but, like a transfer,
+ * never counts as income, expense, budget spending or report data.
+ */
+export interface Debt {
+  id: string;
+  direction: DebtDirection;
+  person: string;
+  /** Positive integer of đồng. */
+  amount: number;
+  walletId: string;
+  date: LocalDate;
+  note?: string;
+  /** Set once the debt is paid back in full; on or after `date`. */
+  settledDate?: LocalDate;
+  /** Wallet the repayment went to (lent) or came from (borrowed). Set exactly when `settledDate` is. */
+  settleWalletId?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface WalletData {
   version: number;
   transactions: Transaction[];
@@ -100,4 +125,5 @@ export interface WalletData {
   budgets: Budget[];
   wallets: Wallet[];
   recurring: RecurringRule[];
+  debts: Debt[];
 }

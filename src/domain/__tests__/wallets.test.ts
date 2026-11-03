@@ -1,4 +1,4 @@
-import type { Transaction } from '../types';
+import type { Debt, Transaction } from '../types';
 import {
   addWallet,
   archiveWallet,
@@ -10,6 +10,7 @@ import {
   unarchiveWallet,
   validateWalletInput,
   walletBalance,
+  walletInUse,
   type WalletInput,
 } from '../wallets';
 
@@ -56,13 +57,13 @@ describe('wallets', () => {
 
   it('never archives or deletes the last active wallet', () => {
     expect(() => archiveWallet([cash], cash.id, now)).toThrow('last_wallet');
-    expect(() => deleteWallet([cash], [], cash.id, now)).toThrow('last_wallet');
+    expect(() => deleteWallet([cash], [], [], cash.id, now)).toThrow('last_wallet');
   });
 
   it('only deletes unused wallets', () => {
     const wallets = addWallet([cash], input, 'bank', now);
-    expect(() => deleteWallet(wallets, [tx({ walletId: 'bank' })], 'bank', now)).toThrow('wallet_in_use');
-    expect(deleteWallet(wallets, [], 'bank', now).map((w) => w.id)).toEqual([cash.id]);
+    expect(() => deleteWallet(wallets, [tx({ walletId: 'bank' })], [], 'bank', now)).toThrow('wallet_in_use');
+    expect(deleteWallet(wallets, [], [], 'bank', now).map((w) => w.id)).toEqual([cash.id]);
   });
 
   it('computes balances from opening balance, flows and transfers', () => {
@@ -73,11 +74,35 @@ describe('wallets', () => {
       tx({ type: 'transfer', amount: 200_000, categoryId: undefined, toWalletId: 'bank' }),
       tx({ type: 'expense', amount: 50_000, walletId: 'bank' }),
     ];
-    expect(walletBalance(cash, txs)).toBe(1_000_000 + 300_000 - 100_000 - 200_000);
-    expect(walletBalance(bank, txs)).toBe(5_000_000 + 200_000 - 50_000);
+    expect(walletBalance(cash, txs, [])).toBe(1_000_000 + 300_000 - 100_000 - 200_000);
+    expect(walletBalance(bank, txs, [])).toBe(5_000_000 + 200_000 - 50_000);
     // Transfers move money between wallets without changing the total.
-    expect(totalBalance([cash, bank], txs)).toBe(6_000_000 + 300_000 - 100_000 - 50_000);
-    expect(totalBalance([cash, { ...bank, archived: true }], txs)).toBe(1_000_000);
+    expect(totalBalance([cash, bank], txs, [])).toBe(6_000_000 + 300_000 - 100_000 - 50_000);
+    expect(totalBalance([cash, { ...bank, archived: true }], txs, [])).toBe(1_000_000);
+  });
+
+  it('applies open and settled debts to wallet balances', () => {
+    const bank = addWallet([cash], input, 'bank', now)[1];
+    const base = { createdAt: now.toISOString(), updatedAt: now.toISOString(), person: 'An', date: '2026-11-01' };
+    const lent: Debt = { ...base, id: 'd1', direction: 'lent', amount: 500_000, walletId: cash.id };
+    const borrowed: Debt = { ...base, id: 'd2', direction: 'borrowed', amount: 2_000_000, walletId: 'bank' };
+    expect(walletBalance(cash, [], [lent])).toBe(1_000_000 - 500_000);
+    expect(walletBalance(bank, [], [borrowed])).toBe(5_000_000 + 2_000_000);
+    // Paid back into another wallet: cash stays down, bank goes up.
+    const settled = { ...lent, settledDate: '2026-11-03', settleWalletId: 'bank' };
+    expect(walletBalance(cash, [], [settled])).toBe(500_000);
+    expect(walletBalance(bank, [], [settled])).toBe(5_500_000);
+    expect(totalBalance([cash, bank], [], [settled])).toBe(6_000_000);
+  });
+
+  it('treats a wallet used by a debt as in use', () => {
+    const wallets = addWallet([cash], input, 'bank', now);
+    const debt: Debt = {
+      id: 'd1', direction: 'lent', person: 'An', amount: 1, walletId: cash.id, date: '2026-11-01',
+      settledDate: '2026-11-02', settleWalletId: 'bank', createdAt: now.toISOString(), updatedAt: now.toISOString(),
+    };
+    expect(walletInUse([], [debt], 'bank')).toBe(true);
+    expect(() => deleteWallet(wallets, [], [debt], 'bank', now)).toThrow('wallet_in_use');
   });
 });
 

@@ -15,7 +15,7 @@ import type { TransactionType } from '@/domain/types';
 import { activeWallets, defaultWalletId, walletBalances } from '@/domain/wallets';
 import { useT } from '@/i18n';
 import { useSelectedMonth } from '@/state/ui';
-import { useTransactions, useWallet, useWallets, walletStore } from '@/state/wallet';
+import { useDebts, useTransactions, useWallet, useWallets, walletStore } from '@/state/wallet';
 import { ValidationError } from '@/state/walletStore';
 import { radius, spacing, useTheme } from '@/theme';
 
@@ -40,7 +40,8 @@ export default function TransactionScreen() {
   const categories = useMemo(() => [...categoriesMap.values()], [categoriesMap]);
   const wallets = useWallets();
   const transactions = useTransactions();
-  const balances = useMemo(() => walletBalances(wallets, transactions), [wallets, transactions]);
+  const debts = useDebts();
+  const balances = useMemo(() => walletBalances(wallets, transactions, debts), [wallets, transactions, debts]);
 
   const [type, setType] = useState<TransactionType>(existing?.type ?? 'expense');
   const [amount, setAmount] = useState(existing?.amount ?? 0);

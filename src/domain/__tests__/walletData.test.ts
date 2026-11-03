@@ -34,6 +34,20 @@ function sampleData(): WalletData {
       ),
     ],
     budgets: [{ categoryId: 'exp-food', limit: 3_000_000 }],
+    debts: [
+      {
+        id: 'd1',
+        direction: 'lent',
+        person: 'Minh',
+        amount: 200_000,
+        walletId: DEFAULT_WALLET_ID,
+        date: '2026-10-20',
+        settledDate: '2026-10-28',
+        settleWalletId: 'bank',
+        createdAt: now.toISOString(),
+        updatedAt: now.toISOString(),
+      },
+    ],
   };
 }
 
@@ -97,12 +111,27 @@ describe('parseWalletData', () => {
     ['budget on income category', (d) => ({ ...d, budgets: [{ categoryId: 'inc-salary', limit: 1 }] })],
     ['duplicate budgets', (d) => ({ ...d, budgets: [...d.budgets, ...d.budgets] })],
     ['not an array', (d) => ({ ...d, categories: {} })],
+    ['debt on unknown wallet', (d) => ({ ...d, debts: [{ ...d.debts[0], walletId: 'nope' }] })],
+    ['debt settled into unknown wallet', (d) => ({ ...d, debts: [{ ...d.debts[0], settleWalletId: 'nope' }] })],
+    ['debt settled without wallet', (d) => ({ ...d, debts: [{ ...d.debts[0], settleWalletId: undefined }] })],
+    ['debt settled before it started', (d) => ({ ...d, debts: [{ ...d.debts[0], settledDate: '2026-10-01' }] })],
+    ['debt with blank person', (d) => ({ ...d, debts: [{ ...d.debts[0], person: ' ' }] })],
+    ['debt with unknown direction', (d) => ({ ...d, debts: [{ ...d.debts[0], direction: 'gift' }] })],
+    ['duplicate debt ids', (d) => ({ ...d, debts: [d.debts[0], d.debts[0]] })],
   ])('rejects %s', (_name, mutate) => {
     expect(parseWalletData(mutate(sampleData()))).toEqual({ ok: false, error: 'invalid_format' });
   });
 
   it('reports malformed JSON', () => {
     expect(parseWalletJson('{oops')).toEqual({ ok: false, error: 'not_json' });
+  });
+});
+
+describe('migration from version 3', () => {
+  it('adds an empty debt list', () => {
+    const { debts: _debts, ...v3 } = sampleData();
+    const result = parseWalletData({ ...v3, version: 3 });
+    expect(result.ok && result.data).toEqual({ ...sampleData(), debts: [] });
   });
 });
 

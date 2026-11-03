@@ -207,4 +207,35 @@ describe('walletStore', () => {
     expect(store.getState().data?.recurring).toEqual([]);
     expect(store.getState().data?.transactions).toHaveLength(4);
   });
+
+  it('adds, settles, reopens and deletes debts, syncing each change and protecting their wallets', async () => {
+    const { store, committed, repository } = await setup();
+    const bank = await store.getState().addWallet({ name: 'Bank', kind: 'bank', color: '#0EA5E9', openingBalance: 0, isDefault: false });
+    const debt = { direction: 'lent' as const, person: 'Minh', amount: 300_000, walletId: DEFAULT_WALLET_ID, date: '2026-10-20' };
+
+    await expect(store.getState().addDebt({ ...debt, person: '' })).rejects.toBeInstanceOf(ValidationError);
+    const id = await store.getState().addDebt(debt);
+    expect(repository.saved?.debts).toEqual([expect.objectContaining({ id, person: 'Minh' })]);
+
+    await expect(store.getState().settleDebt(id, '2026-10-01', bank)).rejects.toBeInstanceOf(ValidationError);
+    await store.getState().settleDebt(id, '2026-10-28', bank);
+    expect(store.getState().data?.debts[0]).toMatchObject({ settledDate: '2026-10-28', settleWalletId: bank });
+    await expect(store.getState().deleteWallet(bank)).rejects.toThrow('wallet_in_use');
+
+    await store.getState().editDebt(id, { ...debt, amount: 350_000 });
+    expect(store.getState().data?.debts[0]).toMatchObject({ amount: 350_000, settledDate: '2026-10-28' });
+
+    await store.getState().reopenDebt(id);
+    expect(store.getState().data?.debts[0].settledDate).toBeUndefined();
+
+    await store.getState().deleteDebt(id);
+    expect(store.getState().data?.debts).toEqual([]);
+    expect(committed.slice(-5).map((ops) => ops.map((op) => `${op.table}:${op.kind}`))).toEqual([
+      ['debts:upsert'],
+      ['debts:upsert'],
+      ['debts:upsert'],
+      ['debts:upsert'],
+      ['debts:delete'],
+    ]);
+  });
 });

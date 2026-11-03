@@ -1,5 +1,6 @@
+import { debtBalanceEffect, debtUsesWallet } from './debts';
 import { isValidBalance } from './money';
-import type { Transaction, Wallet, WalletKind } from './types';
+import type { Debt, Transaction, Wallet, WalletKind } from './types';
 
 export const MAX_WALLET_NAME_LENGTH = 40;
 export const DEFAULT_WALLET_ID = 'wallet-default';
@@ -106,20 +107,24 @@ export function archiveWallet(wallets: Wallet[], id: string, now: Date): Wallet[
   return withSingleDefault(next, undefined, timestamp);
 }
 
-export function walletInUse(transactions: Transaction[], id: string): boolean {
-  return transactions.some((t) => t.walletId === id || t.toWalletId === id);
+/** Used by a transaction or a debt (lent from, borrowed into, or settled through it). */
+export function walletInUse(transactions: Transaction[], debts: Debt[], id: string): boolean {
+  return transactions.some((t) => t.walletId === id || t.toWalletId === id) || debtUsesWallet(debts, id);
 }
 
 /** Deleting is only allowed for unused wallets; use archiveWallet otherwise. */
-export function deleteWallet(wallets: Wallet[], transactions: Transaction[], id: string, now: Date): Wallet[] {
-  if (walletInUse(transactions, id)) throw new Error('wallet_in_use');
+export function deleteWallet(wallets: Wallet[], transactions: Transaction[], debts: Debt[], id: string, now: Date): Wallet[] {
+  if (walletInUse(transactions, debts, id)) throw new Error('wallet_in_use');
   const active = wallets.filter((w) => !w.archived);
   if (active.length <= 1 && active[0]?.id === id) throw new Error('last_wallet');
   return withSingleDefault(wallets.filter((w) => w.id !== id), undefined, now.toISOString());
 }
 
-/** Opening balance + income − expense − transfers out + transfers in, over all time. */
-export function walletBalance(wallet: Wallet, transactions: Transaction[]): number {
+/**
+ * Opening balance + income − expense − transfers out + transfers in, over all time, plus debts:
+ * money lent out (−) or borrowed in (+), reversed once the debt is settled.
+ */
+export function walletBalance(wallet: Wallet, transactions: Transaction[], debts: Debt[]): number {
   let balance = wallet.openingBalance;
   for (const t of transactions) {
     if (t.type === 'income' && t.walletId === wallet.id) balance += t.amount;
@@ -129,16 +134,17 @@ export function walletBalance(wallet: Wallet, transactions: Transaction[]): numb
       if (t.toWalletId === wallet.id) balance += t.amount;
     }
   }
+  for (const d of debts) balance += debtBalanceEffect(d, wallet.id);
   return balance;
 }
 
-export function walletBalances(wallets: Wallet[], transactions: Transaction[]): Map<string, number> {
-  return new Map(wallets.map((w) => [w.id, walletBalance(w, transactions)]));
+export function walletBalances(wallets: Wallet[], transactions: Transaction[], debts: Debt[]): Map<string, number> {
+  return new Map(wallets.map((w) => [w.id, walletBalance(w, transactions, debts)]));
 }
 
 /** Sum of active wallets' balances. Archived wallets are excluded. */
-export function totalBalance(wallets: Wallet[], transactions: Transaction[]): number {
-  return wallets.filter((w) => !w.archived).reduce((sum, w) => sum + walletBalance(w, transactions), 0);
+export function totalBalance(wallets: Wallet[], transactions: Transaction[], debts: Debt[]): number {
+  return wallets.filter((w) => !w.archived).reduce((sum, w) => sum + walletBalance(w, transactions, debts), 0);
 }
 
 export function defaultWalletId(wallets: Wallet[]): string | undefined {

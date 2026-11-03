@@ -9,7 +9,7 @@ import { groupDigits, parseAmountInput } from '@/domain/money';
 import type { WalletKind } from '@/domain/types';
 import { WALLET_COLORS, walletInUse, type WalletError } from '@/domain/wallets';
 import { useT } from '@/i18n';
-import { useTransactions, useWallet, walletStore } from '@/state/wallet';
+import { useDebts, useTransactions, useWallet, walletStore } from '@/state/wallet';
 import { ValidationError } from '@/state/walletStore';
 import { spacing, useTheme } from '@/theme';
 
@@ -17,6 +17,7 @@ export default function WalletEditScreen() {
   const { id } = useLocalSearchParams<{ id?: string }>();
   const existing = useWallet((s) => (id ? s.data?.wallets.find((w) => w.id === id) : undefined));
   const transactions = useTransactions();
+  const debts = useDebts();
   const { t } = useT();
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
@@ -28,7 +29,7 @@ export default function WalletEditScreen() {
   const [isDefault, setIsDefault] = useState(existing?.isDefault ?? false);
   const [errors, setErrors] = useState<WalletError[]>([]);
 
-  const inUse = existing ? walletInUse(transactions, existing.id) : false;
+  const inUse = existing ? walletInUse(transactions, debts, existing.id) : false;
 
   async function save() {
     const openingBalance = balanceText.trim() === '' ? 0 : (parseAmountInput(balanceText) ?? -1);

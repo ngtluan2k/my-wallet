@@ -9,6 +9,16 @@ import {
   type CategoryError,
   type CategoryInput,
 } from '@/domain/categories';
+import {
+  createDebt,
+  reopenDebt,
+  settleDebt,
+  updateDebt,
+  validateDebtInput,
+  validateSettlement,
+  type DebtError,
+  type DebtInput,
+} from '@/domain/debts';
 import { applyRemoteChangesSafely, diffWalletData, type RemoteChange, type SyncOp } from '@/domain/sync';
 import {
   createTransaction,
@@ -79,6 +89,13 @@ export interface WalletState {
   deleteRecurring(id: string): Promise<void>;
   /** Creates every recurring occurrence due up to `today`. */
   runRecurring(today: LocalDate): Promise<void>;
+  addDebt(input: DebtInput): Promise<string>;
+  /** Keeps the settlement, if any. */
+  editDebt(id: string, input: DebtInput): Promise<void>;
+  /** Marks the debt paid back in full on `date`, through `walletId`. */
+  settleDebt(id: string, date: LocalDate, walletId: string): Promise<void>;
+  reopenDebt(id: string): Promise<void>;
+  deleteDebt(id: string): Promise<void>;
   /** Replaces all data, e.g. when restoring a backup. `data` must already be validated. */
   replaceAll(data: WalletData): Promise<void>;
   /** Clears every transaction, budget and wallet, keeping one fresh default wallet. */
@@ -258,7 +275,7 @@ export function createWalletStore({
       deleteWallet: (id) =>
         mutate((data) => {
           if (ruleUsesWallet(data.recurring, id)) throw new Error('wallet_in_use');
-          return { ...data, wallets: deleteWallet(data.wallets, data.transactions, id, now()) };
+          return { ...data, wallets: deleteWallet(data.wallets, data.transactions, data.debts, id, now()) };
         }),
 
       unarchiveWallet: (id) =>
@@ -327,6 +344,48 @@ export function createWalletStore({
         }),
 
       runRecurring: (today) => mutate((data) => generateDueTransactions(data, today, now())),
+
+      async addDebt(input) {
+        const id = newId();
+        await mutate((data) => {
+          const errors = validateDebtInput(input, data.wallets);
+          if (errors.length) throw new ValidationError<DebtError>(errors);
+          return { ...data, debts: [...data.debts, createDebt(input, id, now())] };
+        });
+        return id;
+      },
+
+      editDebt: (id, input) =>
+        mutate((data) => {
+          const debt = data.debts.find((d) => d.id === id);
+          if (!debt) throw new Error('not_found');
+          const errors = validateDebtInput(input, data.wallets, debt);
+          if (errors.length) throw new ValidationError<DebtError>(errors);
+          return { ...data, debts: data.debts.map((d) => (d.id === id ? updateDebt(d, input, now()) : d)) };
+        }),
+
+      settleDebt: (id, date, walletId) =>
+        mutate((data) => {
+          const debt = data.debts.find((d) => d.id === id);
+          if (!debt) throw new Error('not_found');
+          const errors = validateSettlement(debt, date, walletId, data.wallets);
+          if (errors.length) throw new ValidationError<DebtError>(errors);
+          return { ...data, debts: data.debts.map((d) => (d.id === id ? settleDebt(d, date, walletId, now()) : d)) };
+        }),
+
+      reopenDebt: (id) =>
+        mutate((data) => {
+          const debt = data.debts.find((d) => d.id === id);
+          if (!debt) throw new Error('not_found');
+          if (debt.settledDate === undefined) return data;
+          return { ...data, debts: data.debts.map((d) => (d.id === id ? reopenDebt(d, now()) : d)) };
+        }),
+
+      deleteDebt: (id) =>
+        mutate((data) => {
+          if (!data.debts.some((d) => d.id === id)) return data;
+          return { ...data, debts: data.debts.filter((d) => d.id !== id) };
+        }),
 
       // Works even when loading failed: restoring a backup is how users recover from a corrupt file.
       replaceAll: (replacement) =>

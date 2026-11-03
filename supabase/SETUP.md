@@ -19,6 +19,7 @@ Migration theo thứ tự:
 | `20261102010000_drop_v1_signup_trigger.sql` | Bỏ trigger đăng ký cũ (nguyên nhân lỗi "Database error saving new user") |
 | `20261102020000_drop_unused_v1_tables.sql` | Xoá bảng `users`, `profiles` không còn dùng |
 | `20261102030000_recurring.sql` | Bảng `recurring` cho giao dịch định kỳ (app cần bảng này để đồng bộ) |
+| `20261103000000_debts.sql` | Bảng `debts` cho sổ nợ (cho vay / đi vay; app cần bảng này để đồng bộ) |
 
 Nếu bảng v1 từng được tạo bằng SQL Editor (lịch sử migration trên server trống), đánh dấu trước:
 `npx supabase migration repair --status applied 20240101000000`.

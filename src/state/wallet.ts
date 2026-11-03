@@ -1,6 +1,6 @@
 import { useStore } from 'zustand';
 
-import type { Budget, Transaction, Wallet } from '@/domain/types';
+import type { Budget, Debt, Transaction, Wallet } from '@/domain/types';
 import { currentLanguage, translate } from '@/i18n';
 
 import { createWalletStore, type WalletState } from './walletStore';
@@ -30,9 +30,11 @@ export function useWallet<T>(selector: (state: WalletState) => T): T {
 const NO_TRANSACTIONS: Transaction[] = [];
 const NO_BUDGETS: Budget[] = [];
 const NO_WALLETS: Wallet[] = [];
+const NO_DEBTS: Debt[] = [];
 
 export const useTransactions = () => useWallet((s) => s.data?.transactions ?? NO_TRANSACTIONS);
 export const useBudgets = () => useWallet((s) => s.data?.budgets ?? NO_BUDGETS);
 export const useWallets = () => useWallet((s) => s.data?.wallets ?? NO_WALLETS);
+export const useDebts = () => useWallet((s) => s.data?.debts ?? NO_DEBTS);
 export const useWalletStatus = () => useWallet((s) => s.status);
 export const useWalletLoadError = () => useWallet((s) => s.loadError);

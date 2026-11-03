@@ -7,7 +7,7 @@ import { AppText, Badge, Button, GroupLabel, HeroCard, IconCircle, ListGroup, Sc
 import type { Wallet } from '@/domain/types';
 import { totalBalance, walletBalances } from '@/domain/wallets';
 import { useT } from '@/i18n';
-import { useTransactions, useWallets } from '@/state/wallet';
+import { useDebts, useTransactions, useWallets } from '@/state/wallet';
 import { spacing, useTheme } from '@/theme';
 
 export default function WalletsScreen() {
@@ -15,8 +15,9 @@ export default function WalletsScreen() {
   const { colors } = useTheme();
   const wallets = useWallets();
   const transactions = useTransactions();
-  const balances = useMemo(() => walletBalances(wallets, transactions), [wallets, transactions]);
-  const total = useMemo(() => totalBalance(wallets, transactions), [wallets, transactions]);
+  const debts = useDebts();
+  const balances = useMemo(() => walletBalances(wallets, transactions, debts), [wallets, transactions, debts]);
+  const total = useMemo(() => totalBalance(wallets, transactions, debts), [wallets, transactions, debts]);
   const active = wallets.filter((w) => !w.archived);
   const archived = wallets.filter((w) => w.archived);
 

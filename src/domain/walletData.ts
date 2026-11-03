@@ -1,11 +1,12 @@
 import { DEFAULT_CATEGORIES } from './categories';
+import { MAX_PERSON_LENGTH } from './debts';
 import { isValidLocalDate } from './dates';
 import { isValidAmount, isValidBalance } from './money';
 import { isValidLocalTime, MAX_NOTE_LENGTH } from './transactions';
-import type { Budget, Category, RecurringRule, Transaction, Wallet, WalletData } from './types';
+import type { Budget, Category, Debt, RecurringRule, Transaction, Wallet, WalletData } from './types';
 import { createDefaultWallet, DEFAULT_WALLET_ID, MAX_WALLET_NAME_LENGTH } from './wallets';
 
-export const CURRENT_VERSION = 3;
+export const CURRENT_VERSION = 4;
 export const BACKUP_APP_ID = 'my-wallet';
 
 /** Name given to the wallet created for existing data. Users can rename it. */
@@ -19,6 +20,7 @@ export function createInitialData(defaultWalletName: string, now: Date = new Dat
     budgets: [],
     wallets: [createDefaultWallet(defaultWalletName, now)],
     recurring: [],
+    debts: [],
   };
 }
 
@@ -36,6 +38,8 @@ const isTimestamp = (v: unknown) => typeof v === 'string' && !Number.isNaN(Date.
  * key N converts data from version N to N + 1.
  */
 const MIGRATIONS: Record<number, (data: Record<string, unknown>) => Record<string, unknown>> = {
+  // v4 adds debts (money lent and borrowed).
+  3: (data) => ({ ...data, debts: [] }),
   // v3 adds recurring transactions.
   2: (data) => ({ ...data, recurring: [] }),
   // v2 adds wallets. Every v1 transaction moves to one default wallet. Some v1 files written by a
@@ -107,6 +111,28 @@ function isRecurringRule(v: unknown): v is RecurringRule {
   );
 }
 
+function isDebt(v: unknown): v is Debt {
+  if (
+    !isObject(v) ||
+    !isNonEmptyString(v.id) ||
+    !(v.direction === 'lent' || v.direction === 'borrowed') ||
+    typeof v.person !== 'string' ||
+    v.person.trim().length === 0 ||
+    v.person.length > MAX_PERSON_LENGTH ||
+    !isValidAmount(v.amount) ||
+    !isNonEmptyString(v.walletId) ||
+    !isValidLocalDate(v.date) ||
+    !(v.note === undefined || (typeof v.note === 'string' && v.note.length <= MAX_NOTE_LENGTH)) ||
+    !isTimestamp(v.createdAt) ||
+    !isTimestamp(v.updatedAt)
+  ) {
+    return false;
+  }
+  // A settlement has both a date (not before the debt) and a wallet, or neither.
+  if (v.settledDate === undefined) return v.settleWalletId === undefined;
+  return isValidLocalDate(v.settledDate) && (v.settledDate as string) >= (v.date as string) && isNonEmptyString(v.settleWalletId);
+}
+
 function isBudget(v: unknown): v is Budget {
   return isObject(v) && isNonEmptyString(v.categoryId) && isValidAmount(v.limit);
 }
@@ -140,8 +166,9 @@ export function parseWalletData(raw: unknown): ParseResult {
     data = { ...MIGRATIONS[v](data), version: v + 1 };
   }
 
-  const { transactions, categories, budgets, wallets, recurring } = data;
+  const { transactions, categories, budgets, wallets, recurring, debts } = data;
   if (
+    !Array.isArray(debts) || !debts.every(isDebt) ||
     !Array.isArray(recurring) || !recurring.every(isRecurringRule) ||
     !Array.isArray(transactions) || !transactions.every(isTransaction) ||
     !Array.isArray(categories) || !categories.every(isCategory) ||
@@ -181,7 +208,12 @@ export function parseWalletData(raw: unknown): ParseResult {
     return { ok: false, error: 'invalid_format' };
   }
 
-  return { ok: true, data: { version: CURRENT_VERSION, transactions, categories, budgets, wallets, recurring } };
+  if (new Set(debts.map((d) => d.id)).size !== debts.length) return { ok: false, error: 'invalid_format' };
+  if (debts.some((d) => !walletIds.has(d.walletId) || (d.settleWalletId !== undefined && !walletIds.has(d.settleWalletId)))) {
+    return { ok: false, error: 'invalid_format' };
+  }
+
+  return { ok: true, data: { version: CURRENT_VERSION, transactions, categories, budgets, wallets, recurring, debts } };
 }
 
 export function parseWalletJson(text: string): ParseResult {

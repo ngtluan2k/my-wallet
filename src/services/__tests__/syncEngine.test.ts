@@ -17,6 +17,7 @@ class FakeRemote implements RemoteApi {
     transactions: new Map(),
     budgets: new Map(),
     recurring: new Map(),
+    debts: new Map(),
   };
   clock = Date.parse('2026-10-28T00:00:00.000Z');
   failNext = false;
@@ -97,6 +98,27 @@ describe('sync engine', () => {
     expect(b.data.transactions.map((t) => t.id)).toEqual(['t1']);
     expect(b.data.wallets[0].name).toBe('Ví chính');
     expect(b.engine.snapshot).toMatchObject({ status: 'idle', pending: 0 });
+  });
+
+  it('syncs debts between devices', async () => {
+    const remote = new FakeRemote();
+    const debt = {
+      id: 'd1',
+      direction: 'lent' as const,
+      person: 'Minh',
+      amount: 500_000,
+      walletId: 'wallet-default',
+      date: '2026-10-27',
+      createdAt: now.toISOString(),
+      updatedAt: now.toISOString(),
+    };
+    const a = device(remote, { ...createInitialData('Ví chính', now), debts: [debt] });
+    await a.engine.sync();
+    expect(remote.tables.debts.size).toBe(1);
+
+    const b = device(remote, createInitialData('Main', now));
+    await b.engine.sync();
+    expect(b.data.debts).toEqual([debt]);
   });
 
   it('propagates edits and deletions between devices', async () => {

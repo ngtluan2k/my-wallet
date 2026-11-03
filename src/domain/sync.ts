@@ -1,15 +1,15 @@
-import type { Budget, Category, RecurringRule, Transaction, Wallet, WalletData } from './types';
+import type { Budget, Category, Debt, RecurringRule, Transaction, Wallet, WalletData } from './types';
 
 /**
  * Sync model: the local file is the source of truth. Every committed local change becomes an
  * outbox entry, pushed in order. Pulling applies remote changes except for records that still have
  * a pending local change, so a local edit is never overwritten before it reaches the server.
  */
-export type SyncTable = 'wallets' | 'categories' | 'transactions' | 'budgets' | 'recurring';
+export type SyncTable = 'wallets' | 'categories' | 'transactions' | 'budgets' | 'recurring' | 'debts';
 
-export const SYNC_TABLES: SyncTable[] = ['wallets', 'categories', 'transactions', 'budgets', 'recurring'];
+export const SYNC_TABLES: SyncTable[] = ['wallets', 'categories', 'transactions', 'budgets', 'recurring', 'debts'];
 
-export type SyncRecord = Wallet | Category | Transaction | Budget | RecurringRule;
+export type SyncRecord = Wallet | Category | Transaction | Budget | RecurringRule | Debt;
 
 export type SyncOp =
   | { table: SyncTable; id: string; kind: 'upsert'; record: SyncRecord }
@@ -107,6 +107,7 @@ export function applyRemoteChanges(data: WalletData, changes: RemoteChange[], pe
     transactions: [...tables.transactions.values()] as Transaction[],
     budgets: [...tables.budgets.values()] as Budget[],
     recurring: [...tables.recurring.values()] as RecurringRule[],
+    debts: [...tables.debts.values()] as Debt[],
   };
 }
 
@@ -173,5 +174,5 @@ export function applyRemoteChangesSafely(
 const MAX_SKIPPED_CHANGES = 5;
 
 export function isEmptyData(data: WalletData): boolean {
-  return data.transactions.length === 0 && data.budgets.length === 0;
+  return data.transactions.length === 0 && data.budgets.length === 0 && data.debts.length === 0;
 }

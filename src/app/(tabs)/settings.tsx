@@ -224,6 +224,7 @@ export default function SettingsScreen() {
           <ListRow icon="wallet-outline" title={t('settings.wallets')} chevron onPress={() => router.push('/wallets')} />
           <ListRow icon="pricetags-outline" title={t('settings.categories')} chevron onPress={() => router.push('/categories')} />
           <ListRow icon="repeat-outline" title={t('settings.recurring')} chevron onPress={() => router.push('/recurring')} />
+          <ListRow icon="people-outline" title={t('settings.debts')} chevron onPress={() => router.push('/debts')} />
           <ListRow icon="cash-outline" title={t('settings.currency')} value={t('settings.currencyValue')} />
           <ListRow
             icon="language-outline"
