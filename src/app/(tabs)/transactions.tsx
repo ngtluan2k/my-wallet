@@ -11,7 +11,7 @@ import type { TransactionType } from '@/domain/types';
 import { useT } from '@/i18n';
 import { useSelectedMonth } from '@/state/ui';
 import { useTransactions } from '@/state/wallet';
-import { radius, spacing, useTheme } from '@/theme';
+import { fontFamily, radius, spacing, useTheme } from '@/theme';
 
 type TypeFilter = 'all' | TransactionType;
 
@@ -213,7 +213,7 @@ const styles = StyleSheet.create({
   flowTile: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: spacing.sm, borderRadius: radius.md, padding: spacing.md },
   flowIcon: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
   search: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, borderRadius: radius.md, paddingHorizontal: spacing.md },
-  searchInput: { flex: 1, fontSize: 16, paddingVertical: 14 },
+  searchInput: { flex: 1, fontFamily, fontSize: 16, paddingVertical: 14 },
   item: { borderLeftWidth: StyleSheet.hairlineWidth, borderRightWidth: StyleSheet.hairlineWidth, overflow: 'hidden' },
   itemFirst: { borderTopWidth: StyleSheet.hairlineWidth, borderTopLeftRadius: radius.lg, borderTopRightRadius: radius.lg, marginTop: spacing.sm },
   itemLast: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomLeftRadius: radius.lg, borderBottomRightRadius: radius.lg },

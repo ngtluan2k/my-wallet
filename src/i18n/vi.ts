@@ -548,6 +548,7 @@ export const vi = {
   'form.personLent': 'Ai nợ bạn? Ví dụ: Minh',
   'form.personBorrowed': 'Bạn nợ ai? Ví dụ: Minh',
   'form.debtNotCounted': 'Khoản nợ làm thay đổi số dư ví nhưng không tính vào thu chi hay ngân sách. Xem và đánh dấu đã trả trong Sổ nợ.',
+  'dashboard.quick.debts': 'Sổ nợ',
 } as const;
 
 export type TranslationKey = keyof typeof vi;

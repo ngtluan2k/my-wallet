@@ -64,10 +64,13 @@ export default function RootLayout() {
       <Stack
         screenOptions={{
           headerStyle: { backgroundColor: colors.background },
-          headerTintColor: colors.text,
+          headerTintColor: colors.primary,
+          headerTitleStyle: { color: colors.text },
           headerShadowVisible: false,
           contentStyle: { backgroundColor: colors.background },
           headerBackButtonDisplayMode: 'minimal',
+          // Pages slide in from the right on both platforms; modals keep their own presentation.
+          animation: 'slide_from_right',
         }}
       >
         {/* Available signed in or out: email-link landing and the legal pages linked from sign-up. */}
@@ -78,18 +81,18 @@ export default function RootLayout() {
         </Stack.Protected>
         <Stack.Protected guard={signedIn}>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="transaction" options={{ presentation: 'modal', headerShown: false }} />
+          <Stack.Screen name="transaction" options={{ presentation: 'modal', animation: 'default', headerShown: false }} />
           <Stack.Screen name="report" options={{ title: t('report.title') }} />
           <Stack.Screen name="wallets" options={{ title: t('wallets.title') }} />
           <Stack.Screen name="profile" options={{ title: t('profile.title') }} />
           <Stack.Screen name="categories" options={{ title: t('categories.title') }} />
           <Stack.Screen name="recurring" options={{ title: t('recurring.title') }} />
-          <Stack.Screen name="recurring-edit" options={{ presentation: 'modal', headerShown: false }} />
+          <Stack.Screen name="recurring-edit" options={{ presentation: 'modal', animation: 'default', headerShown: false }} />
           <Stack.Screen name="debts" options={{ title: t('debt.title') }} />
-          <Stack.Screen name="debt-edit" options={{ presentation: 'modal', headerShown: false }} />
-          <Stack.Screen name="category-edit" options={{ presentation: 'modal', headerShown: false }} />
-          <Stack.Screen name="wallet-edit" options={{ presentation: 'modal', headerShown: false }} />
-          <Stack.Screen name="pin" options={{ presentation: 'modal', headerShown: false }} />
+          <Stack.Screen name="debt-edit" options={{ presentation: 'modal', animation: 'default', headerShown: false }} />
+          <Stack.Screen name="category-edit" options={{ presentation: 'modal', animation: 'default', headerShown: false }} />
+          <Stack.Screen name="wallet-edit" options={{ presentation: 'modal', animation: 'default', headerShown: false }} />
+          <Stack.Screen name="pin" options={{ presentation: 'modal', animation: 'default', headerShown: false }} />
         </Stack.Protected>
       </Stack>
       {overlay}

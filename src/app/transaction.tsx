@@ -5,6 +5,7 @@ import { useMemo, useState } from 'react';
 import { Alert, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { FadeIn, Pop, PressScale } from '@/components/motion';
 import { AppText, Button, SegmentedControl, Sheet, type IconName } from '@/components/ui';
 import { CategoryGrid, CategorySheet, GridTile, useCategories, WalletSheet } from '@/components/wallet';
 import { formatLocalDate, formatTime, toLocalDate, toPickerDate, today } from '@/domain/dates';
@@ -18,7 +19,7 @@ import { useT } from '@/i18n';
 import { useSelectedMonth } from '@/state/ui';
 import { useDebts, useTransactions, useWallet, useWallets, walletStore } from '@/state/wallet';
 import { ValidationError } from '@/state/walletStore';
-import { radius, spacing, useTheme } from '@/theme';
+import { fontFamily, radius, spacing, useTheme } from '@/theme';
 
 const GRID_SIZE = 7;
 const QUICK_AMOUNTS = [50_000, 100_000, 500_000];
@@ -192,7 +193,7 @@ export default function TransactionScreen() {
           <AppText size={12} weight="600" style={[styles.caps, { color: accent }]}>
             {type === 'debt' ? t(direction === 'lent' ? 'debt.direction.lent' : 'debt.direction.borrowed') : t('form.amount')}
           </AppText>
-          <View style={styles.amountRow}>
+          <Pop trigger={amount} style={styles.amountRow}>
             {isFlow && (
               <AppText size={32} weight="700" style={{ color: accent }}>
                 {type === 'expense' ? '−' : '+'}
@@ -208,7 +209,7 @@ export default function TransactionScreen() {
             >
               {money(amount)}
             </AppText>
-          </View>
+          </Pop>
           {language === 'vi' && amount > 0 && (
             <AppText tone="muted" size={13} style={styles.words}>
               {vietnameseAmountWords(amount)}
@@ -217,7 +218,7 @@ export default function TransactionScreen() {
         </View>
 
         {type === 'debt' && (
-          <>
+          <FadeIn key="debt" style={styles.section}>
             <View style={styles.directionRow}>
               <DirectionCard
                 icon="arrow-up-circle-outline"
@@ -251,11 +252,11 @@ export default function TransactionScreen() {
             <AppText tone="muted" size={13}>
               {t('form.debtNotCounted')}
             </AppText>
-          </>
+          </FadeIn>
         )}
 
         {isFlow && (
-          <View style={styles.section}>
+          <FadeIn key={type} style={styles.section}>
             <AppText tone="muted" size={13} weight="600" style={styles.caps}>
               {t(type === 'income' ? 'form.incomeCategories' : 'form.expenseCategories')}
             </AppText>
@@ -271,7 +272,7 @@ export default function TransactionScreen() {
                 }
               />
             </View>
-          </View>
+          </FadeIn>
         )}
 
         <View style={[styles.card, styles.cells, { backgroundColor: colors.surface, borderColor: colors.border }]}>
@@ -361,18 +362,19 @@ export default function TransactionScreen() {
             <View style={styles.backspace}>
               <Key icon="backspace-outline" label="⌫" onPress={() => setAmount(removeLastDigit)} />
             </View>
-            <Pressable
+            <PressScale
               onPress={save}
               disabled={saving}
               accessibilityRole="button"
               accessibilityLabel={t('form.done')}
-              style={({ pressed }) => [styles.doneKey, { backgroundColor: colors.primary, opacity: pressed || saving ? 0.85 : 1 }]}
+              scaleTo={0.95}
+              style={[styles.doneKey, { backgroundColor: accent, opacity: saving ? 0.85 : 1 }]}
             >
               <Ionicons name="checkmark-circle-outline" size={28} color={colors.onPrimary} />
               <AppText tone="onPrimary" size={17} weight="700">
                 {t('form.done')}
               </AppText>
-            </Pressable>
+            </PressScale>
           </View>
         </View>
       </View>
@@ -473,16 +475,16 @@ function DirectionCard({
 }) {
   const { colors } = useTheme();
   return (
-    <Pressable
+    <PressScale
       onPress={onPress}
       accessibilityRole="radio"
       accessibilityState={{ selected }}
-      style={({ pressed }) => [
+      scaleTo={0.96}
+      style={[
         styles.direction,
         {
           backgroundColor: selected ? colors.debtSoft : colors.surface,
           borderColor: selected ? colors.debt : colors.border,
-          opacity: pressed ? 0.85 : 1,
         },
       ]}
     >
@@ -495,7 +497,7 @@ function DirectionCard({
       <AppText tone="muted" size={12}>
         {hint}
       </AppText>
-    </Pressable>
+    </PressScale>
   );
 }
 
@@ -540,14 +542,12 @@ function DetailRow({
 function Key({ label, icon, onPress, danger }: { label: string; icon?: IconName; onPress(): void; danger?: boolean }) {
   const { colors } = useTheme();
   return (
-    <Pressable
+    <PressScale
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={label}
-      style={({ pressed }) => [
-        styles.key,
-        { backgroundColor: pressed ? colors.border : danger || icon ? colors.surfaceMuted : colors.background, borderColor: colors.border },
-      ]}
+      scaleTo={0.92}
+      style={[styles.key, { backgroundColor: danger || icon ? colors.surfaceMuted : colors.background, borderColor: colors.border }]}
     >
       {icon ? (
         <Ionicons name={icon} size={24} color={colors.text} />
@@ -556,7 +556,7 @@ function Key({ label, icon, onPress, danger }: { label: string; icon?: IconName;
           {label}
         </AppText>
       )}
-    </Pressable>
+    </PressScale>
   );
 }
 
@@ -584,7 +584,7 @@ const styles = StyleSheet.create({
   direction: { flex: 1, borderRadius: radius.lg, borderWidth: 1.5, padding: spacing.md, gap: spacing.xs },
   directionHead: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
   personRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
-  personInput: { flex: 1, fontSize: 16, paddingVertical: 8 },
+  personInput: { flex: 1, fontFamily, fontSize: 16, paddingVertical: 8 },
   cell: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingHorizontal: spacing.md, paddingVertical: 14 },
   cellIcon: { width: 32, height: 32, borderRadius: radius.sm, alignItems: 'center', justifyContent: 'center' },
   cellLabel: { flexShrink: 0 },
@@ -597,7 +597,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderTopWidth: StyleSheet.hairlineWidth,
   },
-  noteInput: { flex: 1, fontSize: 16, minHeight: 32, paddingTop: 6 },
+  noteInput: { flex: 1, fontFamily, fontSize: 16, minHeight: 32, paddingTop: 6 },
   pad: { borderTopWidth: StyleSheet.hairlineWidth, paddingHorizontal: spacing.md, paddingTop: spacing.sm, gap: spacing.sm },
   quickRow: { flexDirection: 'row', gap: spacing.sm },
   quick: { flex: 1, alignItems: 'center', paddingVertical: 8, borderRadius: radius.sm },

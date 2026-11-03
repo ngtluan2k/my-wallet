@@ -15,11 +15,16 @@
       "infoPlist": {},
       "entitlements": {
         "com.apple.developer.usernotifications.time-sensitive": true
+      },
+      "icon": {
+        "light": "./assets/icon.png",
+        "dark": "./assets/icon-dark.png",
+        "tinted": "./assets/icon-tinted.png"
       }
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#0F766E",
+        "backgroundColor": "#009753",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
@@ -33,7 +38,49 @@
       "expo-router",
       "expo-localization",
       "expo-sharing",
-      "expo-font",
+      [
+        "expo-font",
+        {
+          "ios": {
+            "fonts": [
+              "./assets/fonts/BeVietnamPro_400Regular.ttf",
+              "./assets/fonts/BeVietnamPro_500Medium.ttf",
+              "./assets/fonts/BeVietnamPro_600SemiBold.ttf",
+              "./assets/fonts/BeVietnamPro_700Bold.ttf",
+              "./assets/fonts/BeVietnamPro_800ExtraBold.ttf"
+            ]
+          },
+          "android": {
+            "fonts": [
+              {
+                "fontFamily": "BeVietnamPro",
+                "fontDefinitions": [
+                  {
+                    "path": "./assets/fonts/BeVietnamPro_400Regular.ttf",
+                    "weight": 400
+                  },
+                  {
+                    "path": "./assets/fonts/BeVietnamPro_500Medium.ttf",
+                    "weight": 500
+                  },
+                  {
+                    "path": "./assets/fonts/BeVietnamPro_600SemiBold.ttf",
+                    "weight": 600
+                  },
+                  {
+                    "path": "./assets/fonts/BeVietnamPro_700Bold.ttf",
+                    "weight": 700
+                  },
+                  {
+                    "path": "./assets/fonts/BeVietnamPro_800ExtraBold.ttf",
+                    "weight": 800
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ],
       "@react-native-community/datetimepicker",
       "expo-secure-store",
       [
@@ -46,6 +93,18 @@
         "expo-notifications",
         {
           "enableRemoteNotifications": false
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 120,
+          "backgroundColor": "#1C4D86",
+          "dark": {
+            "image": "./assets/splash-icon-dark.png",
+            "backgroundColor": "#0B1420"
+          }
         }
       ]
     ],

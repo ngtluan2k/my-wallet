@@ -4,6 +4,7 @@ import { useMemo } from 'react';
 import { Alert, Pressable, StyleSheet, View } from 'react-native';
 
 import { TabPage } from '@/components/AppHeader';
+import { PressScale, useCountUp } from '@/components/motion';
 import { SigningExpiryBanner } from '@/components/signing';
 import {
   AppText,
@@ -47,6 +48,8 @@ export default function DashboardScreen() {
   const monthTxs = useMemo(() => monthTransactions(transactions, month), [transactions, month]);
   const summary = useMemo(() => summarize(monthTxs), [monthTxs]);
   const balance = useMemo(() => totalBalance(wallets, transactions, debts), [wallets, transactions, debts]);
+  // Counts up when the overview opens and whenever the balance changes.
+  const shownBalance = useCountUp(balance, { fromZero: true });
   const recent = useMemo(() => sortTransactions(transactions).slice(0, RECENT_COUNT), [transactions]);
   const budgetStatus = useMemo(
     () => (budgets.length ? budgetOverview(budgets, monthTxs, month, today()).status : null),
@@ -136,7 +139,7 @@ export default function DashboardScreen() {
             )}
           </View>
           <AppText tone="onHero" size={34} weight="700" tabular adjustsFontSizeToFit numberOfLines={1}>
-            {money(balance)}
+            {money(shownBalance)}
           </AppText>
           <View style={styles.row}>
             <HeroStat icon="arrow-down" color={colors.income} label={t('dashboard.monthIncome')} value={signedMoney(summary.income)} />
@@ -149,6 +152,7 @@ export default function DashboardScreen() {
           <QuickAction icon="pie-chart-outline" label={t('dashboard.quick.budget')} onPress={() => router.navigate('/budget')} />
           <QuickAction icon="bar-chart-outline" label={t('dashboard.quick.report')} onPress={() => router.push('/report')} />
           <QuickAction icon="wallet-outline" label={t('dashboard.quick.wallets')} onPress={() => router.push('/wallets')} />
+          <QuickAction icon="people-outline" color={colors.debt} label={t('dashboard.quick.debts')} onPress={() => router.push('/debts')} />
         </View>
 
         {alert && (
@@ -282,11 +286,7 @@ export default function DashboardScreen() {
 function DebtTile({ icon, label, value, onPress }: { icon: IconName; label: string; value: string; onPress(): void }) {
   const { colors } = useTheme();
   return (
-    <Pressable
-      onPress={onPress}
-      accessibilityRole="button"
-      style={({ pressed }) => [styles.debtTile, { backgroundColor: colors.debtSoft }, pressed && styles.pressed]}
-    >
+    <PressScale onPress={onPress} accessibilityRole="button" scaleTo={0.96} style={[styles.debtTile, { backgroundColor: colors.debtSoft }]}>
       <View style={styles.heroStatLabel}>
         <Ionicons name={icon} size={16} color={colors.debt} />
         <AppText tone="muted" size={13} numberOfLines={1} style={styles.flex}>
@@ -296,7 +296,7 @@ function DebtTile({ icon, label, value, onPress }: { icon: IconName; label: stri
       <AppText weight="700" size={17} tabular tone="debt" numberOfLines={1} adjustsFontSizeToFit>
         {value}
       </AppText>
-    </Pressable>
+    </PressScale>
   );
 }
 
@@ -305,7 +305,7 @@ function HeroStat({ icon, color, label, value }: { icon: IconName; color: string
   return (
     <View style={[styles.heroStat, { backgroundColor: colors.heroPanel }]}>
       <View style={styles.heroStatLabel}>
-        <View style={[styles.heroStatIcon, { backgroundColor: colors.surface }]}>
+        <View style={[styles.heroStatIcon, { backgroundColor: colors.onHero }]}>
           <Ionicons name={icon} size={12} color={color} />
         </View>
         <AppText tone="onHeroMuted" size={13} numberOfLines={1}>
@@ -319,17 +319,17 @@ function HeroStat({ icon, color, label, value }: { icon: IconName; color: string
   );
 }
 
-function QuickAction({ icon, label, onPress }: { icon: IconName; label: string; onPress(): void }) {
+function QuickAction({ icon, label, onPress, color }: { icon: IconName; label: string; onPress(): void; color?: string }) {
   const { colors } = useTheme();
   return (
-    <Pressable onPress={onPress} accessibilityRole="button" style={({ pressed }) => [styles.quick, pressed && styles.pressed]}>
+    <PressScale onPress={onPress} accessibilityRole="button" scaleTo={0.9} style={styles.quick}>
       <View style={[styles.quickIcon, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-        <IconCircle icon={icon} color={colors.primary} size={48} />
+        <IconCircle icon={icon} color={color ?? colors.primary} size={44} />
       </View>
       <AppText size={12} weight="500" numberOfLines={2} style={styles.quickLabel}>
         {label}
       </AppText>
-    </Pressable>
+    </PressScale>
   );
 }
 

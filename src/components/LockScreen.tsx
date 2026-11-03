@@ -1,4 +1,3 @@
-import Ionicons from '@expo/vector-icons/Ionicons';
 import { useCallback, useEffect, useState } from 'react';
 import { Alert, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -7,8 +6,9 @@ import { useT } from '@/i18n';
 import { MAX_PIN_ATTEMPTS } from '@/domain/pinLock';
 import { useAppLock } from '@/state/appLock';
 import { useAuth } from '@/state/auth';
-import { radius, spacing, useTheme } from '@/theme';
+import { spacing, useTheme } from '@/theme';
 
+import { BrandMark } from './brand';
 import { PinPad } from './PinPad';
 import { AppText } from './ui';
 
@@ -79,9 +79,7 @@ export function LockScreen() {
       ]}
     >
       <View style={styles.header}>
-        <View style={[styles.logo, { backgroundColor: colors.primary }]}>
-          <Ionicons name="wallet" size={30} color={colors.onPrimary} />
-        </View>
+        <BrandMark size={64} style={styles.logo} />
         <AppText size={22} weight="700">
           {t('lock.title')}
         </AppText>
@@ -118,5 +116,5 @@ const styles = StyleSheet.create({
   container: { alignItems: 'center', justifyContent: 'space-between' },
   header: { alignItems: 'center', gap: spacing.sm, paddingHorizontal: spacing.lg },
   center: { textAlign: 'center' },
-  logo: { width: 64, height: 64, borderRadius: radius.lg, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.sm },
+  logo: { marginBottom: spacing.sm },
 });

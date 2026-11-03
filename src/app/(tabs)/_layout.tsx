@@ -1,10 +1,11 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, Tabs } from 'expo-router';
-import { Pressable, StyleSheet, View, type ColorValue } from 'react-native';
+import { StyleSheet, View, type ColorValue } from 'react-native';
 
+import { PressScale } from '@/components/motion';
 import { AppText, type IconName } from '@/components/ui';
 import { useT } from '@/i18n';
-import { cardShadow, useTheme } from '@/theme';
+import { cardShadow, fontFamily, useTheme } from '@/theme';
 
 function icon(name: IconName, activeName: IconName) {
   return function TabIcon({ color, focused }: { color: ColorValue | null; focused: boolean }) {
@@ -17,10 +18,11 @@ function AddButton() {
   const { t } = useT();
   const { colors } = useTheme();
   return (
-    <Pressable
+    <PressScale
       onPress={() => router.push('/transaction')}
       accessibilityRole="button"
       accessibilityLabel={t('transactions.add')}
+      scaleTo={0.88}
       style={styles.addSlot}
     >
       <View style={[styles.addButton, { backgroundColor: colors.primary }, cardShadow(colors, 2)]}>
@@ -29,7 +31,7 @@ function AddButton() {
       <AppText size={11} weight="500" tone="muted">
         {t('tab.add')}
       </AppText>
-    </Pressable>
+    </PressScale>
   );
 }
 
@@ -61,7 +63,7 @@ export default function TabsLayout() {
 }
 
 const styles = StyleSheet.create({
-  label: { fontSize: 11, fontWeight: '500' },
+  label: { fontFamily, fontSize: 11, fontWeight: '500' },
   addSlot: { flex: 1, alignItems: 'center', justifyContent: 'flex-end', gap: 2, paddingBottom: 2 },
   addButton: { width: 52, height: 52, borderRadius: 26, alignItems: 'center', justifyContent: 'center', marginTop: -22 },
 });

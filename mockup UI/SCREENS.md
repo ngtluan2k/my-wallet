@@ -17,7 +17,8 @@ Quy tắc chung:
 - Mọi nút trên màn hình đều phải hoạt động. Tính năng chưa có thì không hiển thị.
 - Màu lấy từ theme (`src/theme`), có cả sáng và tối. Chuỗi lấy từ `src/i18n` (vi + en).
 - Số tiền: số nguyên đồng, hiển thị `1.500.000 ₫` (vi) hoặc `₫1,500,000` (en), chữ số tabular.
-- Màu thống nhất ở mọi màn: **thu xanh lá** có dấu `+`, **chi đỏ** có dấu `−`, **nợ tím** (`colors.debt`) không có dấu; chuyển khoản cũ màu xám trung tính.
+- Bảng màu: **navy #1C4D86** là màu chủ đạo (thẻ số dư, nút chính, tab). Thống nhất ở mọi màn: **thu xanh lá #009753** có dấu `+`, **chi hồng #EE64A4** có dấu `−`, **nợ tím #7C5CC4** không có dấu; chuyển khoản cũ màu xám trung tính; vượt ngân sách vẫn đỏ.
+- Chuyển động: các khối trong trang hiện dần lần lượt, nút/thẻ thu nhỏ nhẹ khi bấm, số dư đếm lên, thanh phân đoạn trượt, thanh tiến độ chạy tới giá trị, sheet trượt lên. Tắt hết khi bật Giảm chuyển động.
 - Nợ và chuyển khoản không tính vào tổng thu/chi, ngân sách hay báo cáo.
 
 ## Thanh tab

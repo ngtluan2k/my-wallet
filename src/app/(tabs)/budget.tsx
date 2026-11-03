@@ -12,7 +12,7 @@ import type { Category } from '@/domain/types';
 import { useT } from '@/i18n';
 import { useSelectedMonth } from '@/state/ui';
 import { useBudgets, useTransactions, walletStore } from '@/state/wallet';
-import { radius, spacing, useTheme } from '@/theme';
+import { fontFamily, radius, spacing, useTheme } from '@/theme';
 
 type Sort = 'percent' | 'name';
 
@@ -323,6 +323,7 @@ const styles = StyleSheet.create({
   cardHead: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   limitRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingVertical: spacing.sm },
   input: {
+    fontFamily,
     minWidth: 120,
     textAlign: 'right',
     borderWidth: 1,

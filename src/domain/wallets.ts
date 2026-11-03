@@ -11,7 +11,7 @@ export const WALLET_KIND_ICONS: Record<WalletKind, string> = {
   ewallet: 'phone-portrait',
 };
 
-export const WALLET_COLORS = ['#006948', '#0EA5E9', '#8B5CF6', '#EC4899', '#F97316', '#EAB308', '#64748B'];
+export const WALLET_COLORS = ['#1C4D86', '#0EA5E9', '#009753', '#7C5CC4', '#EE64A4', '#F97316', '#EAB308', '#64748B', '#006948'];
 
 export function createDefaultWallet(name: string, now: Date): Wallet {
   const timestamp = now.toISOString();

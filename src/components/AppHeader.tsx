@@ -1,4 +1,3 @@
-import Ionicons from '@expo/vector-icons/Ionicons';
 import type { ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -6,7 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useT } from '@/i18n';
 import { spacing, useTheme } from '@/theme';
 
-import { AppText } from './ui';
+import { BrandMark, Wordmark } from './brand';
 import { SyncStatus } from './wallet';
 
 /** Brand bar shown at the top of every tab: logo and name on the left, sync state on the right. */
@@ -22,12 +21,8 @@ export function AppHeader({ right }: { right?: ReactNode }) {
       ]}
     >
       <View style={styles.brand}>
-        <View style={[styles.logo, { backgroundColor: colors.primarySoft }]}>
-          <Ionicons name="wallet" size={18} color={colors.primary} />
-        </View>
-        <AppText size={18} weight="700" tone="primary">
-          {t('app.name')}
-        </AppText>
+        <BrandMark size={30} />
+        <Wordmark name={t('app.name')} size={19} />
       </View>
       {right ?? <SyncStatus />}
     </View>
@@ -56,5 +51,4 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   brand: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  logo: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
 });

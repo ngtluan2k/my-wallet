@@ -3,6 +3,7 @@ import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
+import { FadeIn, useCountUp } from '@/components/motion';
 import { AppText, Badge, Button, Card, EmptyState, IconCircle, ListGroup, Screen, SegmentedControl } from '@/components/ui';
 import { debtTotals, isSettled, sortDebts } from '@/domain/debts';
 import type { Debt, DebtDirection } from '@/domain/types';
@@ -20,7 +21,7 @@ export default function DebtsScreen() {
 
   const totals = useMemo(() => debtTotals(debts), [debts]);
   const shown = useMemo(() => sortDebts(debts.filter((d) => d.direction === direction)), [debts, direction]);
-  const open = direction === 'lent' ? totals.owedToMe : totals.iOwe;
+  const open = useCountUp(direction === 'lent' ? totals.owedToMe : totals.iOwe);
   const add = () => router.push({ pathname: '/transaction', params: { mode: 'debt', direction } });
 
   return (
@@ -60,11 +61,13 @@ export default function DebtsScreen() {
         {shown.length === 0 ? (
           <EmptyState icon="people-outline" message={direction === 'lent' ? t('debt.empty.lent') : t('debt.empty.borrowed')} />
         ) : (
-          <ListGroup>
-            {shown.map((d) => (
-              <DebtRow key={d.id} debt={d} />
-            ))}
-          </ListGroup>
+          <FadeIn key={direction} offset={8}>
+            <ListGroup>
+              {shown.map((d) => (
+                <DebtRow key={d.id} debt={d} />
+              ))}
+            </ListGroup>
+          </FadeIn>
         )}
         <Button variant="secondary" icon="add" label={t('debt.add')} onPress={add} />
       </Screen>

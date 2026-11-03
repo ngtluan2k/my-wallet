@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useT } from '@/i18n';
 import { radius, spacing, useTheme } from '@/theme';
 
+import { BrandMark } from './brand';
 import { AppText, TextField } from './ui';
 
 /** Shared frame for sign-in, sign-up and password reset. */
@@ -58,9 +59,7 @@ export function AuthLayout({
         </View>
 
         <View style={styles.header}>
-          <View style={[styles.logo, { backgroundColor: colors.primary }]}>
-            <Ionicons name="wallet" size={32} color={colors.onPrimary} />
-          </View>
+          <BrandMark size={72} style={styles.logo} />
           {eyebrow && (
             <View style={[styles.eyebrow, { backgroundColor: colors.primarySoft }]}>
               <Ionicons name="sparkles-outline" size={14} color={colors.primary} />
@@ -144,7 +143,7 @@ const styles = StyleSheet.create({
   topBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', minHeight: 44 },
   back: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
   header: { alignItems: 'center', gap: spacing.sm },
-  logo: { width: 72, height: 72, borderRadius: radius.lg, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.sm },
+  logo: { marginBottom: spacing.sm },
   centerText: { textAlign: 'center' },
   form: { gap: spacing.md },
   footer: { marginTop: 'auto', alignItems: 'center', gap: spacing.md },

@@ -1,4 +1,4 @@
-import { useColorScheme } from 'react-native';
+import { Platform, useColorScheme } from 'react-native';
 
 import { useSettings } from '@/state/settings';
 
@@ -47,6 +47,11 @@ export interface ThemeColors {
   shadow: string;
   /** Modal backdrop. */
   scrim: string;
+  /** Brand mark parts (see BrandMark): tilted card, wallet body, clasp tab, coin. */
+  logoCard: string;
+  logoBody: string;
+  logoTab: string;
+  logoCoin: string;
 }
 
 export interface Theme {
@@ -57,62 +62,66 @@ export interface Theme {
 const light: Theme = {
   dark: false,
   colors: {
-    background: '#F8FAFC',
+    background: '#F5F7FB',
     surface: '#FFFFFF',
     surfaceMuted: '#F1F5F9',
-    surfaceTint: '#EFF4FF',
-    border: '#E2E8F0',
-    text: '#0B1C30',
-    textMuted: '#64748B',
+    surfaceTint: '#EDF2F9',
+    border: '#E1E7F0',
+    text: '#0F1E33',
+    textMuted: '#5F6E85',
     textFaint: '#94A3B8',
-    primary: '#006948',
+    primary: '#1C4D86',
     onPrimary: '#FFFFFF',
-    primarySoft: 'rgba(0, 105, 72, 0.10)',
-    hero: '#065F46',
+    primarySoft: 'rgba(28, 77, 134, 0.10)',
+    hero: '#1C4D86',
     onHero: '#FFFFFF',
-    onHeroMuted: 'rgba(255, 255, 255, 0.75)',
-    heroPanel: 'rgba(255, 255, 255, 0.12)',
-    income: '#047857',
-    incomeSoft: 'rgba(4, 120, 87, 0.12)',
-    expense: '#DC2626',
-    expenseSoft: 'rgba(220, 38, 38, 0.10)',
-    debt: '#7C3AED',
-    debtSoft: 'rgba(124, 58, 237, 0.10)',
+    onHeroMuted: 'rgba(255, 255, 255, 0.78)',
+    heroPanel: 'rgba(255, 255, 255, 0.13)',
+    income: '#009753',
+    incomeSoft: 'rgba(0, 151, 83, 0.12)',
+    expense: '#EE64A4',
+    expenseSoft: 'rgba(238, 100, 164, 0.13)',
+    debt: '#7C5CC4',
+    debtSoft: 'rgba(124, 92, 196, 0.12)',
     warning: '#D97706',
     warningSoft: 'rgba(245, 158, 11, 0.14)',
     danger: '#DC2626',
     dangerSoft: 'rgba(220, 38, 38, 0.10)',
     transfer: '#545C72',
     transferSoft: 'rgba(84, 92, 114, 0.12)',
-    shadow: '#0F172A',
+    shadow: '#0F2440',
     scrim: 'rgba(15, 23, 42, 0.35)',
+    logoCard: '#009753',
+    logoBody: '#1C4D86',
+    logoTab: '#2C629F',
+    logoCoin: '#EE64A4',
   },
 };
 
 const dark: Theme = {
   dark: true,
   colors: {
-    background: '#0B1117',
-    surface: '#151D26',
-    surfaceMuted: '#1E2833',
-    surfaceTint: '#1A2633',
-    border: '#2A3642',
+    background: '#0A1220',
+    surface: '#131D2C',
+    surfaceMuted: '#1C2838',
+    surfaceTint: '#1A2740',
+    border: '#283649',
     text: '#EAF1FF',
     textMuted: '#9AA8BC',
     textFaint: '#66758A',
-    primary: '#68DBA9',
-    onPrimary: '#002114',
-    primarySoft: 'rgba(104, 219, 169, 0.14)',
-    hero: '#0E4F3B',
-    onHero: '#F5FFF9',
-    onHeroMuted: 'rgba(245, 255, 249, 0.72)',
-    heroPanel: 'rgba(255, 255, 255, 0.08)',
-    income: '#4ADE80',
-    incomeSoft: 'rgba(74, 222, 128, 0.14)',
-    expense: '#F87171',
-    expenseSoft: 'rgba(248, 113, 113, 0.14)',
-    debt: '#C4B5FD',
-    debtSoft: 'rgba(196, 181, 253, 0.16)',
+    primary: '#8DB4EA',
+    onPrimary: '#0A1C33',
+    primarySoft: 'rgba(141, 180, 234, 0.15)',
+    hero: '#1C4D86',
+    onHero: '#FFFFFF',
+    onHeroMuted: 'rgba(255, 255, 255, 0.75)',
+    heroPanel: 'rgba(255, 255, 255, 0.10)',
+    income: '#3CCB86',
+    incomeSoft: 'rgba(60, 203, 134, 0.15)',
+    expense: '#F48BBE',
+    expenseSoft: 'rgba(244, 139, 190, 0.15)',
+    debt: '#B6A2EC',
+    debtSoft: 'rgba(182, 162, 236, 0.16)',
     warning: '#FBBF24',
     warningSoft: 'rgba(251, 191, 36, 0.16)',
     danger: '#F87171',
@@ -121,8 +130,24 @@ const dark: Theme = {
     transferSoft: 'rgba(190, 198, 224, 0.14)',
     shadow: '#000000',
     scrim: 'rgba(0, 0, 0, 0.55)',
+    logoCard: '#009753',
+    logoBody: '#2B62A6',
+    logoTab: '#4A80C2',
+    logoCoin: '#EE64A4',
   },
 };
+
+/**
+ * Brand typeface, embedded at build time by the expo-font plugin (app.json). iOS resolves the
+ * family from the font files ("Be Vietnam Pro"), Android uses the name declared in app.json.
+ * fontWeight picks the face. Builds without the embedded files (Expo Go, web) fall back to the
+ * system font.
+ */
+export const fontFamily = Platform.select<string | undefined>({
+  ios: 'Be Vietnam Pro',
+  android: 'BeVietnamPro',
+  default: undefined,
+});
 
 export const spacing = {
   xs: 4,

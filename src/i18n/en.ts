@@ -548,4 +548,5 @@ export const en: Record<TranslationKey, string> = {
   'form.personLent': 'Who owes you? e.g. Alex',
   'form.personBorrowed': 'Who do you owe? e.g. Alex',
   'form.debtNotCounted': 'Debts change wallet balances but never count as income, spending or budget. Mark them paid in Debts.',
+  'dashboard.quick.debts': 'Debts',
 };

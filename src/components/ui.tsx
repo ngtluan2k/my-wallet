@@ -1,6 +1,8 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import type { ComponentProps, ReactNode } from 'react';
+import { Children, useEffect, useState, type ComponentProps, type ReactNode } from 'react';
 import {
+  Animated,
+  Easing,
   Modal,
   Pressable,
   ScrollView,
@@ -16,7 +18,13 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { cardShadow, radius, spacing, tint, useTheme, type ThemeColors } from '@/theme';
+import { cardShadow, fontFamily, radius, spacing, tint, useTheme, type ThemeColors } from '@/theme';
+
+import { FadeIn, PressScale, useReducedMotion } from './motion';
+
+/** Entrance stagger for page sections: quick enough that nothing feels delayed. */
+const STAGGER_MS = 45;
+const MAX_STAGGERED = 6;
 
 export type IconName = ComponentProps<typeof Ionicons>['name'];
 
@@ -55,13 +63,13 @@ export function AppText({
   tabular,
   style,
   ...props
-}: TextProps & { tone?: Tone; size?: number; weight?: '400' | '500' | '600' | '700'; tabular?: boolean }) {
+}: TextProps & { tone?: Tone; size?: number; weight?: '400' | '500' | '600' | '700' | '800'; tabular?: boolean }) {
   const { colors } = useTheme();
   return (
     <Text
       {...props}
       style={[
-        { color: toneColor(colors, tone), fontSize: size, fontWeight: weight },
+        { fontFamily, color: toneColor(colors, tone), fontSize: size, fontWeight: weight },
         tabular && styles.tabular,
         style,
       ]}
@@ -73,23 +81,35 @@ export function AppText({
 export function Screen({
   children,
   scroll = true,
+  animate = true,
   contentStyle,
 }: {
   children: ReactNode;
   scroll?: boolean;
+  /** Sections fade and slide in one after another when the page opens. */
+  animate?: boolean;
   contentStyle?: StyleProp<ViewStyle>;
 }) {
   const { colors } = useTheme();
   if (!scroll) {
     return <View style={[styles.flex, { backgroundColor: colors.background }, contentStyle]}>{children}</View>;
   }
+  // toArray keys follow each child's position in the source, so a section that appears later
+  // animates in on its own without replaying the others.
+  const content = animate
+    ? Children.toArray(children).map((child, i) => (
+        <FadeIn key={(child as { key?: string }).key ?? i} delay={Math.min(i, MAX_STAGGERED) * STAGGER_MS}>
+          {child}
+        </FadeIn>
+      ))
+    : children;
   return (
     <ScrollView
       style={{ backgroundColor: colors.background }}
       contentContainerStyle={[styles.screenContent, contentStyle]}
       keyboardShouldPersistTaps="handled"
     >
-      {children}
+      {content}
     </ScrollView>
   );
 }
@@ -126,16 +146,23 @@ export function Card({
   const base = [styles.card, { backgroundColor: colors.surface, borderColor: colors.border }, cardShadow(colors)];
   if (!onPress) return <View style={[base, style]}>{children}</View>;
   return (
-    <Pressable onPress={onPress} accessibilityRole="button" style={({ pressed }) => [base, pressed && styles.pressed, style]}>
+    <PressScale onPress={onPress} accessibilityRole="button" scaleTo={0.98} style={[base, style]}>
       {children}
-    </Pressable>
+    </PressScale>
   );
 }
 
 /** Large emphasized card (balance, budget overview). */
 export function HeroCard({ children, style }: { children: ReactNode; style?: StyleProp<ViewStyle> }) {
   const { colors } = useTheme();
-  return <View style={[styles.hero, { backgroundColor: colors.hero }, cardShadow(colors, 2), style]}>{children}</View>;
+  return (
+    <View style={[styles.hero, { backgroundColor: colors.hero }, cardShadow(colors, 2), style]}>
+      {/* Decorative light circles give the flat brand color some depth. */}
+      <View pointerEvents="none" style={[styles.heroGlow, styles.heroGlowTop, { backgroundColor: colors.heroPanel }]} />
+      <View pointerEvents="none" style={[styles.heroGlow, styles.heroGlowBottom, { backgroundColor: colors.heroPanel }]} />
+      {children}
+    </View>
+  );
 }
 
 export function SectionHeader({
@@ -205,20 +232,21 @@ export function Button({
   const foreground = variant === 'primary' ? colors.onPrimary : variant === 'danger' ? colors.danger : colors.text;
   const inactive = disabled || loading;
   return (
-    <Pressable
+    <PressScale
       onPress={onPress}
       disabled={inactive}
       accessibilityRole="button"
       accessibilityState={{ disabled: inactive, busy: loading }}
-      style={({ pressed }) => [
+      style={[
         styles.button,
         compact && styles.buttonCompact,
-        { backgroundColor: background, opacity: inactive ? 0.55 : pressed ? 0.85 : 1 },
+        variant === 'primary' && cardShadow(colors),
+        { backgroundColor: background, opacity: inactive ? 0.55 : 1 },
       ]}
     >
       {icon && <Ionicons name={icon} size={18} color={foreground} />}
       <Text style={[styles.buttonLabel, compact && styles.buttonLabelCompact, { color: foreground }]}>{label}</Text>
-    </Pressable>
+    </PressScale>
   );
 }
 
@@ -233,10 +261,27 @@ export function IconCircle({ icon, color, size = 40 }: { icon: string; color: st
 /** Minimum 8px track with rounded caps, per the design system. */
 export function ProgressBar({ ratio, color, height = 8 }: { ratio: number; color: string; height?: number }) {
   const { colors } = useTheme();
-  const width = `${Math.min(Math.max(ratio, 0), 1) * 100}%` as const;
+  const reduced = useReducedMotion();
+  const target = Math.min(Math.max(ratio, 0), 1);
+  const progress = useState(() => new Animated.Value(reduced ? target : 0))[0];
+  useEffect(() => {
+    if (reduced) {
+      progress.setValue(target);
+      return;
+    }
+    const animation = Animated.timing(progress, {
+      toValue: target,
+      duration: 700,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: false,
+    });
+    animation.start();
+    return () => animation.stop();
+  }, [progress, target, reduced]);
+  const width = progress.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] });
   return (
     <View style={[styles.track, { height, borderRadius: height / 2, backgroundColor: colors.surfaceMuted }]}>
-      <View style={[styles.fill, { width, backgroundColor: color, borderRadius: height / 2 }]} />
+      <Animated.View style={[styles.fill, { width, backgroundColor: color, borderRadius: height / 2 }]} />
     </View>
   );
 }
@@ -251,8 +296,47 @@ export function SegmentedControl<T extends string>({
   onChange(value: T): void;
 }) {
   const { colors } = useTheme();
+  const reduced = useReducedMotion();
+  const [width, setWidth] = useState(0);
+  const index = Math.max(
+    options.findIndex((o) => o.value === value),
+    0,
+  );
+  const position = useState(() => new Animated.Value(index))[0];
+  useEffect(() => {
+    if (reduced) position.setValue(index);
+    else Animated.spring(position, { toValue: index, useNativeDriver: true, speed: 18, bounciness: 6 }).start();
+  }, [index, position, reduced]);
+
+  // The thumb slides under the labels; each segment is (inner width − gaps) / count wide.
+  const segmentWidth = width > 0 ? (width - SEGMENT_PAD * 2 - SEGMENT_GAP * (options.length - 1)) / options.length : 0;
+  const translateX = position.interpolate({
+    inputRange: [0, Math.max(options.length - 1, 1)],
+    outputRange: [0, (segmentWidth + SEGMENT_GAP) * Math.max(options.length - 1, 1)],
+  });
+  const thumbColor = options[index]?.color;
+
   return (
-    <View style={[styles.segmented, { backgroundColor: colors.surfaceMuted, borderColor: colors.border }]} accessibilityRole="tablist">
+    <View
+      style={[styles.segmented, { backgroundColor: colors.surfaceMuted, borderColor: colors.border }]}
+      accessibilityRole="tablist"
+      onLayout={(e) => setWidth(e.nativeEvent.layout.width)}
+    >
+      {segmentWidth > 0 && (
+        <Animated.View
+          pointerEvents="none"
+          style={[
+            styles.thumb,
+            cardShadow(colors),
+            {
+              width: segmentWidth,
+              backgroundColor: colors.surface,
+              borderColor: thumbColor ? tint(thumbColor, 0.35) : colors.border,
+              transform: [{ translateX }],
+            },
+          ]}
+        />
+      )}
       {options.map((option) => {
         const selected = option.value === value;
         return (
@@ -261,12 +345,13 @@ export function SegmentedControl<T extends string>({
             onPress={() => onChange(option.value)}
             accessibilityRole="tab"
             accessibilityState={{ selected }}
-            style={[styles.segment, selected && [{ backgroundColor: colors.surface }, cardShadow(colors)]]}
+            style={[styles.segment, selected && segmentWidth === 0 && [{ backgroundColor: colors.surface }, cardShadow(colors)]]}
           >
             {selected && option.color && <View style={[styles.dot, { backgroundColor: option.color }]} />}
             <Text
               numberOfLines={1}
               style={{
+                fontFamily,
                 color: selected ? (option.color ?? colors.primary) : colors.textMuted,
                 fontSize: 14,
                 fontWeight: selected ? '600' : '500',
@@ -295,21 +380,22 @@ export function Chip({
   const { colors } = useTheme();
   const accent = color ?? colors.primary;
   return (
-    <Pressable
+    <PressScale
       onPress={onPress}
       accessibilityRole="button"
       accessibilityState={{ selected }}
-      style={({ pressed }) => [
+      scaleTo={0.94}
+      style={[
         styles.chip,
         {
           borderColor: selected ? accent : colors.border,
           backgroundColor: selected ? tint(accent, 0.12) : colors.surface,
         },
-        pressed && styles.pressed,
       ]}
     >
-      <Text style={{ color: selected ? accent : colors.text, fontSize: 14, fontWeight: selected ? '600' : '500' }}>{label}</Text>
-    </Pressable>
+      {selected && <Ionicons name="checkmark" size={14} color={accent} />}
+      <Text style={{ fontFamily, color: selected ? accent : colors.text, fontSize: 14, fontWeight: selected ? '600' : '500' }}>{label}</Text>
+    </PressScale>
   );
 }
 
@@ -463,14 +549,14 @@ export function TextField({
 export function EmptyState({ icon, message }: { icon: IconName; message: string }) {
   const { colors } = useTheme();
   return (
-    <View style={styles.empty}>
-      <View style={[styles.emptyIcon, { backgroundColor: colors.surfaceMuted }]}>
-        <Ionicons name={icon} size={28} color={colors.textMuted} />
+    <FadeIn style={styles.empty} offset={8}>
+      <View style={[styles.emptyIcon, { backgroundColor: colors.primarySoft }]}>
+        <Ionicons name={icon} size={30} color={colors.primary} />
       </View>
       <AppText tone="muted" style={styles.centerText}>
         {message}
       </AppText>
-    </View>
+    </FadeIn>
   );
 }
 
@@ -488,13 +574,25 @@ export function Sheet({
 }) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
+  const reduced = useReducedMotion();
+  const slide = useState(() => new Animated.Value(0))[0];
+  useEffect(() => {
+    if (!visible) return;
+    if (reduced) {
+      slide.setValue(1);
+      return;
+    }
+    slide.setValue(0);
+    Animated.spring(slide, { toValue: 1, useNativeDriver: true, speed: 16, bounciness: 4 }).start();
+  }, [visible, reduced, slide]);
+  const translateY = slide.interpolate({ inputRange: [0, 1], outputRange: [360, 0] });
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <Pressable style={[styles.flex, { backgroundColor: colors.scrim }]} onPress={onClose} accessibilityLabel={title} />
-      <View
+      <Animated.View
         style={[
           styles.sheet,
-          { backgroundColor: colors.background, paddingBottom: Math.max(insets.bottom, spacing.md) },
+          { backgroundColor: colors.background, paddingBottom: Math.max(insets.bottom, spacing.md), transform: [{ translateY }] },
         ]}
       >
         <View style={[styles.grabber, { backgroundColor: colors.border }]} />
@@ -509,10 +607,13 @@ export function Sheet({
         <ScrollView style={styles.sheetBody} contentContainerStyle={styles.sheetContent} keyboardShouldPersistTaps="handled">
           {children}
         </ScrollView>
-      </View>
+      </Animated.View>
     </Modal>
   );
 }
+
+const SEGMENT_PAD = 3;
+const SEGMENT_GAP = 3;
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
@@ -528,7 +629,10 @@ const styles = StyleSheet.create({
   eyebrow: { letterSpacing: 0.8, marginBottom: 2 },
   fieldLabel: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: spacing.sm },
   card: { borderRadius: radius.lg, borderWidth: StyleSheet.hairlineWidth, padding: spacing.md, gap: spacing.md },
-  hero: { borderRadius: radius.xl, padding: spacing.lg, gap: spacing.md },
+  hero: { borderRadius: radius.xl, padding: spacing.lg, gap: spacing.md, overflow: 'hidden' },
+  heroGlow: { position: 'absolute', borderRadius: 999 },
+  heroGlowTop: { width: 220, height: 220, top: -110, right: -60 },
+  heroGlowBottom: { width: 160, height: 160, bottom: -90, left: -40 },
   sectionHeader: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: spacing.md },
   groupLabel: { letterSpacing: 0.8, marginBottom: -spacing.sm, paddingHorizontal: spacing.xs },
   button: {
@@ -541,11 +645,25 @@ const styles = StyleSheet.create({
     borderRadius: radius.pill,
   },
   buttonCompact: { minHeight: 40, paddingHorizontal: spacing.md },
-  buttonLabel: { fontSize: 17, fontWeight: '600' },
+  buttonLabel: { fontFamily, fontSize: 17, fontWeight: '600' },
   buttonLabelCompact: { fontSize: 15 },
   track: { overflow: 'hidden' },
   fill: { height: '100%' },
-  segmented: { flexDirection: 'row', borderRadius: radius.md, borderWidth: StyleSheet.hairlineWidth, padding: 3, gap: 3 },
+  segmented: {
+    flexDirection: 'row',
+    borderRadius: radius.md,
+    borderWidth: StyleSheet.hairlineWidth,
+    padding: SEGMENT_PAD,
+    gap: SEGMENT_GAP,
+  },
+  thumb: {
+    position: 'absolute',
+    top: SEGMENT_PAD,
+    bottom: SEGMENT_PAD,
+    left: SEGMENT_PAD,
+    borderRadius: radius.sm,
+    borderWidth: 1,
+  },
   segment: {
     flex: 1,
     flexDirection: 'row',
@@ -556,9 +674,17 @@ const styles = StyleSheet.create({
     borderRadius: radius.sm,
   },
   dot: { width: 8, height: 8, borderRadius: 4 },
-  chip: { paddingHorizontal: spacing.md, paddingVertical: 8, borderRadius: radius.pill, borderWidth: 1 },
+  chip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 8,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+  },
   badge: { borderRadius: radius.pill, paddingHorizontal: 10, paddingVertical: 4, maxWidth: 180 },
-  badgeText: { fontSize: 12, fontWeight: '600' },
+  badgeText: { fontFamily, fontSize: 12, fontWeight: '600' },
   listGroup: { borderRadius: radius.lg, borderWidth: StyleSheet.hairlineWidth, overflow: 'hidden' },
   divider: { height: StyleSheet.hairlineWidth, marginLeft: 64 },
   listRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingVertical: 14, paddingHorizontal: spacing.md, minHeight: 56 },
@@ -575,7 +701,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     minHeight: 52,
   },
-  input: { flex: 1, fontSize: 16, paddingVertical: 12 },
+  input: { flex: 1, fontFamily, fontSize: 16, paddingVertical: 12 },
   empty: { alignItems: 'center', gap: spacing.md, paddingVertical: spacing.xl, paddingHorizontal: spacing.lg },
   emptyIcon: { width: 64, height: 64, borderRadius: 32, alignItems: 'center', justifyContent: 'center' },
   sheet: { borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl, maxHeight: '85%' },

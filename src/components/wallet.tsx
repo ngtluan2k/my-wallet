@@ -3,6 +3,8 @@ import { router } from 'expo-router';
 import { useMemo, type ReactNode } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
+import { PressScale } from './motion';
+
 import { addMonths, today } from '@/domain/dates';
 import type { Category, CategoryType, MonthKey, Transaction, Wallet } from '@/domain/types';
 import { activeWallets } from '@/domain/wallets';
@@ -181,11 +183,12 @@ export function CategoryGrid({
       {categories.map((c) => {
         const selected = c.id === selectedId;
         return (
-          <Pressable
+          <PressScale
             key={c.id}
             onPress={() => onSelect(c.id)}
             accessibilityRole="button"
             accessibilityState={{ selected }}
+            scaleTo={0.9}
             style={[
               styles.gridItem,
               { borderColor: selected ? c.color : 'transparent', backgroundColor: selected ? tint(c.color, 0.08) : 'transparent' },
@@ -200,7 +203,7 @@ export function CategoryGrid({
                 <Ionicons name="checkmark" size={12} color={colors.onPrimary} />
               </View>
             )}
-          </Pressable>
+          </PressScale>
         );
       })}
       {trailing}
@@ -212,14 +215,14 @@ export function CategoryGrid({
 export function GridTile({ icon, label, onPress }: { icon: IconName; label: string; onPress(): void }) {
   const { colors } = useTheme();
   return (
-    <Pressable onPress={onPress} accessibilityRole="button" style={[styles.gridItem, { borderColor: 'transparent' }]}>
+    <PressScale onPress={onPress} accessibilityRole="button" scaleTo={0.9} style={[styles.gridItem, { borderColor: 'transparent' }]}>
       <View style={[styles.moreIcon, { backgroundColor: colors.surfaceMuted }]}>
         <Ionicons name={icon} size={22} color={colors.textMuted} />
       </View>
       <AppText size={12} tone="muted" numberOfLines={1}>
         {label}
       </AppText>
-    </Pressable>
+    </PressScale>
   );
 }
 
