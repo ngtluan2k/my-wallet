@@ -139,8 +139,8 @@ export default function DashboardScreen() {
             {money(balance)}
           </AppText>
           <View style={styles.row}>
-            <HeroStat icon="arrow-down" label={t('dashboard.monthIncome')} value={signedMoney(summary.income)} />
-            <HeroStat icon="arrow-up" label={t('dashboard.monthExpense')} value={signedMoney(-summary.expense)} />
+            <HeroStat icon="arrow-down" color={colors.income} label={t('dashboard.monthIncome')} value={signedMoney(summary.income)} />
+            <HeroStat icon="arrow-up" color={colors.expense} label={t('dashboard.monthExpense')} value={signedMoney(-summary.expense)} />
           </View>
         </HeroCard>
 
@@ -191,32 +191,20 @@ export default function DashboardScreen() {
 
         {(debtSummary.owedToMe > 0 || debtSummary.iOwe > 0) && (
           <Card onPress={() => router.push('/debts')}>
-            <SectionHeader title={t('dashboard.debts.title')} />
+            <SectionHeader title={t('dashboard.debts.title')} actionLabel={t('common.seeAll')} onAction={() => router.push('/debts')} />
             <View style={styles.row}>
-              <Pressable
-                style={styles.flex}
+              <DebtTile
+                icon="arrow-up-circle-outline"
+                label={t('dashboard.debts.owedToMe')}
+                value={money(debtSummary.owedToMe)}
                 onPress={() => router.push({ pathname: '/debts', params: { direction: 'lent' } })}
-                accessibilityRole="button"
-              >
-                <AppText tone="muted" size={13}>
-                  {t('dashboard.debts.owedToMe')}
-                </AppText>
-                <AppText weight="600" size={17} tabular tone="income" numberOfLines={1} adjustsFontSizeToFit>
-                  {money(debtSummary.owedToMe)}
-                </AppText>
-              </Pressable>
-              <Pressable
-                style={styles.flex}
+              />
+              <DebtTile
+                icon="arrow-down-circle-outline"
+                label={t('dashboard.debts.iOwe')}
+                value={money(debtSummary.iOwe)}
                 onPress={() => router.push({ pathname: '/debts', params: { direction: 'borrowed' } })}
-                accessibilityRole="button"
-              >
-                <AppText tone="muted" size={13}>
-                  {t('dashboard.debts.iOwe')}
-                </AppText>
-                <AppText weight="600" size={17} tabular tone="expense" numberOfLines={1} adjustsFontSizeToFit>
-                  {money(debtSummary.iOwe)}
-                </AppText>
-              </Pressable>
+              />
             </View>
           </Card>
         )}
@@ -290,12 +278,36 @@ export default function DashboardScreen() {
   );
 }
 
-function HeroStat({ icon, label, value }: { icon: IconName; label: string; value: string }) {
+/** Same pattern as the ledger's flow tiles: a soft tile, a tinted icon bubble, the amount in the flow's color. */
+function DebtTile({ icon, label, value, onPress }: { icon: IconName; label: string; value: string; onPress(): void }) {
+  const { colors } = useTheme();
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      style={({ pressed }) => [styles.debtTile, { backgroundColor: colors.debtSoft }, pressed && styles.pressed]}
+    >
+      <View style={styles.heroStatLabel}>
+        <Ionicons name={icon} size={16} color={colors.debt} />
+        <AppText tone="muted" size={13} numberOfLines={1} style={styles.flex}>
+          {label}
+        </AppText>
+      </View>
+      <AppText weight="700" size={17} tabular tone="debt" numberOfLines={1} adjustsFontSizeToFit>
+        {value}
+      </AppText>
+    </Pressable>
+  );
+}
+
+function HeroStat({ icon, color, label, value }: { icon: IconName; color: string; label: string; value: string }) {
   const { colors } = useTheme();
   return (
     <View style={[styles.heroStat, { backgroundColor: colors.heroPanel }]}>
       <View style={styles.heroStatLabel}>
-        <Ionicons name={icon} size={14} color={colors.onHeroMuted} />
+        <View style={[styles.heroStatIcon, { backgroundColor: colors.surface }]}>
+          <Ionicons name={icon} size={12} color={color} />
+        </View>
         <AppText tone="onHeroMuted" size={13} numberOfLines={1}>
           {label}
         </AppText>
@@ -329,6 +341,8 @@ const styles = StyleSheet.create({
   heroChip: { flexDirection: 'row', alignItems: 'center', gap: 4, borderRadius: radius.pill, paddingHorizontal: 10, paddingVertical: 4 },
   heroStat: { flex: 1, borderRadius: radius.md, padding: spacing.md, gap: spacing.xs },
   heroStatLabel: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
+  heroStatIcon: { width: 20, height: 20, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  debtTile: { flex: 1, minWidth: 0, borderRadius: radius.md, padding: spacing.sm + 4, gap: 4 },
   quickRow: { flexDirection: 'row', justifyContent: 'space-between' },
   quick: { flex: 1, alignItems: 'center', gap: spacing.sm },
   quickIcon: { borderRadius: 32, borderWidth: StyleSheet.hairlineWidth, padding: 6 },

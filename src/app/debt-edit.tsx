@@ -133,8 +133,8 @@ export default function DebtEditScreen() {
           value={direction}
           onChange={setDirection}
           options={[
-            { value: 'lent', label: t('debt.direction.lent'), color: colors.income },
-            { value: 'borrowed', label: t('debt.direction.borrowed'), color: colors.expense },
+            { value: 'lent', label: t('debt.direction.lent'), color: colors.debt },
+            { value: 'borrowed', label: t('debt.direction.borrowed'), color: colors.debt },
           ]}
         />
 

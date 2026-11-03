@@ -10,9 +10,10 @@ import { CategoryGrid, CategorySheet, GridTile, useCategories, WalletSheet } fro
 import { formatLocalDate, formatTime, toLocalDate, toPickerDate, today } from '@/domain/dates';
 import { addAmount, appendDigits, removeLastDigit } from '@/domain/money';
 import { vietnameseAmountWords } from '@/domain/numberWords';
+import { MAX_PERSON_LENGTH, type DebtError } from '@/domain/debts';
 import { MAX_NOTE_LENGTH, type TransactionError } from '@/domain/transactions';
-import type { TransactionType } from '@/domain/types';
-import { activeWallets, defaultWalletId, walletBalances } from '@/domain/wallets';
+import type { DebtDirection, TransactionType } from '@/domain/types';
+import { defaultWalletId, walletBalances } from '@/domain/wallets';
 import { useT } from '@/i18n';
 import { useSelectedMonth } from '@/state/ui';
 import { useDebts, useTransactions, useWallet, useWallets, walletStore } from '@/state/wallet';
@@ -30,8 +31,14 @@ const DIGIT_ROWS = [
 
 type Picker = 'category' | 'wallet' | 'toWallet' | 'date' | 'time' | null;
 
+/**
+ * What the screen records: an income/expense transaction, or a debt (saved to the debt book).
+ * Transfers can't be created any more; an old transfer can still be edited or deleted.
+ */
+type Mode = TransactionType | 'debt';
+
 export default function TransactionScreen() {
-  const { id } = useLocalSearchParams<{ id?: string }>();
+  const { id, mode: modeParam, direction: directionParam } = useLocalSearchParams<{ id?: string; mode?: string; direction?: string }>();
   const existing = useWallet((s) => (id ? s.data?.transactions.find((t) => t.id === id) : undefined));
   const { t, language, money, relativeDate } = useT();
   const { colors } = useTheme();
@@ -43,7 +50,9 @@ export default function TransactionScreen() {
   const debts = useDebts();
   const balances = useMemo(() => walletBalances(wallets, transactions, debts), [wallets, transactions, debts]);
 
-  const [type, setType] = useState<TransactionType>(existing?.type ?? 'expense');
+  const [type, setType] = useState<Mode>(existing?.type ?? (modeParam === 'debt' ? 'debt' : 'expense'));
+  const [direction, setDirection] = useState<DebtDirection>(directionParam === 'borrowed' ? 'borrowed' : 'lent');
+  const [person, setPerson] = useState('');
   const [amount, setAmount] = useState(existing?.amount ?? 0);
   const [categoryId, setCategoryId] = useState(existing?.categoryId);
   const [walletId, setWalletId] = useState(existing?.walletId ?? defaultWalletId(wallets) ?? '');
@@ -64,11 +73,21 @@ export default function TransactionScreen() {
   }, [typeCategories, categoryId]);
 
   const walletName = (wid: string | undefined) => wallets.find((w) => w.id === wid)?.name;
-  const accent = type === 'income' ? colors.income : type === 'expense' ? colors.expense : colors.transfer;
+  const accent = { income: colors.income, expense: colors.expense, debt: colors.debt, transfer: colors.transfer }[type];
+  const accentSoft = { income: colors.incomeSoft, expense: colors.expenseSoft, debt: colors.debtSoft, transfer: colors.transferSoft }[type];
+  const isFlow = type === 'income' || type === 'expense';
 
-  function changeType(next: TransactionType) {
+  const modes: { value: Mode; label: string; color: string }[] = [
+    { value: 'expense', label: t('type.expense'), color: colors.expense },
+    { value: 'income', label: t('type.income'), color: colors.income },
+  ];
+  // A saved transaction can't become a debt, and new transfers can't be created.
+  if (!existing) modes.push({ value: 'debt', label: t('type.debt'), color: colors.debt });
+  if (existing?.type === 'transfer') modes.push({ value: 'transfer', label: t('type.transfer'), color: colors.transfer });
+
+  function changeType(next: Mode) {
     setType(next);
-    if (next !== 'transfer' && categoriesMap.get(categoryId ?? '')?.type !== next) setCategoryId(undefined);
+    if ((next === 'income' || next === 'expense') && categoriesMap.get(categoryId ?? '')?.type !== next) setCategoryId(undefined);
   }
 
   function pressKey(key: string) {
@@ -76,8 +95,22 @@ export default function TransactionScreen() {
     else setAmount((a) => appendDigits(a, key));
   }
 
+  async function saveDebt() {
+    setSaving(true);
+    try {
+      await walletStore.getState().addDebt({ direction, person, amount, walletId, date, note });
+      router.back();
+    } catch (error) {
+      const message = error instanceof ValidationError ? t(`debt.error.${(error.errors as DebtError[])[0]}`) : t('storage.saveFailed');
+      Alert.alert(t('common.error'), message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
   async function save() {
     if (saving) return;
+    if (type === 'debt') return saveDebt();
     const input = {
       type,
       amount,
@@ -153,27 +186,26 @@ export default function TransactionScreen() {
       </View>
 
       <ScrollView style={styles.flex} contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
-        <SegmentedControl<TransactionType>
-          value={type}
-          onChange={changeType}
-          options={[
-            { value: 'expense', label: t('type.expense'), color: colors.expense },
-            { value: 'income', label: t('type.income'), color: colors.income },
-            { value: 'transfer', label: t('type.transfer'), color: colors.transfer },
-          ]}
-        />
+        <SegmentedControl<Mode> value={type} onChange={changeType} options={modes} />
 
-        <View style={[styles.amountCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <AppText tone="muted" size={12} weight="600" style={styles.caps}>
-            {t('form.amount')}
+        <View style={[styles.amountCard, { backgroundColor: accentSoft, borderColor: accent }]}>
+          <AppText size={12} weight="600" style={[styles.caps, { color: accent }]}>
+            {type === 'debt' ? t(direction === 'lent' ? 'debt.direction.lent' : 'debt.direction.borrowed') : t('form.amount')}
           </AppText>
           <View style={styles.amountRow}>
-            {type !== 'transfer' && (
+            {isFlow && (
               <AppText size={32} weight="700" style={{ color: accent }}>
                 {type === 'expense' ? '−' : '+'}
               </AppText>
             )}
-            <AppText size={40} weight="700" tabular adjustsFontSizeToFit numberOfLines={1} style={styles.amountText}>
+            <AppText
+              size={40}
+              weight="700"
+              tabular
+              adjustsFontSizeToFit
+              numberOfLines={1}
+              style={[styles.amountText, { color: accent }]}
+            >
               {money(amount)}
             </AppText>
           </View>
@@ -184,17 +216,45 @@ export default function TransactionScreen() {
           )}
         </View>
 
-        {type === 'transfer' && activeWallets(wallets).length < 2 && (
-          <View style={[styles.card, styles.notice, { backgroundColor: colors.warningSoft, borderColor: colors.border }]}>
-            <Ionicons name="information-circle-outline" size={20} color={colors.warning} />
-            <AppText size={14} style={styles.flex}>
-              {t('form.transferNeedsWallet')}
+        {type === 'debt' && (
+          <>
+            <View style={styles.directionRow}>
+              <DirectionCard
+                icon="arrow-up-circle-outline"
+                title={t('debt.direction.lent')}
+                hint={t('form.debtLentHint')}
+                selected={direction === 'lent'}
+                onPress={() => setDirection('lent')}
+              />
+              <DirectionCard
+                icon="arrow-down-circle-outline"
+                title={t('debt.direction.borrowed')}
+                hint={t('form.debtBorrowedHint')}
+                selected={direction === 'borrowed'}
+                onPress={() => setDirection('borrowed')}
+              />
+            </View>
+            <View style={[styles.card, styles.personRow, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+              <View style={[styles.cellIcon, { backgroundColor: colors.debtSoft }]}>
+                <Ionicons name="person-outline" size={18} color={colors.debt} />
+              </View>
+              <TextInput
+                value={person}
+                onChangeText={setPerson}
+                placeholder={t(direction === 'lent' ? 'form.personLent' : 'form.personBorrowed')}
+                placeholderTextColor={colors.textFaint}
+                maxLength={MAX_PERSON_LENGTH}
+                style={[styles.personInput, { color: colors.text }]}
+                accessibilityLabel={t('debt.person')}
+              />
+            </View>
+            <AppText tone="muted" size={13}>
+              {t('form.debtNotCounted')}
             </AppText>
-            <Button compact label={t('wallets.add')} onPress={() => router.push('/wallet-edit')} />
-          </View>
+          </>
         )}
 
-        {type !== 'transfer' && (
+        {isFlow && (
           <View style={styles.section}>
             <AppText tone="muted" size={13} weight="600" style={styles.caps}>
               {t(type === 'income' ? 'form.incomeCategories' : 'form.expenseCategories')}
@@ -216,13 +276,15 @@ export default function TransactionScreen() {
 
         <View style={[styles.card, styles.cells, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <DetailRow icon="calendar-outline" label={t('form.date')} value={dateLabel} onPress={() => setPicker('date')} />
-          <DetailRow
-            icon="time-outline"
-            label={t('form.time')}
-            value={time ?? t('form.timeNone')}
-            onPress={() => setPicker('time')}
-            divider
-          />
+          {type !== 'debt' && (
+            <DetailRow
+              icon="time-outline"
+              label={t('form.time')}
+              value={time ?? t('form.timeNone')}
+              onPress={() => setPicker('time')}
+              divider
+            />
+          )}
           {type === 'transfer' ? (
             <>
               <DetailRow
@@ -243,7 +305,7 @@ export default function TransactionScreen() {
           ) : (
             <DetailRow
               icon="wallet-outline"
-              label={t('form.wallet')}
+              label={type === 'debt' ? t(direction === 'lent' ? 'debt.walletLent' : 'debt.walletBorrowed') : t('form.wallet')}
               value={walletName(walletId) ?? t('form.selectWallet')}
               onPress={() => setPicker('wallet')}
               divider
@@ -256,7 +318,7 @@ export default function TransactionScreen() {
             <TextInput
               value={note}
               onChangeText={setNote}
-              placeholder={t('form.notePlaceholder')}
+              placeholder={type === 'debt' ? t('debt.notePlaceholder') : t('form.notePlaceholder')}
               placeholderTextColor={colors.textFaint}
               maxLength={MAX_NOTE_LENGTH}
               multiline
@@ -325,7 +387,13 @@ export default function TransactionScreen() {
       />
       <WalletSheet
         visible={picker === 'wallet'}
-        title={type === 'transfer' ? t('form.fromWallet') : t('form.wallet')}
+        title={
+          type === 'transfer'
+            ? t('form.fromWallet')
+            : type === 'debt'
+              ? t(direction === 'lent' ? 'debt.walletLent' : 'debt.walletBorrowed')
+              : t('form.wallet')
+        }
         selectedId={walletId}
         balances={balances}
         onSelect={setWalletId}
@@ -387,6 +455,47 @@ export default function TransactionScreen() {
         </>
       )}
     </View>
+  );
+}
+
+function DirectionCard({
+  icon,
+  title,
+  hint,
+  selected,
+  onPress,
+}: {
+  icon: IconName;
+  title: string;
+  hint: string;
+  selected: boolean;
+  onPress(): void;
+}) {
+  const { colors } = useTheme();
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="radio"
+      accessibilityState={{ selected }}
+      style={({ pressed }) => [
+        styles.direction,
+        {
+          backgroundColor: selected ? colors.debtSoft : colors.surface,
+          borderColor: selected ? colors.debt : colors.border,
+          opacity: pressed ? 0.85 : 1,
+        },
+      ]}
+    >
+      <View style={styles.directionHead}>
+        <Ionicons name={icon} size={20} color={selected ? colors.debt : colors.textMuted} />
+        <AppText weight="700" size={15} style={selected ? { color: colors.debt } : undefined}>
+          {title}
+        </AppText>
+      </View>
+      <AppText tone="muted" size={12}>
+        {hint}
+      </AppText>
+    </Pressable>
   );
 }
 
@@ -471,7 +580,11 @@ const styles = StyleSheet.create({
   section: { gap: spacing.sm },
   card: { borderRadius: radius.lg, borderWidth: StyleSheet.hairlineWidth, padding: spacing.sm },
   cells: { padding: 0, overflow: 'hidden' },
-  notice: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, padding: spacing.md },
+  directionRow: { flexDirection: 'row', gap: spacing.sm },
+  direction: { flex: 1, borderRadius: radius.lg, borderWidth: 1.5, padding: spacing.md, gap: spacing.xs },
+  directionHead: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
+  personRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
+  personInput: { flex: 1, fontSize: 16, paddingVertical: 8 },
   cell: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingHorizontal: spacing.md, paddingVertical: 14 },
   cellIcon: { width: 32, height: 32, borderRadius: radius.sm, alignItems: 'center', justifyContent: 'center' },
   cellLabel: { flexShrink: 0 },

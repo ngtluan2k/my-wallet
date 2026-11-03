@@ -28,6 +28,7 @@ export type Tone =
   | 'income'
   | 'expense'
   | 'transfer'
+  | 'debt'
   | 'warning'
   | 'danger'
   | 'onPrimary'

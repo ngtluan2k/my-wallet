@@ -7,7 +7,7 @@ Quyết định sản phẩm (11/2026):
 
 - Bắt buộc đăng nhập bằng email + mật khẩu (Supabase). Không có Apple / Google.
 - Dữ liệu lưu trên máy theo từng tài khoản và đồng bộ lên Supabase. App vẫn dùng được khi mất mạng.
-- Có nhiều ví, số dư ban đầu, chuyển khoản giữa các ví, giờ giao dịch (không bắt buộc).
+- Có nhiều ví, số dư ban đầu, sổ nợ (cho vay / đi vay), giờ giao dịch (không bắt buộc). Không tạo chuyển khoản giữa các ví (chuyển khoản cũ vẫn hiển thị, sửa và xoá được).
 - Chỉ dùng VND. Không đổi tiền tệ.
 - Khoá ứng dụng bằng mã PIN 4 số, có thể mở bằng Face ID / Touch ID. Mặc định tắt.
 - Không có: quét hoá đơn, thông báo (chuông), ảnh avatar, lời chào theo tên.
@@ -17,8 +17,8 @@ Quy tắc chung:
 - Mọi nút trên màn hình đều phải hoạt động. Tính năng chưa có thì không hiển thị.
 - Màu lấy từ theme (`src/theme`), có cả sáng và tối. Chuỗi lấy từ `src/i18n` (vi + en).
 - Số tiền: số nguyên đồng, hiển thị `1.500.000 ₫` (vi) hoặc `₫1,500,000` (en), chữ số tabular.
-- Thu màu xanh có dấu `+`, chi màu đỏ có dấu `−`, chuyển khoản màu xám trung tính và không có dấu.
-- Chuyển khoản không tính vào tổng thu/chi, ngân sách hay báo cáo.
+- Màu thống nhất ở mọi màn: **thu xanh lá** có dấu `+`, **chi đỏ** có dấu `−`, **nợ tím** (`colors.debt`) không có dấu; chuyển khoản cũ màu xám trung tính.
+- Nợ và chuyển khoản không tính vào tổng thu/chi, ngân sách hay báo cáo.
 
 ## Thanh tab
 
@@ -45,25 +45,26 @@ Tên ví lấy từ dữ liệu, không cố định (Momo/Techcombank trong ả
 ## Sổ giao dịch (`(tabs)/transactions.tsx`)
 
 1. Tiêu đề "QUẢN LÝ DÒNG TIỀN / Sổ giao dịch", nút **Lọc** (mở sheet: lọc theo ví, theo danh mục; có số bộ lọc đang bật).
-2. Thẻ chọn tháng (‹ Tháng này (Tháng 11/2026) ›) + phân đoạn **Tất cả / Chi tiêu / Thu nhập / Chuyển khoản**.
+2. Thẻ chọn tháng (‹ Tháng này (Tháng 11/2026) ›) + phân đoạn **Tất cả / Chi tiêu / Thu nhập**.
 3. Thẻ Chênh lệch thu chi của tháng, với ô Tổng thu / Tổng chi.
 4. Ô tìm kiếm theo ghi chú và tên danh mục, không phân biệt dấu ("an uong" tìm ra "Ăn uống").
 5. Danh sách nhóm theo ngày: "Hôm nay • 2 Tháng 11", "Hôm qua • …", "15 Tháng 10 • Chủ nhật", kèm chênh lệch của ngày.
    Mỗi dòng: icon danh mục · ghi chú (hoặc tên danh mục) · "Danh mục • giờ" · số tiền · tên ví.
-   Chuyển khoản: icon ⇄, tiêu đề "Ví A → Ví B".
+   Chuyển khoản cũ: icon ⇄, tiêu đề "Ví A → Ví B".
 
 ## Thêm / sửa giao dịch (`transaction.tsx`, modal)
 
 - Thanh trên: Hủy · Thêm giao dịch / Sửa giao dịch · Lưu.
-- Phân đoạn **Chi tiền / Thu tiền / Chuyển khoản**.
-- Thẻ số tiền: số lớn có dấu; dòng đọc số thành chữ tiếng Việt ("Một trăm năm mươi nghìn đồng"), chỉ hiện khi ngôn ngữ là tiếng Việt.
+- Phân đoạn **Chi tiền / Thu tiền / Nợ** (khi sửa chỉ có Chi/Thu; khi sửa chuyển khoản cũ có thêm Chuyển khoản). `?mode=debt&direction=lent|borrowed` mở sẵn chế độ Nợ.
+- Thẻ số tiền: nền nhạt và chữ theo màu của loại (xanh/đỏ/tím), số lớn có dấu (nợ không có dấu); dòng đọc số thành chữ tiếng Việt ("Một trăm năm mươi nghìn đồng"), chỉ hiện khi ngôn ngữ là tiếng Việt.
 - Lưới danh mục (Chi/Thu): 7 ô + "Xem tất cả" (sheet đủ danh mục). Danh mục đang chọn luôn hiện trong lưới.
-  Ẩn với chuyển khoản.
-- Ô chi tiết: Ngày · Giờ (có thể bỏ) · Ví nguồn (chuyển khoản: Từ ví + Đến ví) · Ghi chú.
+  Ẩn với nợ và chuyển khoản.
+- Chế độ Nợ: hai thẻ chọn **Cho vay** / **Đi vay** (có mô tả ngắn), ô tên người, ghi chú rằng nợ không tính vào thu chi. Lưu vào Sổ nợ, không tạo giao dịch.
+- Ô chi tiết: Ngày · Giờ (có thể bỏ; ẩn với nợ) · Ví (nợ: Lấy tiền từ ví / Nhận tiền vào ví) · Ghi chú.
 - Bàn phím số: 1–9, **C**, 0, **000**; cột phải: ⌫ và nút **Xong** cao 3 hàng. **Không có phím "."** (VND không có phần lẻ).
 - Nút nhanh **+50.000 / +100.000 / +500.000** **cộng thêm** vào số đang nhập, không nối chuỗi.
 - Lỗi hiển thị cụ thể (thiếu danh mục, hai ví trùng nhau…). Khi sửa có nút **Xóa giao dịch**.
-- Chuyển khoản khi chỉ có một ví: hiện gợi ý kèm nút **Thêm ví**; bộ chọn ví trống cũng có nút này.
+- Bộ chọn ví trống có nút **Thêm ví**.
 
 ## Ngân sách (`(tabs)/budget.tsx`)
 

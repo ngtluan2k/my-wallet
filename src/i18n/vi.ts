@@ -388,7 +388,6 @@ export const vi = {
   'auth.error.link_invalid': 'Liên kết đã hết hạn hoặc đã được dùng. Hãy yêu cầu gửi lại email.',
   'auth.error.delete_failed': 'Chưa xoá được tài khoản. Vui lòng thử lại sau.',
   'form.noOtherWallet': 'Chưa có ví nào khác để chọn. Hãy thêm một ví mới.',
-  'form.transferNeedsWallet': 'Chuyển khoản cần ít nhất hai ví.',
   'wallets.unarchive': 'Khôi phục ví',
   'newPassword.title': 'Đặt mật khẩu mới',
   'newPassword.subtitle': 'Bạn đã mở liên kết đặt lại mật khẩu. Hãy chọn mật khẩu mới cho tài khoản.',
@@ -543,6 +542,12 @@ export const vi = {
   'debt.error.note_too_long': 'Ghi chú quá dài.',
   'debt.error.settle_date_invalid': 'Ngày trả không được trước ngày vay.',
   'debt.error.settle_wallet_invalid': 'Chọn ví nhận hoặc trả tiền.',
+  'type.debt': 'Nợ',
+  'form.debtLentHint': 'Đưa tiền cho người khác, họ sẽ trả lại',
+  'form.debtBorrowedHint': 'Nhận tiền của người khác, mình sẽ trả lại',
+  'form.personLent': 'Ai nợ bạn? Ví dụ: Minh',
+  'form.personBorrowed': 'Bạn nợ ai? Ví dụ: Minh',
+  'form.debtNotCounted': 'Khoản nợ làm thay đổi số dư ví nhưng không tính vào thu chi hay ngân sách. Xem và đánh dấu đã trả trong Sổ nợ.',
 } as const;
 
 export type TranslationKey = keyof typeof vi;

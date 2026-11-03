@@ -389,7 +389,6 @@ export const en: Record<TranslationKey, string> = {
   'auth.error.link_invalid': 'This link has expired or was already used. Please request a new email.',
   'auth.error.delete_failed': 'Couldn’t delete the account. Please try again later.',
   'form.noOtherWallet': 'There’s no other wallet to choose. Add a new one.',
-  'form.transferNeedsWallet': 'Transfers need at least two wallets.',
   'wallets.unarchive': 'Restore wallet',
   'newPassword.title': 'Set a new password',
   'newPassword.subtitle': 'You opened a password reset link. Choose a new password for your account.',
@@ -543,4 +542,10 @@ export const en: Record<TranslationKey, string> = {
   'debt.error.note_too_long': 'The note is too long.',
   'debt.error.settle_date_invalid': "The payment date can't be before the debt date.",
   'debt.error.settle_wallet_invalid': 'Choose a wallet for the payment.',
+  'type.debt': 'Debt',
+  'form.debtLentHint': 'You give money; they pay you back',
+  'form.debtBorrowedHint': 'You receive money; you pay it back',
+  'form.personLent': 'Who owes you? e.g. Alex',
+  'form.personBorrowed': 'Who do you owe? e.g. Alex',
+  'form.debtNotCounted': 'Debts change wallet balances but never count as income, spending or budget. Mark them paid in Debts.',
 };

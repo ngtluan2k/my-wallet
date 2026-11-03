@@ -21,7 +21,7 @@ export default function DebtsScreen() {
   const totals = useMemo(() => debtTotals(debts), [debts]);
   const shown = useMemo(() => sortDebts(debts.filter((d) => d.direction === direction)), [debts, direction]);
   const open = direction === 'lent' ? totals.owedToMe : totals.iOwe;
-  const add = () => router.push({ pathname: '/debt-edit', params: { direction } });
+  const add = () => router.push({ pathname: '/transaction', params: { mode: 'debt', direction } });
 
   return (
     <>
@@ -42,15 +42,18 @@ export default function DebtsScreen() {
           value={direction}
           onChange={setDirection}
           options={[
-            { value: 'lent', label: t('debt.tab.lent'), color: colors.income },
-            { value: 'borrowed', label: t('debt.tab.borrowed'), color: colors.expense },
+            { value: 'lent', label: t('debt.tab.lent'), color: colors.debt },
+            { value: 'borrowed', label: t('debt.tab.borrowed'), color: colors.debt },
           ]}
         />
-        <Card>
-          <AppText tone="muted" size={14}>
-            {direction === 'lent' ? t('debt.totalOpen') : t('debt.totalOpenBorrowed')}
-          </AppText>
-          <AppText size={26} weight="700" tabular tone={direction === 'lent' ? 'income' : 'expense'}>
+        <Card style={{ backgroundColor: colors.debtSoft, borderColor: colors.debt }}>
+          <View style={styles.totalHead}>
+            <Ionicons name={direction === 'lent' ? 'arrow-up-circle' : 'arrow-down-circle'} size={18} color={colors.debt} />
+            <AppText tone="debt" size={14} weight="600">
+              {direction === 'lent' ? t('debt.totalOpen') : t('debt.totalOpenBorrowed')}
+            </AppText>
+          </View>
+          <AppText size={28} weight="700" tabular tone="debt" adjustsFontSizeToFit numberOfLines={1}>
             {money(open)}
           </AppText>
         </Card>
@@ -81,7 +84,7 @@ function DebtRow({ debt }: { debt: Debt }) {
       accessibilityRole="button"
       style={({ pressed }) => [styles.row, pressed && { backgroundColor: colors.surfaceTint }, settled && styles.settled]}
     >
-      <IconCircle icon={lent ? 'arrow-up-circle-outline' : 'arrow-down-circle-outline'} color={lent ? colors.income : colors.expense} />
+      <IconCircle icon={lent ? 'arrow-up-circle-outline' : 'arrow-down-circle-outline'} color={colors.debt} />
       <View style={styles.flex}>
         <View style={styles.nameRow}>
           <AppText weight="600" size={16} numberOfLines={1} style={styles.shrink}>
@@ -98,7 +101,7 @@ function DebtRow({ debt }: { debt: Debt }) {
           </AppText>
         ) : null}
       </View>
-      <AppText weight="600" tabular tone={settled ? 'muted' : lent ? 'income' : 'expense'}>
+      <AppText weight="600" tabular tone={settled ? 'muted' : 'debt'}>
         {money(debt.amount)}
       </AppText>
     </Pressable>
@@ -111,4 +114,5 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingHorizontal: spacing.md, paddingVertical: 12 },
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   settled: { opacity: 0.6 },
+  totalHead: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
 });

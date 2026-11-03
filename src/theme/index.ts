@@ -38,6 +38,9 @@ export interface ThemeColors {
   warningSoft: string;
   danger: string;
   dangerSoft: string;
+  /** Money lent or borrowed: its own hue so it never reads as income (green) or expense (red). */
+  debt: string;
+  debtSoft: string;
   /** Neutral for transfers. */
   transfer: string;
   transferSoft: string;
@@ -71,8 +74,10 @@ const light: Theme = {
     heroPanel: 'rgba(255, 255, 255, 0.12)',
     income: '#047857',
     incomeSoft: 'rgba(4, 120, 87, 0.12)',
-    expense: '#EF4444',
-    expenseSoft: 'rgba(239, 68, 68, 0.10)',
+    expense: '#DC2626',
+    expenseSoft: 'rgba(220, 38, 38, 0.10)',
+    debt: '#7C3AED',
+    debtSoft: 'rgba(124, 58, 237, 0.10)',
     warning: '#D97706',
     warningSoft: 'rgba(245, 158, 11, 0.14)',
     danger: '#DC2626',
@@ -106,6 +111,8 @@ const dark: Theme = {
     incomeSoft: 'rgba(74, 222, 128, 0.14)',
     expense: '#F87171',
     expenseSoft: 'rgba(248, 113, 113, 0.14)',
+    debt: '#C4B5FD',
+    debtSoft: 'rgba(196, 181, 253, 0.16)',
     warning: '#FBBF24',
     warningSoft: 'rgba(251, 191, 36, 0.16)',
     danger: '#F87171',

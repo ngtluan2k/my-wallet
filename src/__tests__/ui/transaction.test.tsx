@@ -61,9 +61,31 @@ describe('add transaction screen', () => {
     expect(router.back).toHaveBeenCalled();
   });
 
-  it('warns that a transfer needs a second wallet', async () => {
+  it('offers expense, income and debt, but no transfer', async () => {
     await render(<TransactionScreen />);
-    await fireEvent.press(screen.getByText('Chuyển khoản'));
-    expect(screen.getByText('Chuyển khoản cần ít nhất hai ví.')).toBeTruthy();
+    expect(screen.getByText('Chi tiền')).toBeTruthy();
+    expect(screen.getByText('Thu tiền')).toBeTruthy();
+    expect(screen.getByText('Nợ')).toBeTruthy();
+    expect(screen.queryByText('Chuyển khoản')).toBeNull();
+  });
+
+  it('records a debt in the debt book instead of a transaction', async () => {
+    const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => undefined);
+    await render(<TransactionScreen />);
+    await fireEvent.press(screen.getByText('Nợ'));
+    await fireEvent.press(screen.getByText('Đi vay'));
+    await press('2');
+    await press('000');
+
+    await press('Xong');
+    expect(alert).toHaveBeenCalledWith('Đã có lỗi', 'Nhập tên người.');
+
+    await fireEvent.changeText(screen.getByLabelText('Người'), 'Lan');
+    await press('Xong');
+    expect(walletStore.getState().data?.transactions).toEqual([]);
+    expect(walletStore.getState().data?.debts).toEqual([
+      expect.objectContaining({ direction: 'borrowed', person: 'Lan', amount: 2000, walletId: 'wallet-default' }),
+    ]);
+    expect(router.back).toHaveBeenCalled();
   });
 });

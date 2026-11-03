@@ -73,7 +73,6 @@ export default function TransactionsScreen() {
             { value: 'all', label: t('common.all') },
             { value: 'expense', label: t('type.short.expense') },
             { value: 'income', label: t('type.short.income') },
-            { value: 'transfer', label: t('type.short.transfer') },
           ]}
         />
       </Card>
